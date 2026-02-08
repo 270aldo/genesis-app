@@ -16,6 +16,8 @@ import {
   JetBrainsMono_600SemiBold,
   JetBrainsMono_700Bold,
 } from '@expo-google-fonts/jetbrains-mono';
+import { useAuthStore } from '../stores';
+import { supabaseClient, hasSupabaseConfig } from '../services/supabaseClient';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,11 +31,34 @@ export default function RootLayout() {
     JetBrainsMonoBold: JetBrainsMono_700Bold,
   });
 
-  useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+  const isInitialized = useAuthStore((s) => s.isInitialized);
+  const initialize = useAuthStore((s) => s.initialize);
+  const setSession = useAuthStore((s) => s.setSession);
 
-  if (!fontsLoaded) return null;
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) return;
+
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (!session) {
+          useAuthStore.setState({ user: null });
+        }
+      },
+    );
+
+    return () => subscription.unsubscribe();
+  }, [setSession]);
+
+  useEffect(() => {
+    if (fontsLoaded && isInitialized) SplashScreen.hideAsync();
+  }, [fontsLoaded, isInitialized]);
+
+  if (!fontsLoaded || !isInitialized) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0D0D2B' }}>
