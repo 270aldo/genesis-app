@@ -5,9 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react-native';
 import { GlassCard } from '../../components/ui';
+import { useAuth } from '../../hooks';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -20,7 +22,7 @@ export default function ForgotPasswordScreen() {
     setError('');
     setLoading(true);
     try {
-      // TODO: Connect to Supabase Auth resetPasswordForEmail
+      await resetPassword(email);
       setSent(true);
     } catch (err: any) {
       setError(err?.message ?? 'Something went wrong');

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Target, Dumbbell, Timer, Ruler, ChevronRight } from 'lucide-react-native';
 import { GlassCard, ProgressBar } from '../../components/ui';
+import { useAuth } from '../../hooks';
 
 type Step = 'goal' | 'experience' | 'schedule' | 'body' | 'review';
 
@@ -39,6 +40,9 @@ const SCHEDULES = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { userId } = useLocalSearchParams<{ userId: string }>();
+  const { upsertProfile, user } = useAuth();
+
   const [stepIndex, setStepIndex] = useState(0);
   const [goal, setGoal] = useState('');
   const [level, setLevel] = useState('');
@@ -46,6 +50,8 @@ export default function OnboardingScreen() {
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [age, setAge] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const currentStep = STEPS[stepIndex];
   const progress = ((stepIndex + 1) / STEPS.length) * 100;
@@ -67,12 +73,29 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (stepIndex < STEPS.length - 1) {
       setStepIndex(stepIndex + 1);
     } else {
-      // TODO: Save profile to Supabase
-      router.replace('/(tabs)/home');
+      setSaving(true);
+      setSaveError('');
+      try {
+        const profileId = userId ?? user?.id;
+        if (!profileId) throw new Error('No user ID available');
+        await upsertProfile(profileId, {
+          full_name: user?.name ?? '',
+          age: parseInt(age, 10) || null,
+          weight_kg: parseFloat(weight) || null,
+          height_cm: parseFloat(height) || null,
+          goal: goal || null,
+          experience_level: level || null,
+        });
+        router.replace('/(tabs)/home');
+      } catch (err: any) {
+        setSaveError(err?.message ?? 'Failed to save profile');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -238,11 +261,16 @@ export default function OnboardingScreen() {
             </GlassCard>
           )}
 
+          {/* Save Error */}
+          {saveError ? (
+            <Text className="font-inter text-[13px] text-[#ff6b6b]">{saveError}</Text>
+          ) : null}
+
           {/* Next Button */}
           <Pressable
             onPress={handleNext}
-            disabled={!canAdvance()}
-            style={{ opacity: canAdvance() ? 1 : 0.4 }}
+            disabled={!canAdvance() || saving}
+            style={{ opacity: canAdvance() && !saving ? 1 : 0.4 }}
           >
             <LinearGradient
               colors={['#6D00FF', '#5B21B6']}
@@ -258,9 +286,13 @@ export default function OnboardingScreen() {
               }}
             >
               <Text className="font-jetbrains-semibold text-[14px] text-white">
-                {currentStep === 'review' ? 'START YOUR JOURNEY' : 'CONTINUE'}
+                {saving
+                  ? 'SAVING...'
+                  : currentStep === 'review'
+                    ? 'START YOUR JOURNEY'
+                    : 'CONTINUE'}
               </Text>
-              <ChevronRight size={18} color="#FFFFFF" />
+              {!saving && <ChevronRight size={18} color="#FFFFFF" />}
             </LinearGradient>
           </Pressable>
         </ScrollView>

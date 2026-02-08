@@ -5,9 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { GlassCard } from '../../components/ui';
+import { useAuth } from '../../hooks';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { signUp } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +29,8 @@ export default function SignUpScreen() {
     setError('');
     setLoading(true);
     try {
-      // TODO: Connect to Supabase Auth signUp
-      router.push('/(auth)/onboarding');
+      const { userId } = await signUp(email, password, fullName);
+      router.push({ pathname: '/(auth)/onboarding', params: { userId } });
     } catch (err: any) {
       setError(err?.message ?? 'Something went wrong');
     } finally {
