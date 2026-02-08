@@ -50,6 +50,7 @@ genesis-app/
 │   ├── (auth)/        login, sign-up, onboarding, forgot-password
 │   ├── (tabs)/        home, train, fuel, mind, track
 │   ├── (modals)/      genesis-chat, camera-scanner, voice-call, exercise-video, check-in
+│   ├── (screens)/     library, exercise-detail, education, education-detail
 │   └── _layout.tsx    Root layout
 ├── components/
 │   ├── ui/            GlassCard, Button, Pill, ProgressBar, SectionLabel, etc.
@@ -648,23 +649,24 @@ Thin layer between mobile app and backend services. Handles auth verification, r
 
 ## Current Implementation Status
 
-### Complete (visual + basic structure)
-- 5 tab screens (home, train, fuel, mind, track)
-- 5 modal screens (genesis-chat, camera-scanner, voice-call, exercise-video, check-in)
-- 4 auth screens (login, sign-up, onboarding, forgot-password)
-- 19 UI components
-- 7 Zustand stores (structure complete, not wired to UI)
-- CustomTabBar + FloatingGenesisButton
-- All config, constants, types, hooks
+### Phase 1-4 Complete (Season-Aware UI with Mock Data)
+- 5 tab screens fully rewritten: home, train, fuel, mind, track — season/phase-aware via `useSeasonStore`
+- 4 stack screens (new): library, exercise-detail, education, education-detail
+- 5 modal screens: genesis-chat (enhanced with quick actions), camera-scanner, voice-call, exercise-video, check-in
+- 4 auth screens wired to Supabase: login, sign-up, onboarding, forgot-password
+- ImageCard component with expo-image + LinearGradient overlays + blurhash
+- SeasonHeader with phase indicator + 12-week progress bar
+- RecoveryHeatmap for muscle recovery visualization
+- 16 mock exercises with formCues in Spanish, 6 education articles, PHASE_CONFIG for 4 phases
+- All navigation routes verified and working end-to-end
+- TypeScript compiles with 0 errors, Expo iOS bundle exports clean
+- Design system enforced: `['#0D0D2B', '#1A0A30']` gradient, custom fonts, lucide icons, no fontWeight
 
 ### NOT functional yet
-- Buttons/interactions don't trigger real actions
-- Screens show hardcoded mock data, not connected to stores
-- Season/Phase/Week system not wired into any screen
-- No Supabase connection (auth, data reads/writes)
-- No agent communication (GENESIS chat is placeholder)
-- No real workout logging flow
-- No real meal logging
+- Stores use mock data — not connected to Supabase queries
+- No interactive workout flow (timer, rest countdown, set logging)
+- No real agent communication (GENESIS chat uses mock keyword responder)
+- No real meal logging or food scanning
 - No A2UI widget rendering from agent responses
 - HealthKit and Vision API services are placeholders
 - No ElevenLabs voice integration
