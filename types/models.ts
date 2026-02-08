@@ -116,3 +116,89 @@ export interface DateRange {
   from?: string;
   to?: string;
 }
+
+// ── Phase & Season Types ──
+
+export type PhaseType = 'hypertrophy' | 'strength' | 'power' | 'deload';
+
+export interface ExerciseLibraryItem {
+  id: string;
+  name: string;
+  muscleGroup: 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'core' | 'full_body';
+  secondaryMuscles: string[];
+  equipment: 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'bodyweight' | 'band';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  imageUrl: string;
+  videoUrl: string;
+  formCues: string[];
+  alternatives: string[];
+  recommendedPhases: PhaseType[];
+}
+
+export interface EducationContent {
+  id: string;
+  title: string;
+  subtitle: string;
+  type: 'micro_lesson' | 'video_course' | 'deep_dive' | 'genesis_explains';
+  category: 'training' | 'nutrition' | 'recovery' | 'mindset' | 'science';
+  imageUrl: string;
+  duration: string;
+  relevantPhases: PhaseType[];
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  completed?: boolean;
+  progress?: number;
+}
+
+export interface CourseEpisode {
+  id: string;
+  courseId: string;
+  title: string;
+  duration: string;
+  videoUrl: string;
+  order: number;
+  completed: boolean;
+}
+
+export interface DailyBriefing {
+  greeting: string;
+  message: string;
+  imageUrl: string;
+  phase: PhaseType;
+  weekNumber: number;
+  seasonNumber: number;
+}
+
+export interface WorkoutPlan {
+  id: string;
+  name: string;
+  dayLabel: string;
+  muscleGroups: string[];
+  exercises: Exercise[];
+  estimatedDuration: number;
+  phase: PhaseType;
+  imageUrl: string;
+}
+
+export interface MuscleRecovery {
+  muscleGroup: string;
+  status: 'recovered' | 'moderate' | 'fatigued';
+  lastTrained: string;
+  daysSinceTraining: number;
+}
+
+export interface QuickAction {
+  id: string;
+  label: string;
+  prompt: string;
+}
+
+export interface WeekExtended extends Week {
+  workoutPlans: WorkoutPlan[];
+  nutritionTargets: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    surplus: number;
+  };
+}

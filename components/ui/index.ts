@@ -17,3 +17,4 @@ export * from './SimpleBarChart';
 export * from './StreakCounter';
 export * from './Typography';
 export * from './WaterDots';
+export * from './SeasonHeader';
