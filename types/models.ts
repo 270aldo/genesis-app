@@ -29,6 +29,16 @@ export interface Season {
   progressPercent: number;
 }
 
+export interface ExerciseSet {
+  setNumber: number;
+  targetReps: number;
+  targetWeight: number;
+  actualReps?: number;
+  actualWeight?: number;
+  rpe?: number;
+  completed: boolean;
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -39,6 +49,7 @@ export interface Exercise {
   completed: boolean;
   notes?: string;
   videoUrl?: string;
+  exerciseSets?: ExerciseSet[];
 }
 
 export interface WorkoutSession {

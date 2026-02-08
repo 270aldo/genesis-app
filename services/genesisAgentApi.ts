@@ -9,14 +9,22 @@ import type {
   SessionResponse,
   User,
 } from '../types';
+import { useAuthStore } from '../stores/useAuthStore';
 
 const bffUrl = process.env.EXPO_PUBLIC_BFF_URL ?? 'http://localhost:8000';
+
+function getAuthHeaders(): Record<string, string> {
+  const token = useAuthStore.getState().session?.access_token;
+  if (token) return { Authorization: `Bearer ${token}` };
+  return {};
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${bffUrl}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...(init?.headers ?? {}),
     },
   });
@@ -33,7 +41,11 @@ export const genesisAgentApi = {
   async sendMessage(input: GenesisMessageInput): Promise<GenesisResponse> {
     return request<GenesisResponse>('/mobile/chat', {
       method: 'POST',
-      body: JSON.stringify({ message: input.message, agent_id: input.agentId }),
+      body: JSON.stringify({
+        message: input.message,
+        agent_id: input.agentId,
+        conversation_id: input.conversationId ?? undefined,
+      }),
     });
   },
 

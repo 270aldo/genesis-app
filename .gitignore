@@ -42,5 +42,10 @@ yarn-error.*
 /ios
 /android
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+
 # Claude internal
 .claude/

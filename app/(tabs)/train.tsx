@@ -6,7 +6,7 @@ import { Dumbbell, Clock, Sparkles, ChevronRight, Info } from 'lucide-react-nati
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ListItemCard, Pill, ScreenHeader, SectionLabel, Divider, SeasonHeader } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
-import { useSeasonStore } from '../../stores';
+import { useSeasonStore, useTrainingStore } from '../../stores';
 import { MOCK_WORKOUT_PLANS, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
 
@@ -136,9 +136,23 @@ export default function TrainScreen() {
           </GlassCard>
 
           {/* Start Button */}
-          <GradientCard className="items-center py-4">
-            <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>START WORKOUT</Text>
-          </GradientCard>
+          <Pressable
+            onPress={() => {
+              const session = {
+                id: `session-${Date.now()}`,
+                date: new Date().toISOString(),
+                exercises: workout.exercises.map((ex) => ({ ...ex, completed: false })),
+                duration: 0,
+                completed: false,
+              };
+              useTrainingStore.getState().startWorkout(session);
+              router.push('/(screens)/active-workout');
+            }}
+          >
+            <GradientCard className="items-center py-4">
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>START WORKOUT</Text>
+            </GradientCard>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

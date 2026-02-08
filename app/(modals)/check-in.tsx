@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { X, Sun, CloudRain, Zap, Moon, AlertTriangle, CheckCircle } from 'lucide-react-native';
 import { GlassCard } from '../../components/ui';
+import { useWellnessStore } from '../../stores';
 
 const MOODS = [
   { id: 'great', label: 'Great', icon: Sun, color: '#22ff73' },
@@ -31,7 +32,23 @@ export default function CheckInScreen() {
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
-    // TODO: Save check-in to Supabase
+
+    // Map UI values to store format
+    const moodMap: Record<string, string> = { great: 'excellent', good: 'good', okay: 'neutral', tired: 'poor', bad: 'terrible' };
+    const sleepHoursMap: Record<string, number> = { '< 5h': 4.5, '5-6h': 5.5, '6-7h': 6.5, '7-8h': 7.5, '8h+': 8.5 };
+    const sleepQualityMap: Record<string, string> = { '< 5h': 'poor', '5-6h': 'fair', '6-7h': 'fair', '7-8h': 'good', '8h+': 'excellent' };
+    const sorenessMap: Record<string, number> = { None: 0, Shoulders: 3, Back: 4, Knees: 4, Wrists: 2, 'Full body': 5 };
+
+    await useWellnessStore.getState().submitCheckIn({
+      mood: moodMap[mood] ?? 'neutral',
+      sleepHours: sleepHoursMap[sleep] ?? 7,
+      sleepQuality: sleepQualityMap[sleep] ?? 'fair',
+      stressLevel: Math.max(1, 6 - energy),
+      energyLevel: energy * 2,
+      soreness: sorenessMap[soreness] ?? 0,
+      notes: notes || undefined,
+    });
+
     setSubmitted(true);
   };
 

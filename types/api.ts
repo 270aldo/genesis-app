@@ -3,6 +3,8 @@ import type { AgentId, ChatMessage, DateRange, Exercise, User, WellnessCheckIn, 
 export interface GenesisMessageInput {
   message: string;
   agentId?: AgentId;
+  conversationId?: string | null;
+  userId?: string | null;
 }
 
 export interface GenesisResponse {
