@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,15 @@ import { ImageCard } from '../../components/cards';
 import { useSeasonStore } from '../../stores';
 import { MOCK_WORKOUT_PLANS, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
+
+const EXERCISE_NAME_TO_LIB_ID: Record<string, string> = {
+  'Bench Press': 'lib_bench',
+  'Incline DB Press': 'lib_incline_db',
+  'Cable Flyes': 'lib_cable_fly',
+  'OHP': 'lib_ohp',
+  'Lateral Raises': 'lib_lat_raise',
+  'Tricep Pushdowns': 'lib_tricep_pushdown',
+};
 
 export default function TrainScreen() {
   const router = useRouter();
@@ -75,22 +84,34 @@ export default function TrainScreen() {
           </GlassCard>
 
           {/* Exercises */}
-          <SectionLabel title="EJERCICIOS">
+          <View style={{ gap: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
+                EJERCICIOS
+              </Text>
+              <Pressable onPress={() => router.push('/(screens)/library')}>
+                <Text style={{ color: '#b39aff', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                  Ver librería →
+                </Text>
+              </Pressable>
+            </View>
             <View style={{ gap: 12 }}>
-              {exercises.map((ex, index) => (
+              {exercises.map((ex) => (
                 <ListItemCard
                   key={ex.id}
                   icon={<Dumbbell size={18} color={phaseConfig.accentColor} />}
                   title={ex.name}
                   subtitle={`${ex.sets} × ${ex.reps} reps · ${ex.weight} ${ex.unit}`}
                   variant="purple"
-                  right={
-                    <ChevronRight size={16} color="#827a89" />
-                  }
+                  onPress={() => {
+                    const libId = EXERCISE_NAME_TO_LIB_ID[ex.name];
+                    if (libId) router.push(`/(screens)/exercise-detail?id=${libId}`);
+                  }}
+                  right={<ChevronRight size={16} color="#827a89" />}
                 />
               ))}
             </View>
-          </SectionLabel>
+          </View>
 
           <Divider />
 

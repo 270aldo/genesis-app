@@ -111,6 +111,7 @@ export default function HomeScreen() {
                 height={140}
                 badge={todayLesson.duration}
                 badgeColor={phaseConfig.color}
+                onPress={() => router.push(`/(screens)/education-detail?id=${todayLesson.id}`)}
               >
                 <View style={{ gap: 4 }}>
                   <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
