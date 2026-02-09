@@ -53,3 +53,20 @@ class ExerciseLogResponse(BaseModel):
 
 class TodayWorkoutResponse(BaseModel):
     session: dict[str, Any] | None = None
+
+
+class TodayPlanExercise(BaseModel):
+    exercise_id: str
+    name: str
+    sets: int
+    reps: int
+    rest_seconds: int
+    order: int
+    category: str | None = None
+    muscle_groups: list[str] = []
+    difficulty: str | None = None
+    cues: list[str] = []
+
+
+class TodayPlanResponse(BaseModel):
+    plan: dict[str, Any] | None = None

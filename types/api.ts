@@ -49,3 +49,26 @@ export interface ProfileResponse {
 export interface GetSessionsParams {
   range?: DateRange;
 }
+
+export interface TodayPlanExercise {
+  exercise_id: string;
+  name: string;
+  sets: number;
+  reps: number;
+  rest_seconds: number;
+  order: number;
+  category?: string;
+  muscle_groups?: string[];
+  difficulty?: string;
+  cues?: string[];
+}
+
+export interface TodayPlanResponse {
+  plan: {
+    name: string;
+    muscle_groups: string[];
+    estimated_duration: number;
+    exercises: TodayPlanExercise[];
+    phase_focus?: string;
+  } | null;
+}

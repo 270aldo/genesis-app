@@ -7,6 +7,7 @@ import type {
   GenesisResponse,
   GetSessionsParams,
   SessionResponse,
+  TodayPlanResponse,
   User,
 } from '../types';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -74,5 +75,9 @@ export const genesisAgentApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  },
+
+  async getTodayPlan(): Promise<TodayPlanResponse> {
+    return request<TodayPlanResponse>('/mobile/training/today');
   },
 };

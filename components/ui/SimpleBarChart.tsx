@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { GENESIS_COLORS } from '../../constants/colors';
 
 type BarData = {
   label: string;
@@ -24,7 +25,10 @@ export function SimpleBarChart({ data, maxHeight = 100 }: SimpleBarChartProps) {
               />
             )}
           </View>
-          <Text className={`font-jetbrains text-[9px] ${day.active ? 'text-white' : 'text-[#6b6b7b]'}`}>
+          <Text
+            className={`font-jetbrains text-[9px] ${day.active ? 'text-white' : ''}`}
+            style={!day.active ? { color: GENESIS_COLORS.textMuted } : undefined}
+          >
             {day.label}
           </Text>
         </View>

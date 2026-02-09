@@ -433,6 +433,90 @@ export type Database = {
           previous_value?: number | null;
         }
       >;
+      weekly_plans: BaseTable<
+        {
+          id: string;
+          phase_id: string;
+          day_of_week: number;
+          name: string;
+          muscle_groups: string[];
+          exercises: Json;
+          estimated_duration: number;
+          created_at: string;
+        },
+        {
+          id?: string;
+          phase_id: string;
+          day_of_week: number;
+          name: string;
+          muscle_groups: string[];
+          exercises: Json;
+          estimated_duration?: number;
+          created_at?: string;
+        },
+        {
+          day_of_week?: number;
+          name?: string;
+          muscle_groups?: string[];
+          exercises?: Json;
+          estimated_duration?: number;
+        }
+      >;
+      water_logs: BaseTable<
+        {
+          id: string;
+          user_id: string;
+          date: string;
+          glasses: number;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          date: string;
+          glasses?: number;
+          created_at?: string;
+        },
+        {
+          glasses?: number;
+        }
+      >;
+      education_content: BaseTable<
+        {
+          id: string;
+          title: string;
+          subtitle: string | null;
+          category: 'training' | 'nutrition' | 'recovery' | 'mindset';
+          body_md: string;
+          image_url: string | null;
+          difficulty: 'beginner' | 'intermediate' | 'advanced';
+          duration_min: number;
+          phase_tags: string[];
+          created_at: string;
+        },
+        {
+          id?: string;
+          title: string;
+          subtitle?: string | null;
+          category: 'training' | 'nutrition' | 'recovery' | 'mindset';
+          body_md?: string;
+          image_url?: string | null;
+          difficulty?: 'beginner' | 'intermediate' | 'advanced';
+          duration_min?: number;
+          phase_tags?: string[];
+          created_at?: string;
+        },
+        {
+          title?: string;
+          subtitle?: string | null;
+          category?: 'training' | 'nutrition' | 'recovery' | 'mindset';
+          body_md?: string;
+          image_url?: string | null;
+          difficulty?: 'beginner' | 'intermediate' | 'advanced';
+          duration_min?: number;
+          phase_tags?: string[];
+        }
+      >;
       notification_settings: BaseTable<
         {
           id: string;

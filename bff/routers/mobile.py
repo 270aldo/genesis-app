@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from models.requests import ChatRequest, CheckInRequest, ExerciseLogRequest
-from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse
+from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse
 from services.auth import get_current_user_id
 from services.supabase import get_supabase
 from services.agent_router import route_to_agent
@@ -93,3 +93,93 @@ async def get_today_workout(user_id: str = Depends(get_current_user_id)):
     )
     session = result.data[0] if result.data else None
     return TodayWorkoutResponse(session=session)
+
+
+@router.get("/training/today", response_model=TodayPlanResponse)
+async def get_today_plan(user_id: str = Depends(get_current_user_id)):
+    from datetime import date
+    sb = get_supabase()
+
+    # 1. Get active season
+    season_result = (
+        sb.table("seasons")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("status", "active")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if not season_result.data:
+        return TodayPlanResponse(plan=None)
+    season_id = season_result.data[0]["id"]
+
+    # 2. Find current phase (today between start_date and end_date)
+    today_str = date.today().isoformat()
+    phase_result = (
+        sb.table("phases")
+        .select("id, name, focus")
+        .eq("season_id", season_id)
+        .lte("start_date", today_str)
+        .gte("end_date", today_str)
+        .limit(1)
+        .execute()
+    )
+    if not phase_result.data:
+        return TodayPlanResponse(plan=None)
+    phase = phase_result.data[0]
+
+    # 3. Find weekly_plan for today's day_of_week (0=Mon...6=Sun)
+    dow = date.today().weekday()
+    plan_result = (
+        sb.table("weekly_plans")
+        .select("*")
+        .eq("phase_id", phase["id"])
+        .eq("day_of_week", dow)
+        .limit(1)
+        .execute()
+    )
+    if not plan_result.data:
+        return TodayPlanResponse(plan=None)
+    weekly_plan = plan_result.data[0]
+
+    # 4. Fetch exercise details for all exercise_ids in the plan
+    exercise_entries = weekly_plan.get("exercises", [])
+    exercise_ids = [e["exercise_id"] for e in exercise_entries if "exercise_id" in e]
+
+    exercises_with_details = []
+    if exercise_ids:
+        ex_result = (
+            sb.table("exercises")
+            .select("id, name, category, muscle_groups, difficulty, cues")
+            .in_("id", exercise_ids)
+            .execute()
+        )
+        ex_map = {e["id"]: e for e in (ex_result.data or [])}
+
+        for entry in exercise_entries:
+            eid = entry.get("exercise_id", "")
+            detail = ex_map.get(eid, {})
+            exercises_with_details.append({
+                "exercise_id": eid,
+                "name": detail.get("name", "Unknown"),
+                "sets": entry.get("sets", 4),
+                "reps": entry.get("reps", 10),
+                "rest_seconds": entry.get("rest_seconds", 75),
+                "order": entry.get("order", 0),
+                "category": detail.get("category"),
+                "muscle_groups": detail.get("muscle_groups", []),
+                "difficulty": detail.get("difficulty"),
+                "cues": detail.get("cues", []),
+            })
+
+    # Sort by order
+    exercises_with_details.sort(key=lambda x: x["order"])
+
+    return TodayPlanResponse(plan={
+        "name": weekly_plan["name"],
+        "muscle_groups": weekly_plan.get("muscle_groups", []),
+        "estimated_duration": weekly_plan.get("estimated_duration", 45),
+        "exercises": exercises_with_details,
+        "phase_focus": phase.get("focus"),
+    })

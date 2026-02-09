@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Target, Dumbbell, Timer, Ruler, ChevronRight, Check } from 'lucide-react-native';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useAuth } from '../../hooks';
+import { generateDefaultSeason } from '../../services/seasonGenerator';
 
 type Step = 'goal' | 'experience' | 'schedule' | 'body' | 'review';
 
@@ -91,6 +92,10 @@ export default function OnboardingScreen() {
           height_cm: parseFloat(height) || null,
           goal: goal || null,
           experience_level: level || null,
+        });
+        // Non-blocking: generate default season in background
+        generateDefaultSeason(profileId, goal, schedule, level).catch((err) => {
+          console.warn('Season generation failed (non-blocking):', err?.message);
         });
         router.replace('/(tabs)/home');
       } catch (err: any) {
