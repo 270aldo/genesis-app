@@ -70,3 +70,21 @@ class TodayPlanExercise(BaseModel):
 
 class TodayPlanResponse(BaseModel):
     plan: dict[str, Any] | None = None
+
+
+class TrackStatsResponse(BaseModel):
+    completed_workouts: int = 0
+    total_prs: int = 0
+    total_planned: int = 0
+
+
+class StrengthDataPoint(BaseModel):
+    label: str
+    value: float
+    active: bool = False
+
+
+class StrengthProgressResponse(BaseModel):
+    exercise_name: str
+    data_points: list[StrengthDataPoint] = []
+    change_percent: int = 0
