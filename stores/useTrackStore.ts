@@ -15,6 +15,7 @@ type TrackingState = {
   streak: number;
   personalRecords: Array<{ exerciseId: string; exerciseName: string; type: string; value: number; achievedAt: string }>;
   isLoading: boolean;
+  error: string | null;
   completedWorkouts: number;
   totalPlanned: number;
   strengthProgress: StrengthProgressData;
@@ -37,6 +38,7 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
   streak: 0,
   personalRecords: [],
   isLoading: false,
+  error: null,
   completedWorkouts: 0,
   totalPlanned: 0,
   strengthProgress: { exerciseName: '', dataPoints: [], changePercent: 0 },
@@ -162,6 +164,7 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
   },
 
   fetchTrackStats: async () => {
+    set({ error: null });
     try {
       const { genesisAgentApi } = await import('../services/genesisAgentApi');
       const data = await genesisAgentApi.getTrackStats();
@@ -171,10 +174,12 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
       });
     } catch (err: any) {
       console.warn('fetchTrackStats failed:', err?.message);
+      set({ error: err?.message ?? 'Error al cargar estadísticas' });
     }
   },
 
   fetchStrengthProgress: async (exerciseName?: string) => {
+    set({ error: null });
     try {
       const { genesisAgentApi } = await import('../services/genesisAgentApi');
       const data = await genesisAgentApi.getStrengthProgress(exerciseName);
@@ -187,6 +192,7 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
       });
     } catch (err: any) {
       console.warn('fetchStrengthProgress failed:', err?.message);
+      set({ error: err?.message ?? 'Error al cargar progreso de fuerza' });
     }
   },
 }));

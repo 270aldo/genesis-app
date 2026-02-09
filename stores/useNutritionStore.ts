@@ -15,6 +15,7 @@ type NutritionState = {
   water: number;
   targetWater: number;
   isLoading: boolean;
+  error: string | null;
   addMeal: (meal: Meal) => void;
   removeMeal: (mealId: string) => void;
   addWater: () => void;
@@ -31,6 +32,7 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
   water: 0,
   targetWater: 8,
   isLoading: false,
+  error: null,
 
   addMeal: (meal) => {
     // Optimistic local update
@@ -94,7 +96,7 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
   },
 
   fetchMeals: async (date) => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
       if (hasSupabaseConfig) {
         const { fetchMealsForDate, getCurrentUserId } = await import('../services/supabaseQueries');
@@ -122,6 +124,7 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
       // No fallback — meals start empty if no Supabase
     } catch (err: any) {
       console.warn('fetchMeals failed:', err?.message);
+      set({ error: err?.message ?? 'Error al cargar comidas' });
     } finally {
       set({ isLoading: false });
     }

@@ -96,3 +96,11 @@ class MealResponse(BaseModel):
 
 class WaterResponse(BaseModel):
     glasses: int = 0
+
+
+class ExerciseListResponse(BaseModel):
+    exercises: list[dict[str, Any]] = []
+
+
+class EducationListResponse(BaseModel):
+    articles: list[dict[str, Any]] = []

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Exercise, ExerciseSet, WorkoutPlan, WorkoutSession } from '../types';
+import type { Exercise, ExerciseLibraryItem, ExerciseSet, WorkoutPlan, WorkoutSession } from '../types';
 import type { Json } from '../types/supabase';
 import { hasSupabaseConfig } from '../services/supabaseClient';
 
@@ -11,10 +11,15 @@ type TrainingState = {
   isLoading: boolean;
   isRestTimerActive: boolean;
   restTimeRemaining: number;
+  error: string | null;
 
   // Today's plan from BFF
   todayPlan: WorkoutPlan | null;
   isTodayPlanLoading: boolean;
+
+  // Exercise catalog
+  exerciseCatalog: ExerciseLibraryItem[];
+  isCatalogLoading: boolean;
 
   // Workout state machine
   workoutStatus: WorkoutStatus;
@@ -33,6 +38,8 @@ type TrainingState = {
   fetchPreviousSessions: () => Promise<void>;
   fetchTodaySession: () => Promise<void>;
   fetchTodayPlan: () => Promise<void>;
+  fetchExerciseCatalog: (muscleGroup?: string, search?: string) => Promise<void>;
+  getExerciseById: (id: string) => ExerciseLibraryItem | undefined;
 
   // Workout state machine actions
   startWorkout: (session: WorkoutSession) => void;
@@ -52,9 +59,13 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   isLoading: false,
   isRestTimerActive: false,
   restTimeRemaining: 0,
+  error: null,
 
   todayPlan: null,
   isTodayPlanLoading: false,
+
+  exerciseCatalog: [],
+  isCatalogLoading: false,
 
   workoutStatus: 'idle',
   startTime: null,
@@ -189,7 +200,7 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   },
 
   fetchTodayPlan: async () => {
-    set({ isTodayPlanLoading: true });
+    set({ isTodayPlanLoading: true, error: null });
     try {
       const { genesisAgentApi } = await import('../services/genesisAgentApi');
       const response = await genesisAgentApi.getTodayPlan();
@@ -216,10 +227,42 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
       }
     } catch (err: any) {
       console.warn('fetchTodayPlan failed, using fallback:', err?.message);
+      set({ error: err?.message ?? 'Error al cargar el plan de hoy' });
       // Fallback handled in the component
     } finally {
       set({ isTodayPlanLoading: false });
     }
+  },
+
+  fetchExerciseCatalog: async (muscleGroup?: string, search?: string) => {
+    set({ isCatalogLoading: true });
+    try {
+      const { genesisAgentApi } = await import('../services/genesisAgentApi');
+      const response = await genesisAgentApi.getExercises({ muscleGroup, search });
+      const items: ExerciseLibraryItem[] = (response.exercises || []).map((row: any) => ({
+        id: row.id,
+        name: row.name ?? '',
+        muscleGroup: (row.muscle_groups?.[0] ?? row.category ?? 'full_body') as ExerciseLibraryItem['muscleGroup'],
+        secondaryMuscles: (row.muscle_groups ?? []).slice(1) as string[],
+        equipment: (row.equipment?.[0] ?? 'bodyweight') as ExerciseLibraryItem['equipment'],
+        difficulty: (row.difficulty ?? 'intermediate') as ExerciseLibraryItem['difficulty'],
+        imageUrl: row.image_url ?? '',
+        videoUrl: row.video_url ?? '',
+        formCues: row.cues ?? [],
+        alternatives: [],
+        recommendedPhases: [],
+      }));
+      set({ exerciseCatalog: items });
+    } catch (err: any) {
+      console.warn('fetchExerciseCatalog failed:', err?.message);
+      set({ exerciseCatalog: [] });
+    } finally {
+      set({ isCatalogLoading: false });
+    }
+  },
+
+  getExerciseById: (id: string) => {
+    return get().exerciseCatalog.find((e) => e.id === id);
   },
 
   // ── Workout State Machine ──

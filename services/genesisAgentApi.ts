@@ -91,4 +91,21 @@ export const genesisAgentApi = {
     const query = exerciseName ? `?exercise_name=${encodeURIComponent(exerciseName)}` : '';
     return request<StrengthProgressResponse>(`/mobile/track/strength-progress${query}`);
   },
+
+  async getExercises(params?: { muscleGroup?: string; search?: string }): Promise<{ exercises: any[] }> {
+    const query = new URLSearchParams();
+    if (params?.muscleGroup) query.set('muscle_group', params.muscleGroup);
+    if (params?.search) query.set('search', params.search);
+    const qs = query.toString();
+    return request<{ exercises: any[] }>(`/mobile/exercises${qs ? `?${qs}` : ''}`);
+  },
+
+  async getEducation(category?: string): Promise<{ articles: any[] }> {
+    const query = category ? `?category=${encodeURIComponent(category)}` : '';
+    return request<{ articles: any[] }>(`/mobile/education${query}`);
+  },
+
+  async getEducationDetail(articleId: string): Promise<any> {
+    return request<any>(`/mobile/education/${articleId}`);
+  },
 };

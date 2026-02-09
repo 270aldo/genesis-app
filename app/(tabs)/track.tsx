@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +27,7 @@ export default function TrackScreen() {
     totalPlanned,
     strengthProgress,
     streak,
+    isLoading: isTrackLoading,
     fetchPersonalRecords,
     fetchTrackStats,
     fetchStrengthProgress,
@@ -67,6 +68,12 @@ export default function TrackScreen() {
           />
 
           <ScreenHeader title="Progress" subtitle="Tu temporada a detalle" />
+
+          {isTrackLoading && (
+            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <ActivityIndicator size="small" color={GENESIS_COLORS.primary} />
+            </View>
+          )}
 
           {/* Season Overview Hero */}
           <ImageCard
