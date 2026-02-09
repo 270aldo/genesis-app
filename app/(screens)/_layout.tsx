@@ -5,7 +5,7 @@ export default function ScreensLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#0D0D2B' },
+        contentStyle: { backgroundColor: '#000000' },
       }}
     />
   );

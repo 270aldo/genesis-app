@@ -22,11 +22,11 @@ export function ImageCard({
   title,
   subtitle,
   badge,
-  badgeColor = '#6c3bff',
+  badgeColor = '#6D00FF',
   height = 180,
   onPress,
   style,
-  overlayColors = ['transparent', 'rgba(13, 13, 43, 0.7)', 'rgba(13, 13, 43, 0.95)'] as [string, string, ...string[]],
+  overlayColors = ['transparent', 'rgba(0, 0, 0, 0.7)', 'rgba(0, 0, 0, 0.95)'] as [string, string, ...string[]],
   children,
 }: ImageCardProps) {
   const content = (
@@ -67,7 +67,7 @@ export function ImageCard({
               </Text>
             )}
             {subtitle && (
-              <Text style={{ color: '#827a89', fontSize: 12, fontFamily: 'Inter' }}>
+              <Text style={{ color: 'rgba(192, 192, 192, 0.60)', fontSize: 12, fontFamily: 'Inter' }}>
                 {subtitle}
               </Text>
             )}

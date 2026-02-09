@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { MOCK_EXERCISE_LIBRARY } from '../../data';
 import type { ExerciseLibraryItem } from '../../types';
 
@@ -21,15 +22,16 @@ const MUSCLE_MAP: Record<string, ExerciseLibraryItem['muscleGroup']> = {
 };
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  beginner: '#22ff73',
-  intermediate: '#F97316',
-  advanced: '#ff6b6b',
+  beginner: GENESIS_COLORS.success,
+  intermediate: GENESIS_COLORS.warning,
+  advanced: GENESIS_COLORS.error,
 };
 
 export default function LibraryScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [muscleFilter, setMuscleFilter] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   const filtered = useMemo(() => {
     let items = MOCK_EXERCISE_LIBRARY;
@@ -47,7 +49,7 @@ export default function LibraryScreen() {
   }, [search, muscleFilter]);
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 16, gap: 16 }}>
@@ -60,30 +62,32 @@ export default function LibraryScreen() {
             </Text>
           </View>
 
-          {/* Search */}
+          {/* Search with focus state */}
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              borderRadius: 12,
+              backgroundColor: GENESIS_COLORS.surfaceCard,
+              borderRadius: 16,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.08)',
+              borderColor: isFocused ? GENESIS_COLORS.borderActive : GENESIS_COLORS.borderSubtle,
               paddingHorizontal: 12,
             }}
           >
-            <Search size={16} color="#827a89" />
+            <Search size={16} color={GENESIS_COLORS.textMuted} />
             <TextInput
               value={search}
               onChangeText={setSearch}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               placeholder="Search exercises..."
-              placeholderTextColor="#827a89"
+              placeholderTextColor={GENESIS_COLORS.textMuted}
               style={{ flex: 1, color: '#FFFFFF', fontFamily: 'Inter', fontSize: 14, paddingVertical: 10 }}
             />
           </View>
 
-          {/* Filter pills */}
+          {/* Filter pills — pill shape with glow */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {MUSCLE_GROUPS.map((mg) => {
               const active = muscleFilter === mg;
@@ -91,20 +95,30 @@ export default function LibraryScreen() {
                 <Pressable
                   key={mg}
                   onPress={() => setMuscleFilter(active ? null : mg)}
-                  style={{
-                    backgroundColor: active ? '#6c3bff' : 'rgba(255,255,255,0.06)',
-                    borderRadius: 12,
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
-                    borderWidth: 1,
-                    borderColor: active ? '#6c3bff' : 'rgba(255,255,255,0.08)',
-                  }}
+                  style={[
+                    {
+                      backgroundColor: active ? GENESIS_COLORS.primary : 'rgba(255,255,255,0.05)',
+                      borderRadius: 9999,
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderWidth: 1,
+                      borderColor: active ? GENESIS_COLORS.primary : GENESIS_COLORS.borderSubtle,
+                    },
+                    active ? {
+                      shadowColor: GENESIS_COLORS.primary,
+                      shadowOpacity: 0.4,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 0 },
+                      elevation: 4,
+                    } : {},
+                  ]}
                 >
                   <Text
                     style={{
-                      color: active ? '#FFFFFF' : '#b39aff',
-                      fontSize: 12,
+                      color: active ? '#FFFFFF' : GENESIS_COLORS.textMuted,
+                      fontSize: 10,
                       fontFamily: 'JetBrainsMonoMedium',
+                      textTransform: 'uppercase',
                     }}
                   >
                     {mg}
@@ -115,7 +129,7 @@ export default function LibraryScreen() {
           </ScrollView>
         </View>
 
-        {/* Grid */}
+        {/* Grid — height 180 */}
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
@@ -130,14 +144,14 @@ export default function LibraryScreen() {
                 title={item.name}
                 badge={item.equipment}
                 badgeColor={DIFFICULTY_COLORS[item.difficulty]}
-                height={160}
+                height={180}
                 onPress={() => router.push(`/(screens)/exercise-detail?id=${item.id}`)}
               />
             </View>
           )}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 40 }}>
-              <Text style={{ color: '#827a89', fontSize: 14, fontFamily: 'Inter' }}>No exercises found</Text>
+              <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 14, fontFamily: 'Inter' }}>No exercises found</Text>
             </View>
           }
         />

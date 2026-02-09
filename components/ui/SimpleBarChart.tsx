@@ -19,7 +19,7 @@ export function SimpleBarChart({ data, maxHeight = 100 }: SimpleBarChartProps) {
           <View className="w-6 rounded-t-[4px] bg-[#FFFFFF14]" style={{ height: maxHeight }}>
             {day.value > 0 && (
               <View
-                className="absolute bottom-0 w-6 rounded-t-[4px] bg-[#b39aff]"
+                className="absolute bottom-0 w-6 rounded-t-[4px] bg-[#6D00FF]"
                 style={{ height: (day.value / 100) * maxHeight }}
               />
             )}

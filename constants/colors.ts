@@ -1,47 +1,62 @@
 export const GENESIS_COLORS = {
+  // Brand Core
+  primary: '#6D00FF',
+  primaryLight: '#9D4EDD',
+  primaryDark: '#4A00B0',
+  primaryDim: 'rgba(109, 0, 255, 0.1)',
+  primaryGlass: 'rgba(109, 0, 255, 0.25)',
+
+  // Chrome Metallic
+  chrome: '#C0C0C0',
+  chromeLight: '#E8E8E8',
+  chromeDark: '#808080',
+  chromeDarker: '#404040',
+
+  // Accents
+  cyan: '#00E5FF',
+  cyanDeep: '#00BBD4',
+  mint: '#00F5AA',
+
+  // Status Semantic
+  success: '#00F5AA',
+  warning: '#FFD93D',
+  error: '#FF6B6B',
+  info: '#00D4FF',
+
   // Backgrounds
-  bgGradientStart: '#0D0D2B',
-  bgGradientEnd: '#1A0A30',
+  bgGradientStart: '#151226',
+  bgGradientMid: '#050507',
+  bgGradientEnd: '#000000',
+  bgVoid: '#050505',
 
-  // Primary
-  primary: '#b39aff',
-  primaryDeep: '#6c3bff',
-
-  // Semantic
-  success: '#22ff73',
-  warning: '#F97316',
-  error: '#ff6b6b',
-  info: '#38bdf8',
+  // Surfaces
+  surfaceCard: 'rgba(10, 10, 10, 0.85)',
+  surfaceElevated: 'rgba(20, 20, 25, 0.6)',
+  surfaceGlass: 'rgba(20, 20, 25, 0.4)',
 
   // Text
   textPrimary: '#FFFFFF',
-  textSecondary: '#827a89',
-  textTertiary: '#6b6b7b',
+  textSecondary: 'rgba(255, 255, 255, 0.60)',
+  textTertiary: 'rgba(192, 192, 192, 0.60)',
+  textMuted: 'rgba(255, 255, 255, 0.40)',
 
-  // Surfaces (with opacity)
-  surfaceGlass: 'rgba(20, 18, 26, 0.7)',
-  surfaceElevated: 'rgba(30, 31, 42, 0.8)',
-
-  // Accents
+  // Borders
   borderSubtle: 'rgba(255, 255, 255, 0.08)',
-  shine: 'rgba(255, 255, 255, 0.05)',
-
-  // NGX Violet
-  ngxViolet: '#6D00FF',
+  borderActive: 'rgba(109, 0, 255, 0.4)',
 } as const;
 
 export const MACRO_COLORS = {
   protein: '#38bdf8',
-  carbs: '#22ff73',
+  carbs: '#00F5AA',
   fat: '#F97316',
 } as const;
 
 export const MOOD_COLORS = {
-  excellent: '#22ff73',
-  good: '#38bdf8',
-  neutral: '#827a89',
-  poor: '#F97316',
-  terrible: '#ff6b6b',
+  excellent: '#00F5AA',
+  good: '#00D4FF',
+  neutral: '#808080',
+  poor: '#FFD93D',
+  terrible: '#FF6B6B',
 } as const;
 
 export type GenesisColor = keyof typeof GENESIS_COLORS;

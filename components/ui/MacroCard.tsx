@@ -17,7 +17,7 @@ export function MacroCard({ label, value, unit, progress, color }: MacroCardProp
       <Text className="font-jetbrains-medium text-[11px]" style={{ color }}>{label}</Text>
       <View className="flex-row items-baseline gap-1">
         <Text className="font-inter-bold text-[18px] text-white">{value}</Text>
-        <Text className="font-inter text-[11px] text-[#827a89]">{unit}</Text>
+        <Text className="font-inter text-[11px]" style={{ color: 'rgba(192, 192, 192, 0.60)' }}>{unit}</Text>
       </View>
       <View className="h-[6px] w-full rounded-[6px] bg-[#FFFFFF14]">
         <View

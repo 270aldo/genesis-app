@@ -15,6 +15,7 @@ import {
 } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { RecoveryHeatmap } from '../../components/wellness';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useWellnessStore } from '../../stores';
 import { MOCK_RECOVERY, PHASE_CONFIG, IMAGES } from '../../data';
 import type { PhaseType } from '../../types';
@@ -28,9 +29,9 @@ const moodLabels: Record<string, string> = {
 };
 
 const meditations = [
-  { id: '1', name: 'Morning Calm', duration: '10 min', type: 'Guided', imageUrl: IMAGES.morning, color: '#b39aff' },
-  { id: '2', name: 'Focus Flow', duration: '15 min', type: 'Ambient', imageUrl: IMAGES.focus, color: '#38bdf8' },
-  { id: '3', name: 'Night Wind Down', duration: '20 min', type: 'Sleep', imageUrl: IMAGES.night, color: '#22ff73' },
+  { id: '1', name: 'Morning Calm', duration: '10 min', type: 'Guided', imageUrl: IMAGES.morning, color: GENESIS_COLORS.primary },
+  { id: '2', name: 'Focus Flow', duration: '15 min', type: 'Ambient', imageUrl: IMAGES.focus, color: GENESIS_COLORS.info },
+  { id: '3', name: 'Night Wind Down', duration: '20 min', type: 'Sleep', imageUrl: IMAGES.night, color: GENESIS_COLORS.success },
 ];
 
 export default function MindScreen() {
@@ -45,10 +46,10 @@ export default function MindScreen() {
   const phaseConfig = PHASE_CONFIG[phase];
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Season Header */}
@@ -93,7 +94,7 @@ export default function MindScreen() {
               {recommendations.map((rec, i) => (
                 <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 4 }}>
                   <Sparkles size={12} color={phaseConfig.accentColor} />
-                  <Text style={{ color: '#c4bfcc', fontSize: 11, fontFamily: 'Inter', flex: 1, lineHeight: 16 }}>{rec}</Text>
+                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, fontFamily: 'Inter', flex: 1, lineHeight: 16 }}>{rec}</Text>
                 </View>
               ))}
             </GlassCard>
@@ -107,12 +108,12 @@ export default function MindScreen() {
                   key={med.id}
                   imageUrl={med.imageUrl}
                   height={100}
-                  overlayColors={['transparent', 'rgba(13, 13, 43, 0.5)', 'rgba(13, 13, 43, 0.9)']}
+                  overlayColors={['transparent', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.9)']}
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View style={{ gap: 2 }}>
                       <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{med.name}</Text>
-                      <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{med.duration} · {med.type}</Text>
+                      <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{med.duration} · {med.type}</Text>
                     </View>
                     <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: med.color + '20', alignItems: 'center', justifyContent: 'center' }}>
                       <Play size={16} color={med.color} />
@@ -127,7 +128,7 @@ export default function MindScreen() {
           <SectionLabel title="SLEEP">
             <GlassCard shine>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Moon size={18} color="#b39aff" />
+                <Moon size={18} color={GENESIS_COLORS.primary} />
                 <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Anoche</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -136,9 +137,9 @@ export default function MindScreen() {
               </View>
               <ProgressBar progress={85} gradient />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 4 }}>
-                <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>Deep: 2h 10m</Text>
-                <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>Light: 4h 03m</Text>
-                <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>REM: 1h 10m</Text>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>Deep: 2h 10m</Text>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>Light: 4h 03m</Text>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>REM: 1h 10m</Text>
               </View>
             </GlassCard>
           </SectionLabel>

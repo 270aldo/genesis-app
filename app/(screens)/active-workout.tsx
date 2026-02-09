@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Pause, Play, ArrowLeft } from 'lucide-react-native';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { theme } from '../../constants/theme';
 import { useSeasonStore, useTrainingStore } from '../../stores';
 import { ExerciseForm } from '../../components/training/ExerciseForm';
@@ -58,7 +59,7 @@ export default function ActiveWorkoutScreen() {
 
   if (!currentSession) {
     return (
-      <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ color: theme.colors.textSecondary }}>No active workout</Text>
           <Pressable onPress={() => router.back()} style={{ marginTop: 16, padding: 12 }}>
@@ -114,7 +115,7 @@ export default function ActiveWorkoutScreen() {
   }
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={{
@@ -212,12 +213,12 @@ export default function ActiveWorkoutScreen() {
             style={{ opacity: allExercisesDone ? 1 : 0.5 }}
           >
             <LinearGradient
-              colors={allExercisesDone ? ['#22ff73', '#16a34a'] : ['#6D00FF', '#5B21B6']}
+              colors={allExercisesDone ? [GENESIS_COLORS.success, '#16a34a'] : [GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
             >
-              <Text style={{ color: allExercisesDone ? '#0D0D2B' : '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>
                 {allExercisesDone ? 'FINISH WORKOUT' : 'FINISH EARLY'}
               </Text>
             </LinearGradient>

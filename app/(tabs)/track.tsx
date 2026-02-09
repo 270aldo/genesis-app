@@ -13,6 +13,7 @@ import {
   ProgressBar,
 } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore } from '../../stores';
 import { PHASE_CONFIG, IMAGES } from '../../data';
 import type { PhaseType } from '../../types';
@@ -47,7 +48,7 @@ export default function TrackScreen() {
   const totalPRs = 4;
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
@@ -67,7 +68,7 @@ export default function TrackScreen() {
           <ImageCard
             imageUrl={IMAGES.hero_track}
             height={160}
-            overlayColors={['transparent', 'rgba(13, 13, 43, 0.6)', 'rgba(13, 13, 43, 0.95)']}
+            overlayColors={['transparent', 'rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.95)']}
           >
             <View style={{ gap: 8 }}>
               <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
@@ -96,10 +97,10 @@ export default function TrackScreen() {
                 iconBgColor="#FFD70020"
               />
               <ScoreCard
-                icon={<Target size={20} color="#22ff73" />}
+                icon={<Target size={20} color={GENESIS_COLORS.success} />}
                 value={`${adherence}%`}
                 label="ADHERENCE"
-                iconBgColor="#22ff7320"
+                iconBgColor={GENESIS_COLORS.success + '20'}
               />
             </View>
           </SectionLabel>
@@ -109,10 +110,10 @@ export default function TrackScreen() {
             <GlassCard shine>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <TrendingUp size={16} color="#22ff73" />
+                  <TrendingUp size={16} color={GENESIS_COLORS.success} />
                   <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Progresión</Text>
                 </View>
-                <Text style={{ color: '#22ff73', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>+12% este season</Text>
+                <Text style={{ color: GENESIS_COLORS.success, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>+12% este season</Text>
               </View>
               <SimpleBarChart data={benchProgress} />
             </GlassCard>
@@ -130,7 +131,7 @@ export default function TrackScreen() {
                       </View>
                       <View style={{ gap: 2 }}>
                         <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{pr.name}</Text>
-                        <Text style={{ color: '#827a89', fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>Anterior: {pr.previous}</Text>
+                        <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>Anterior: {pr.previous}</Text>
                       </View>
                     </View>
                     <Text style={{ color: pr.color, fontSize: 16, fontFamily: 'InterBold' }}>{pr.value}</Text>
@@ -146,7 +147,7 @@ export default function TrackScreen() {
               <Zap size={14} color={phaseConfig.accentColor} />
               <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS INSIGHT</Text>
             </View>
-            <Text style={{ color: '#c4bfcc', fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
               Tu adherencia del {adherence}% está por encima del promedio. En fase de {phaseConfig.label.toLowerCase()}, mantener esta consistencia es clave para maximizar adaptaciones. Sigue así.
             </Text>
           </GlassCard>

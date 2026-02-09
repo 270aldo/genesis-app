@@ -24,7 +24,7 @@ export function ScreenHeader({ title, subtitle, showBack = false }: ScreenHeader
       )}
       <View className="flex-1 gap-1">
         <Text className="font-inter-bold text-[22px] text-white">{title}</Text>
-        {subtitle && <Text className="font-inter text-[13px] text-[#827a89]">{subtitle}</Text>}
+        {subtitle && <Text className="font-inter text-[13px]" style={{ color: 'rgba(192, 192, 192, 0.60)' }}>{subtitle}</Text>}
       </View>
     </View>
   );

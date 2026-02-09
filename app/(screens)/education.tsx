@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
 import { useSeasonStore } from '../../stores';
 import type { PhaseType } from '../../types';
@@ -50,7 +51,6 @@ export default function EducationScreen() {
     return items;
   }, [search, categoryFilter]);
 
-  // Featured: first phase-relevant item
   const featured = useMemo(() => {
     return filtered.find((e) => e.relevantPhases.includes(phase)) ?? filtered[0];
   }, [filtered, phase]);
@@ -60,7 +60,7 @@ export default function EducationScreen() {
   }, [filtered, featured]);
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
@@ -82,19 +82,19 @@ export default function EducationScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: 'rgba(255,255,255,0.06)',
+              backgroundColor: GENESIS_COLORS.surfaceElevated,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.08)',
+              borderColor: GENESIS_COLORS.borderSubtle,
               paddingHorizontal: 12,
             }}
           >
-            <Search size={16} color="#827a89" />
+            <Search size={16} color={GENESIS_COLORS.textMuted} />
             <TextInput
               value={search}
               onChangeText={setSearch}
               placeholder="Search content..."
-              placeholderTextColor="#827a89"
+              placeholderTextColor={GENESIS_COLORS.textMuted}
               style={{ flex: 1, color: '#FFFFFF', fontFamily: 'Inter', fontSize: 14, paddingVertical: 10 }}
             />
           </View>
@@ -113,7 +113,7 @@ export default function EducationScreen() {
                     paddingHorizontal: 14,
                     paddingVertical: 7,
                     borderWidth: 1,
-                    borderColor: active ? phaseConfig.color : 'rgba(255,255,255,0.08)',
+                    borderColor: active ? phaseConfig.color : GENESIS_COLORS.borderSubtle,
                   }}
                 >
                   <Text
@@ -149,13 +149,13 @@ export default function EducationScreen() {
                     </Text>
                   </View>
                   <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                    <Text style={{ color: '#c4bfcc', fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{featured.duration}</Text>
+                    <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{featured.duration}</Text>
                   </View>
                 </View>
                 <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>
                   {featured.title}
                 </Text>
-                <Text style={{ color: '#827a89', fontSize: 12, fontFamily: 'Inter' }}>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 12, fontFamily: 'Inter' }}>
                   {featured.subtitle}
                 </Text>
               </View>
@@ -184,7 +184,7 @@ export default function EducationScreen() {
                 <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }} numberOfLines={1}>
                   {item.title}
                 </Text>
-                <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'Inter' }} numberOfLines={1}>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }} numberOfLines={1}>
                   {item.subtitle}
                 </Text>
               </View>

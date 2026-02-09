@@ -6,13 +6,14 @@ import { ArrowLeft } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GlassCard } from '../../components/ui';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { MOCK_EXERCISE_LIBRARY, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  beginner: '#22ff73',
-  intermediate: '#F97316',
-  advanced: '#ff6b6b',
+  beginner: GENESIS_COLORS.success,
+  intermediate: GENESIS_COLORS.warning,
+  advanced: GENESIS_COLORS.error,
 };
 
 export default function ExerciseDetailScreen() {
@@ -22,8 +23,8 @@ export default function ExerciseDetailScreen() {
 
   if (!exercise) {
     return (
-      <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#827a89', fontFamily: 'Inter', fontSize: 16 }}>Exercise not found</Text>
+      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: GENESIS_COLORS.textTertiary, fontFamily: 'Inter', fontSize: 16 }}>Exercise not found</Text>
       </LinearGradient>
     );
   }
@@ -31,7 +32,7 @@ export default function ExerciseDetailScreen() {
   const alternatives = MOCK_EXERCISE_LIBRARY.filter((e) => exercise.alternatives.includes(e.id));
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 100 }}
@@ -65,43 +66,87 @@ export default function ExerciseDetailScreen() {
               {exercise.name}
             </Text>
 
-            {/* Pills row */}
+            {/* Metadata pills — pill shape */}
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              <View style={{ backgroundColor: '#6c3bff20', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}>
-                <Text style={{ color: '#b39aff', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+              <View style={{
+                backgroundColor: GENESIS_COLORS.primaryDim,
+                borderRadius: 9999,
+                borderWidth: 1,
+                borderColor: GENESIS_COLORS.borderActive,
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+              }}>
+                <Text style={{
+                  color: GENESIS_COLORS.primary,
+                  fontSize: 10,
+                  fontFamily: 'JetBrainsMonoMedium',
+                  textTransform: 'uppercase',
+                }}>
                   {exercise.muscleGroup.replace('_', ' ')}
                 </Text>
               </View>
-              <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}>
-                <Text style={{ color: '#c4bfcc', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+              <View style={{
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderRadius: 9999,
+                borderWidth: 1,
+                borderColor: GENESIS_COLORS.borderSubtle,
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+              }}>
+                <Text style={{
+                  color: GENESIS_COLORS.textSecondary,
+                  fontSize: 10,
+                  fontFamily: 'JetBrainsMonoMedium',
+                  textTransform: 'uppercase',
+                }}>
                   {exercise.equipment}
                 </Text>
               </View>
-              <View style={{ backgroundColor: DIFFICULTY_COLORS[exercise.difficulty] + '20', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}>
-                <Text style={{ color: DIFFICULTY_COLORS[exercise.difficulty], fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+              <View style={{
+                backgroundColor: DIFFICULTY_COLORS[exercise.difficulty] + '15',
+                borderRadius: 9999,
+                borderWidth: 1,
+                borderColor: DIFFICULTY_COLORS[exercise.difficulty] + '40',
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+              }}>
+                <Text style={{
+                  color: DIFFICULTY_COLORS[exercise.difficulty],
+                  fontSize: 10,
+                  fontFamily: 'JetBrainsMonoMedium',
+                  textTransform: 'uppercase',
+                }}>
                   {exercise.difficulty}
                 </Text>
               </View>
             </View>
 
             {/* Form Cues */}
-            <GlassCard>
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold', marginBottom: 12 }}>
-                Form Cues
+            <View style={{ gap: 10 }}>
+              <Text style={{
+                color: GENESIS_COLORS.textTertiary,
+                fontSize: 10,
+                fontFamily: 'JetBrainsMonoMedium',
+                textTransform: 'uppercase',
+                letterSpacing: 2,
+              }}>
+                FORM CUES
               </Text>
-              <View style={{ gap: 10 }}>
-                {exercise.formCues.map((cue, i) => (
-                  <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#6c3bff30', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                      <Text style={{ color: '#b39aff', fontSize: 11, fontFamily: 'JetBrainsMonoBold' }}>{i + 1}</Text>
+              <GlassCard style={{ backgroundColor: GENESIS_COLORS.surfaceCard, borderRadius: 20 }}>
+                <View style={{ gap: 10 }}>
+                  {exercise.formCues.map((cue, i) => (
+                    <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: GENESIS_COLORS.primaryDim, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                        <Text style={{ color: GENESIS_COLORS.primary, fontSize: 11, fontFamily: 'JetBrainsMonoBold' }}>{i + 1}</Text>
+                      </View>
+                      <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', lineHeight: 19, flex: 1 }}>
+                        {cue}
+                      </Text>
                     </View>
-                    <Text style={{ color: '#c4bfcc', fontSize: 13, fontFamily: 'Inter', lineHeight: 19, flex: 1 }}>
-                      {cue}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </GlassCard>
+                  ))}
+                </View>
+              </GlassCard>
+            </View>
 
             {/* Recommended Phases */}
             <View style={{ gap: 10 }}>

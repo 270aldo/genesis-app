@@ -52,7 +52,7 @@ function SetRow({
             onChangeText={setWeight}
             keyboardType="numeric"
             style={{
-              backgroundColor: '#0D0D2B',
+              backgroundColor: 'rgba(255,255,255,0.04)',
               borderWidth: 1,
               borderColor: theme.colors.borderSubtle,
               borderRadius: 8,
@@ -71,7 +71,7 @@ function SetRow({
             onChangeText={setReps}
             keyboardType="numeric"
             style={{
-              backgroundColor: '#0D0D2B',
+              backgroundColor: 'rgba(255,255,255,0.04)',
               borderWidth: 1,
               borderColor: theme.colors.borderSubtle,
               borderRadius: 8,
@@ -92,7 +92,7 @@ function SetRow({
             placeholder="—"
             placeholderTextColor={theme.colors.textTertiary}
             style={{
-              backgroundColor: '#0D0D2B',
+              backgroundColor: 'rgba(255,255,255,0.04)',
               borderWidth: 1,
               borderColor: theme.colors.borderSubtle,
               borderRadius: 8,
@@ -120,7 +120,7 @@ function SetRow({
             justifyContent: 'center',
           }}
         >
-          <Check size={18} color="#0D0D2B" />
+          <Check size={18} color="#FFFFFF" />
         </Pressable>
       </View>
     </View>

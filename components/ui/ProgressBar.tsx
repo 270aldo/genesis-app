@@ -16,7 +16,7 @@ export function ProgressBar({
   max = 100,
   color,
   gradient = false,
-  gradientColors = ['#6c3bff', '#b39aff'],
+  gradientColors = ['#6D00FF', '#9D4EDD'],
 }: ProgressBarProps) {
   const pct = progress ?? (value != null ? (value / max) * 100 : 0);
   const clampedProgress = Math.min(Math.max(pct, 0), 100);
@@ -33,7 +33,7 @@ export function ProgressBar({
       ) : (
         <View
           className="h-[6px] rounded-[6px]"
-          style={{ width: `${clampedProgress}%`, backgroundColor: color ?? '#b39aff' }}
+          style={{ width: `${clampedProgress}%`, backgroundColor: color ?? '#6D00FF' }}
         />
       )}
     </View>

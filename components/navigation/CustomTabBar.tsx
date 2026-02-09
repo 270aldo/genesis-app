@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Dumbbell, Flame, Brain, BarChart3 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import { GENESIS_COLORS } from '../../constants/colors';
 
 const tabs: { name: string; label: string; icon: LucideIcon }[] = [
   { name: 'home', label: 'HOME', icon: Home },
@@ -59,17 +60,22 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           >
             <IconComponent
               size={22}
-              color={isFocused ? '#b39aff' : '#6b6b7b'}
+              color={isFocused ? GENESIS_COLORS.primary : GENESIS_COLORS.chromeDark}
               strokeWidth={1.5}
             />
             <Text
-              className={`font-jetbrains text-[9px] tracking-[0.5px] ${
-                isFocused ? 'font-jetbrains-semibold text-[#b39aff]' : 'text-[#6b6b7b]'
-              }`}
+              style={{
+                color: isFocused ? GENESIS_COLORS.primary : GENESIS_COLORS.chromeDark,
+                fontSize: 9,
+                fontFamily: isFocused ? 'JetBrainsMonoSemiBold' : 'JetBrainsMono',
+                letterSpacing: 0.5,
+              }}
             >
               {tab.label}
             </Text>
-            {isFocused && <View className="h-1 w-1 rounded-full bg-[#b39aff]" />}
+            {isFocused && (
+              <View style={{ height: 4, width: 4, borderRadius: 2, backgroundColor: GENESIS_COLORS.primary }} />
+            )}
           </Pressable>
         );
       })}

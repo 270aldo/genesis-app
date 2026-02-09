@@ -6,6 +6,7 @@ import { Dumbbell, Clock, Sparkles, ChevronRight, Info } from 'lucide-react-nati
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ListItemCard, Pill, ScreenHeader, SectionLabel, Divider, SeasonHeader } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useTrainingStore } from '../../stores';
 import { MOCK_WORKOUT_PLANS, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
@@ -30,7 +31,7 @@ export default function TrainScreen() {
   const exercises = workout.exercises;
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
@@ -48,7 +49,7 @@ export default function TrainScreen() {
           <ImageCard
             imageUrl={workout.imageUrl}
             height={200}
-            overlayColors={['transparent', 'rgba(13, 13, 43, 0.5)', 'rgba(13, 13, 43, 0.95)']}
+            overlayColors={['transparent', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.95)']}
           >
             <View style={{ gap: 8 }}>
               <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
@@ -64,7 +65,7 @@ export default function TrainScreen() {
                   </View>
                 ))}
                 <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ color: '#827a89', fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{workout.estimatedDuration} min</Text>
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{workout.estimatedDuration} min</Text>
                 </View>
               </View>
             </View>
@@ -78,7 +79,7 @@ export default function TrainScreen() {
                 {phaseConfig.label.toUpperCase()} PHASE
               </Text>
             </View>
-            <Text style={{ color: '#c4bfcc', fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
               Reps: {phaseConfig.repRange} · Sets: {phaseConfig.setsRange} · Descanso: {phaseConfig.restSeconds}s
             </Text>
           </GlassCard>
@@ -86,11 +87,11 @@ export default function TrainScreen() {
           {/* Exercises */}
           <View style={{ gap: 12 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
+              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
                 EJERCICIOS
               </Text>
               <Pressable onPress={() => router.push('/(screens)/library')}>
-                <Text style={{ color: '#b39aff', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                <Text style={{ color: GENESIS_COLORS.primary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
                   Ver librería →
                 </Text>
               </Pressable>
@@ -107,7 +108,7 @@ export default function TrainScreen() {
                     const libId = EXERCISE_NAME_TO_LIB_ID[ex.name];
                     if (libId) router.push(`/(screens)/exercise-detail?id=${libId}`);
                   }}
-                  right={<ChevronRight size={16} color="#827a89" />}
+                  right={<ChevronRight size={16} color={GENESIS_COLORS.textTertiary} />}
                 />
               ))}
             </View>
@@ -117,8 +118,8 @@ export default function TrainScreen() {
 
           {/* Summary */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ color: '#827a89', fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>{exercises.length} ejercicios</Text>
-            <Text style={{ color: '#827a89', fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>~{workout.estimatedDuration} min</Text>
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>{exercises.length} ejercicios</Text>
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>~{workout.estimatedDuration} min</Text>
           </View>
 
           {/* GENESIS Tip */}
@@ -127,7 +128,7 @@ export default function TrainScreen() {
               <Sparkles size={14} color={phaseConfig.accentColor} />
               <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
             </View>
-            <Text style={{ color: '#c4bfcc', fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
               {phase === 'hypertrophy' && 'Controla el tempo: 3 segundos bajando, 1 segundo arriba. El tiempo bajo tensión es clave para hipertrofia.'}
               {phase === 'strength' && 'Respeta los descansos largos entre series pesadas. Tu sistema nervioso necesita recuperar para dar el máximo.'}
               {phase === 'power' && 'Velocidad es la clave. Mueve el peso con intención explosiva en cada rep.'}

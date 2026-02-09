@@ -1,13 +1,13 @@
 export const GLASS_SHADOWS = {
   primary: {
-    shadowColor: '#6c3bff',
+    shadowColor: '#6D00FF',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
   },
   success: {
-    shadowColor: '#22ff73',
+    shadowColor: '#00F5AA',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -21,7 +21,7 @@ export const GLASS_SHADOWS = {
     elevation: 6,
   },
   error: {
-    shadowColor: '#ff6b6b',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 8,

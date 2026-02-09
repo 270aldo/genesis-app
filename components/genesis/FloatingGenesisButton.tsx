@@ -28,7 +28,7 @@ export function FloatingGenesisButton() {
         elevation: 10,
       }}
     >
-      <Text style={{ color: '#0D0D2B', fontWeight: '800', fontSize: 12 }}>GEN</Text>
+      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 12 }}>GEN</Text>
     </Pressable>
   );
 }

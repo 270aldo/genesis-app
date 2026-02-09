@@ -14,6 +14,7 @@ import {
   SeasonHeader,
 } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useNutritionStore } from '../../stores';
 import { MOCK_MEALS, PHASE_CONFIG, getPhaseNutritionTargets } from '../../data';
 import type { PhaseType } from '../../types';
@@ -44,10 +45,10 @@ export default function FuelScreen() {
   const progress = Math.min(100, (consumed / targets.calories) * 100);
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Season Header */}
@@ -68,13 +69,13 @@ export default function FuelScreen() {
                 {phaseConfig.label.toUpperCase()} · NUTRICIÓN
               </Text>
             </View>
-            <Text style={{ color: '#c4bfcc', fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
               {phaseConfig.nutritionNote}
             </Text>
             {targets.surplus !== 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: targets.surplus > 0 ? '#22ff73' : '#F97316' }} />
-                <Text style={{ color: '#827a89', fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: targets.surplus > 0 ? GENESIS_COLORS.success : GENESIS_COLORS.warning }} />
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
                   {targets.surplus > 0 ? '+' : ''}{targets.surplus} kcal ajuste de fase
                 </Text>
               </View>
@@ -89,11 +90,11 @@ export default function FuelScreen() {
                   <Text style={{ color: '#FFFFFF', fontSize: 28, fontFamily: 'InterBold' }}>
                     {consumed.toLocaleString()}
                   </Text>
-                  <Text style={{ color: '#827a89', fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
                     / {targets.calories.toLocaleString()}
                   </Text>
                 </CircularProgress>
-                <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{remaining} restantes</Text>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{remaining} restantes</Text>
               </View>
             </GlassCard>
           </SectionLabel>
@@ -101,9 +102,9 @@ export default function FuelScreen() {
           {/* Macros */}
           <SectionLabel title="MACROS">
             <View style={{ flexDirection: 'row', gap: 12 }}>
-              <MacroCard label="PROTEIN" value={proteinConsumed} unit="g" progress={Math.min(100, (proteinConsumed / targets.protein) * 100)} color="#38bdf8" />
-              <MacroCard label="CARBS" value={carbsConsumed} unit="g" progress={Math.min(100, (carbsConsumed / targets.carbs) * 100)} color="#22ff73" />
-              <MacroCard label="FAT" value={fatConsumed} unit="g" progress={Math.min(100, (fatConsumed / targets.fat) * 100)} color="#F97316" />
+              <MacroCard label="PROTEIN" value={proteinConsumed} unit="g" progress={Math.min(100, (proteinConsumed / targets.protein) * 100)} color={GENESIS_COLORS.info} />
+              <MacroCard label="CARBS" value={carbsConsumed} unit="g" progress={Math.min(100, (carbsConsumed / targets.carbs) * 100)} color={GENESIS_COLORS.success} />
+              <MacroCard label="FAT" value={fatConsumed} unit="g" progress={Math.min(100, (fatConsumed / targets.fat) * 100)} color={GENESIS_COLORS.warning} />
             </View>
           </SectionLabel>
 
@@ -117,23 +118,23 @@ export default function FuelScreen() {
                     key={meal.id}
                     imageUrl={meal.imageUrl ?? ''}
                     height={100}
-                    overlayColors={['transparent', 'rgba(13, 13, 43, 0.6)', 'rgba(13, 13, 43, 0.92)']}
+                    overlayColors={['transparent', 'rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.92)']}
                   >
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <View style={{ gap: 2 }}>
                         <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{meal.name}</Text>
-                        <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'Inter' }}>{meal.time}</Text>
+                        <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{meal.time}</Text>
                       </View>
                       {isLogged ? (
                         <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                          <Text style={{ color: '#22ff73', fontSize: 14, fontFamily: 'InterBold' }}>{meal.calories} cal</Text>
-                          <Text style={{ color: '#827a89', fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
+                          <Text style={{ color: GENESIS_COLORS.success, fontSize: 14, fontFamily: 'InterBold' }}>{meal.calories} cal</Text>
+                          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
                             P:{meal.protein}g · C:{meal.carbs}g · F:{meal.fat}g
                           </Text>
                         </View>
                       ) : (
-                        <View style={{ backgroundColor: 'rgba(255,107,107,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                          <Text style={{ color: '#ff6b6b', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>Sin registrar</Text>
+                        <View style={{ backgroundColor: GENESIS_COLORS.error + '26', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                          <Text style={{ color: GENESIS_COLORS.error, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>Sin registrar</Text>
                         </View>
                       )}
                     </View>
@@ -147,7 +148,7 @@ export default function FuelScreen() {
           <SectionLabel title="HIDRATACIÓN">
             <GlassCard>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Droplets size={18} color="#38bdf8" />
+                <Droplets size={18} color={GENESIS_COLORS.cyan} />
                 <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Water Intake</Text>
               </View>
               <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{water}/{targetWater} vasos</Text>

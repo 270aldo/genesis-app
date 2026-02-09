@@ -61,7 +61,7 @@ export default function RootLayout() {
   if (!fontsLoaded || !isInitialized) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0D0D2B' }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
       <SafeAreaProvider>
         <StatusBar style="light" />
         <Stack screenOptions={{ headerShown: false }}>

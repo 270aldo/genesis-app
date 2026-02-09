@@ -6,14 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { X, Sun, CloudRain, Zap, Moon, AlertTriangle, CheckCircle } from 'lucide-react-native';
 import { GlassCard } from '../../components/ui';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { useWellnessStore } from '../../stores';
 
 const MOODS = [
-  { id: 'great', label: 'Great', icon: Sun, color: '#22ff73' },
-  { id: 'good', label: 'Good', icon: Zap, color: '#38bdf8' },
-  { id: 'okay', label: 'Okay', icon: CloudRain, color: '#F97316' },
-  { id: 'tired', label: 'Tired', icon: Moon, color: '#827a89' },
-  { id: 'bad', label: 'Bad', icon: AlertTriangle, color: '#ff6b6b' },
+  { id: 'great', label: 'Great', icon: Sun, color: GENESIS_COLORS.success },
+  { id: 'good', label: 'Good', icon: Zap, color: GENESIS_COLORS.info },
+  { id: 'okay', label: 'Okay', icon: CloudRain, color: GENESIS_COLORS.warning },
+  { id: 'tired', label: 'Tired', icon: Moon, color: GENESIS_COLORS.chromeDark },
+  { id: 'bad', label: 'Bad', icon: AlertTriangle, color: GENESIS_COLORS.error },
 ];
 
 const SLEEP_OPTIONS = ['< 5h', '5-6h', '6-7h', '7-8h', '8h+'];
@@ -33,7 +34,6 @@ export default function CheckInScreen() {
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
-    // Map UI values to store format
     const moodMap: Record<string, string> = { great: 'excellent', good: 'good', okay: 'neutral', tired: 'poor', bad: 'terrible' };
     const sleepHoursMap: Record<string, number> = { '< 5h': 4.5, '5-6h': 5.5, '6-7h': 6.5, '7-8h': 7.5, '8h+': 8.5 };
     const sleepQualityMap: Record<string, string> = { '< 5h': 'poor', '5-6h': 'fair', '6-7h': 'fair', '7-8h': 'good', '8h+': 'excellent' };
@@ -54,21 +54,21 @@ export default function CheckInScreen() {
 
   if (submitted) {
     return (
-      <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 20 }}>
-          <CheckCircle size={64} color="#22ff73" />
-          <Text className="font-inter-bold text-[22px] text-white">Check-in Complete</Text>
-          <Text className="text-center font-inter text-[14px] text-[#827a89]">
+          <CheckCircle size={64} color={GENESIS_COLORS.success} />
+          <Text style={{ color: '#FFFFFF', fontSize: 22, fontFamily: 'InterBold' }}>Check-in Complete</Text>
+          <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 14, fontFamily: 'Inter', textAlign: 'center' }}>
             GENESIS will use this data to optimize your training and recovery today.
           </Text>
           <Pressable onPress={() => router.back()}>
             <LinearGradient
-              colors={['#6D00FF', '#5B21B6']}
+              colors={[GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32, alignItems: 'center' }}
             >
-              <Text className="font-jetbrains-semibold text-[14px] text-white">DONE</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>DONE</Text>
             </LinearGradient>
           </Pressable>
         </SafeAreaView>
@@ -77,7 +77,7 @@ export default function CheckInScreen() {
   }
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, gap: 20 }}
@@ -85,41 +85,43 @@ export default function CheckInScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <View className="flex-row items-center justify-between">
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Pressable
               onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-full bg-[#FFFFFF0A]"
+              style={{ height: 40, width: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)' }}
             >
               <X size={20} color="#FFFFFF" />
             </Pressable>
-            <Text className="font-inter-bold text-[18px] text-white">Daily Check-in</Text>
-            <View className="h-10 w-10" />
+            <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>Daily Check-in</Text>
+            <View style={{ height: 40, width: 40 }} />
           </View>
 
           {/* Mood */}
           <GlassCard shine className="gap-3">
-            <Text className="font-jetbrains-medium text-[11px] tracking-[1px] text-[#827a89]">
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
               HOW ARE YOU FEELING?
             </Text>
-            <View className="flex-row justify-between">
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               {MOODS.map((m) => {
                 const Icon = m.icon;
                 const selected = mood === m.id;
                 return (
-                  <Pressable key={m.id} onPress={() => setMood(m.id)} className="items-center gap-1">
+                  <Pressable key={m.id} onPress={() => setMood(m.id)} style={{ alignItems: 'center', gap: 4 }}>
                     <View
-                      className="h-12 w-12 items-center justify-center rounded-full"
                       style={{
-                        backgroundColor: selected ? `${m.color}30` : '#FFFFFF0A',
+                        height: 48,
+                        width: 48,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 24,
+                        backgroundColor: selected ? `${m.color}30` : 'rgba(255,255,255,0.04)',
                         borderWidth: selected ? 1.5 : 0,
                         borderColor: selected ? m.color : 'transparent',
                       }}
                     >
-                      <Icon size={20} color={selected ? m.color : '#6b6b7b'} />
+                      <Icon size={20} color={selected ? m.color : GENESIS_COLORS.textMuted} />
                     </View>
-                    <Text
-                      className={`font-inter text-[10px] ${selected ? 'text-white' : 'text-[#6b6b7b]'}`}
-                    >
+                    <Text style={{ color: selected ? '#FFFFFF' : GENESIS_COLORS.textMuted, fontSize: 10, fontFamily: 'Inter' }}>
                       {m.label}
                     </Text>
                   </Pressable>
@@ -130,26 +132,27 @@ export default function CheckInScreen() {
 
           {/* Sleep */}
           <GlassCard shine className="gap-3">
-            <Text className="font-jetbrains-medium text-[11px] tracking-[1px] text-[#827a89]">
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
               SLEEP LAST NIGHT
             </Text>
-            <View className="flex-row gap-2">
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               {SLEEP_OPTIONS.map((s) => {
                 const selected = sleep === s;
                 return (
                   <Pressable
                     key={s}
                     onPress={() => setSleep(s)}
-                    className="flex-1 items-center rounded-[10px] py-2"
                     style={{
-                      backgroundColor: selected ? '#6D00FF30' : '#FFFFFF0A',
+                      flex: 1,
+                      alignItems: 'center',
+                      borderRadius: 10,
+                      paddingVertical: 8,
+                      backgroundColor: selected ? GENESIS_COLORS.primary + '30' : 'rgba(255,255,255,0.04)',
                       borderWidth: selected ? 1 : 0.5,
-                      borderColor: selected ? '#b39aff' : '#FFFFFF14',
+                      borderColor: selected ? GENESIS_COLORS.primary : GENESIS_COLORS.borderSubtle,
                     }}
                   >
-                    <Text
-                      className={`font-jetbrains-medium text-[11px] ${selected ? 'text-white' : 'text-[#827a89]'}`}
-                    >
+                    <Text style={{ color: selected ? '#FFFFFF' : GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
                       {s}
                     </Text>
                   </Pressable>
@@ -160,55 +163,59 @@ export default function CheckInScreen() {
 
           {/* Energy Level */}
           <GlassCard shine className="gap-3">
-            <Text className="font-jetbrains-medium text-[11px] tracking-[1px] text-[#827a89]">
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
               ENERGY LEVEL
             </Text>
-            <View className="flex-row justify-between px-2">
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8 }}>
               {ENERGY_LEVELS.map((lvl) => {
                 const selected = energy >= lvl;
                 return (
                   <Pressable key={lvl} onPress={() => setEnergy(lvl)}>
                     <View
-                      className="h-10 w-10 items-center justify-center rounded-full"
                       style={{
-                        backgroundColor: selected ? '#22ff7340' : '#FFFFFF0A',
+                        height: 40,
+                        width: 40,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 20,
+                        backgroundColor: selected ? GENESIS_COLORS.success + '40' : 'rgba(255,255,255,0.04)',
                         borderWidth: selected ? 1 : 0,
-                        borderColor: selected ? '#22ff73' : 'transparent',
+                        borderColor: selected ? GENESIS_COLORS.success : 'transparent',
                       }}
                     >
-                      <Zap size={16} color={selected ? '#22ff73' : '#6b6b7b'} />
+                      <Zap size={16} color={selected ? GENESIS_COLORS.success : GENESIS_COLORS.textMuted} />
                     </View>
                   </Pressable>
                 );
               })}
             </View>
-            <Text className="text-center font-inter text-[11px] text-[#6b6b7b]">
+            <Text style={{ textAlign: 'center', color: GENESIS_COLORS.textMuted, fontSize: 11, fontFamily: 'Inter' }}>
               {energy === 0 ? 'Tap to rate' : `${energy}/5`}
             </Text>
           </GlassCard>
 
           {/* Soreness */}
           <GlassCard shine className="gap-3">
-            <Text className="font-jetbrains-medium text-[11px] tracking-[1px] text-[#827a89]">
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
               SORENESS / PAIN (OPTIONAL)
             </Text>
-            <View className="flex-row flex-wrap gap-2">
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {['None', 'Shoulders', 'Back', 'Knees', 'Wrists', 'Full body'].map((area) => {
                 const selected = soreness === area;
                 return (
                   <Pressable
                     key={area}
                     onPress={() => setSoreness(selected ? '' : area)}
-                    className="rounded-[10px] px-3 py-2"
                     style={{
-                      backgroundColor: selected ? '#ff6b6b20' : '#FFFFFF0A',
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      backgroundColor: selected ? GENESIS_COLORS.error + '20' : 'rgba(255,255,255,0.04)',
                       borderWidth: selected ? 1 : 0.5,
-                      borderColor: selected ? '#ff6b6b' : '#FFFFFF14',
+                      borderColor: selected ? GENESIS_COLORS.error : GENESIS_COLORS.borderSubtle,
                     }}
                   >
-                    <Text
-                      className={`font-inter text-[12px] ${selected ? 'text-[#ff6b6b]' : 'text-[#827a89]'}`}
-                    >
+                    <Text style={{ color: selected ? GENESIS_COLORS.error : GENESIS_COLORS.textTertiary, fontSize: 12, fontFamily: 'Inter' }}>
                       {area}
                     </Text>
                   </Pressable>
@@ -219,19 +226,29 @@ export default function CheckInScreen() {
 
           {/* Notes */}
           <GlassCard shine className="gap-2">
-            <Text className="font-jetbrains-medium text-[11px] tracking-[1px] text-[#827a89]">
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
               NOTES (OPTIONAL)
             </Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
               placeholder="Anything GENESIS should know today..."
-              placeholderTextColor="#6b6b7b"
+              placeholderTextColor={GENESIS_COLORS.textMuted}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
-              className="rounded-[12px] border border-[#FFFFFF14] bg-[#0D0D2B] px-4 py-3 font-inter text-[13px] text-white"
-              style={{ minHeight: 80 }}
+              style={{
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: GENESIS_COLORS.borderSubtle,
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                color: '#FFFFFF',
+                fontFamily: 'Inter',
+                fontSize: 13,
+                minHeight: 80,
+              }}
             />
           </GlassCard>
 
@@ -242,12 +259,21 @@ export default function CheckInScreen() {
             style={{ opacity: canSubmit ? 1 : 0.4 }}
           >
             <LinearGradient
-              colors={['#6D00FF', '#5B21B6']}
+              colors={[GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
+              style={{
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+                shadowColor: GENESIS_COLORS.primary,
+                shadowOpacity: 0.4,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 8,
+              }}
             >
-              <Text className="font-jetbrains-semibold text-[14px] text-white">
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>
                 SUBMIT CHECK-IN
               </Text>
             </LinearGradient>

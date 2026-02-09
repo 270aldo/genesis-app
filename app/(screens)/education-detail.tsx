@@ -6,14 +6,15 @@ import { ArrowLeft, Sparkles } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GlassCard } from '../../components/ui';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
 import { useSeasonStore } from '../../stores';
 import type { PhaseType } from '../../types';
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  beginner: '#22ff73',
-  intermediate: '#F97316',
-  advanced: '#ff6b6b',
+  beginner: GENESIS_COLORS.success,
+  intermediate: GENESIS_COLORS.warning,
+  advanced: GENESIS_COLORS.error,
 };
 
 const ARTICLE_BODY: Record<string, string[]> = {
@@ -75,8 +76,8 @@ export default function EducationDetailScreen() {
 
   if (!content) {
     return (
-      <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#827a89', fontFamily: 'Inter', fontSize: 16 }}>Content not found</Text>
+      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: GENESIS_COLORS.textTertiary, fontFamily: 'Inter', fontSize: 16 }}>Content not found</Text>
       </LinearGradient>
     );
   }
@@ -87,7 +88,7 @@ export default function EducationDetailScreen() {
   const genesisTip = GENESIS_TIPS[content.id] ?? 'Stay consistent and trust the process. GENESIS is adapting your plan in real time.';
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 100 }}
@@ -106,7 +107,7 @@ export default function EducationDetailScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: 'rgba(13,13,43,0.7)',
+                backgroundColor: 'rgba(0,0,0,0.7)',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -128,7 +129,7 @@ export default function EducationDetailScreen() {
                   </Text>
                 </View>
                 <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}>
-                  <Text style={{ color: '#c4bfcc', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
                     {content.duration}
                   </Text>
                 </View>
@@ -143,7 +144,7 @@ export default function EducationDetailScreen() {
             {/* Body */}
             <View style={{ gap: 16 }}>
               {paragraphs.map((p, i) => (
-                <Text key={i} style={{ color: '#c4bfcc', fontSize: 14, fontFamily: 'Inter', lineHeight: 22 }}>
+                <Text key={i} style={{ color: GENESIS_COLORS.textSecondary, fontSize: 14, fontFamily: 'Inter', lineHeight: 22 }}>
                   {p}
                 </Text>
               ))}
@@ -157,7 +158,7 @@ export default function EducationDetailScreen() {
                   GENESIS INSIGHT
                 </Text>
               </View>
-              <Text style={{ color: '#c4bfcc', fontSize: 13, fontFamily: 'Inter', lineHeight: 19 }}>
+              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', lineHeight: 19 }}>
                 {genesisTip}
               </Text>
             </GlassCard>

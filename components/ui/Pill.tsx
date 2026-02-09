@@ -3,10 +3,10 @@ import { Text, View } from 'react-native';
 type PillVariant = 'default' | 'success' | 'warning' | 'info';
 
 const variantStyles: Record<PillVariant, { bg: string; text: string }> = {
-  default: { bg: '#FFFFFF14', text: '#b39aff' },
-  success: { bg: '#22ff7320', text: '#22ff73' },
-  warning: { bg: '#F9731620', text: '#F97316' },
-  info: { bg: '#38bdf820', text: '#38bdf8' },
+  default: { bg: '#FFFFFF14', text: '#6D00FF' },
+  success: { bg: '#00F5AA20', text: '#00F5AA' },
+  warning: { bg: '#FFD93D20', text: '#FFD93D' },
+  info: { bg: '#00D4FF20', text: '#00D4FF' },
 };
 
 type PillProps = {

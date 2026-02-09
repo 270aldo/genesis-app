@@ -23,8 +23,8 @@ export const PHASE_CONFIG: Record<PhaseType, {
 }> = {
   hypertrophy: {
     label: 'Hypertrophy',
-    color: '#6c3bff',
-    accentColor: '#b39aff',
+    color: '#6D00FF',
+    accentColor: '#9D4EDD',
     restSeconds: 75,
     repRange: '10-12',
     setsRange: '3-4',
@@ -53,8 +53,8 @@ export const PHASE_CONFIG: Record<PhaseType, {
   },
   deload: {
     label: 'Deload',
-    color: '#22ff73',
-    accentColor: '#86efac',
+    color: '#00F5AA',
+    accentColor: '#00F5AA',
     restSeconds: 60,
     repRange: '8-10',
     setsRange: '2-3',

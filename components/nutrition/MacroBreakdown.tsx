@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import type { Meal } from '../../types';
 import { MacroBar } from '../charts';
+import { GENESIS_COLORS } from '../../constants/colors';
 
 type MacroBreakdownProps = {
   meals: Meal[];
@@ -19,9 +20,9 @@ export function MacroBreakdown({ meals }: MacroBreakdownProps) {
 
   return (
     <View style={{ gap: 10 }}>
-      <MacroBar label="Protein" value={totals.protein} target={180} color="#22ff73" />
-      <MacroBar label="Carbs" value={totals.carbs} target={260} color="#38bdf8" />
-      <MacroBar label="Fat" value={totals.fat} target={80} color="#F97316" />
+      <MacroBar label="Protein" value={totals.protein} target={180} color={GENESIS_COLORS.info} />
+      <MacroBar label="Carbs" value={totals.carbs} target={260} color={GENESIS_COLORS.success} />
+      <MacroBar label="Fat" value={totals.fat} target={80} color={GENESIS_COLORS.warning} />
     </View>
   );
 }

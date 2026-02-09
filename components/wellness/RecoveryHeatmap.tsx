@@ -1,10 +1,12 @@
 import { Text, View } from 'react-native';
 import type { MuscleRecovery } from '../../types';
 
+import { GENESIS_COLORS } from '../../constants/colors';
+
 const statusColors: Record<MuscleRecovery['status'], string> = {
-  recovered: '#22ff73',
-  moderate: '#F97316',
-  fatigued: '#ff6b6b',
+  recovered: GENESIS_COLORS.success,
+  moderate: GENESIS_COLORS.warning,
+  fatigued: GENESIS_COLORS.error,
 };
 
 const statusLabels: Record<MuscleRecovery['status'], string> = {
@@ -45,7 +47,7 @@ export function RecoveryHeatmap({ data }: RecoveryHeatmapProps) {
                 {statusLabels[muscle.status]}
               </Text>
             </View>
-            <Text style={{ color: '#827a89', fontSize: 9, fontFamily: 'JetBrainsMono' }}>
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMono' }}>
               {muscle.daysSinceTraining === 0 ? 'Hoy' : `Hace ${muscle.daysSinceTraining}d`}
             </Text>
           </View>

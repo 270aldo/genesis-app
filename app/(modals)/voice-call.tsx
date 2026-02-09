@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { PhoneOff, Mic, MicOff, Volume2, Sparkles } from 'lucide-react-native';
 import { GlassCard } from '../../components/ui';
+import { GENESIS_COLORS } from '../../constants/colors';
 
 export default function VoiceCallScreen() {
   const router = useRouter();
@@ -41,77 +42,91 @@ export default function VoiceCallScreen() {
 
   const handleEndCall = () => {
     setCallActive(false);
-    // TODO: Disconnect ElevenLabs voice agent
     router.back();
   };
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 40 }}>
         {/* Top Info */}
-        <View className="items-center gap-2">
-          <Text className="font-jetbrains-medium text-[11px] tracking-[1px] text-[#827a89]">
+        <View style={{ alignItems: 'center', gap: 8 }}>
+          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
             GENESIS AI
           </Text>
-          <Text className="font-inter-bold text-[14px] text-[#22ff73]">
+          <Text style={{ color: GENESIS_COLORS.success, fontSize: 14, fontFamily: 'InterBold' }}>
             {callActive ? 'Connected' : 'Call Ended'}
           </Text>
         </View>
 
         {/* Avatar + Pulse */}
-        <View className="items-center gap-6">
+        <View style={{ alignItems: 'center', gap: 24 }}>
           <Animated.View
             style={{
               transform: [{ scale: pulseAnim }],
               width: 140,
               height: 140,
               borderRadius: 70,
-              backgroundColor: '#6D00FF15',
+              backgroundColor: GENESIS_COLORS.primary + '15',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             <View
-              className="h-[100px] w-[100px] items-center justify-center rounded-full"
               style={{
-                backgroundColor: '#6D00FF30',
-                shadowColor: '#6D00FF',
+                height: 100,
+                width: 100,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 50,
+                backgroundColor: GENESIS_COLORS.primary + '30',
+                shadowColor: GENESIS_COLORS.primary,
                 shadowOffset: { width: 0, height: 0 },
                 shadowOpacity: 0.4,
                 shadowRadius: 20,
               }}
             >
-              <Sparkles size={40} color="#b39aff" />
+              <Sparkles size={40} color={GENESIS_COLORS.primaryLight} />
             </View>
           </Animated.View>
 
-          <Text className="font-jetbrains-bold text-[32px] text-white">{formatTime(callSeconds)}</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 32, fontFamily: 'JetBrainsMonoBold' }}>{formatTime(callSeconds)}</Text>
 
           {/* Status */}
           <GlassCard className="px-6 py-2">
-            <Text className="font-inter text-[12px] text-[#827a89]">
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 12, fontFamily: 'Inter' }}>
               {muted ? 'Microphone muted' : 'Listening...'}
             </Text>
           </GlassCard>
         </View>
 
         {/* Controls */}
-        <View className="w-full items-center gap-6 px-8">
-          <View className="flex-row items-center justify-center gap-8">
+        <View style={{ width: '100%', alignItems: 'center', gap: 24, paddingHorizontal: 32 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
             {/* Mute */}
             <Pressable
               onPress={() => setMuted(!muted)}
-              className="h-14 w-14 items-center justify-center rounded-full"
-              style={{ backgroundColor: muted ? '#ff6b6b30' : '#FFFFFF0A' }}
+              style={{
+                height: 56,
+                width: 56,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 28,
+                backgroundColor: muted ? GENESIS_COLORS.error + '30' : 'rgba(255,255,255,0.04)',
+              }}
             >
-              {muted ? <MicOff size={22} color="#ff6b6b" /> : <Mic size={22} color="#FFFFFF" />}
+              {muted ? <MicOff size={22} color={GENESIS_COLORS.error} /> : <Mic size={22} color="#FFFFFF" />}
             </Pressable>
 
             {/* End Call */}
             <Pressable
               onPress={handleEndCall}
-              className="h-16 w-16 items-center justify-center rounded-full bg-[#ff4444]"
               style={{
+                height: 64,
+                width: 64,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 32,
+                backgroundColor: '#ff4444',
                 shadowColor: '#ff4444',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
@@ -124,14 +139,20 @@ export default function VoiceCallScreen() {
             {/* Speaker */}
             <Pressable
               onPress={() => setSpeakerOn(!speakerOn)}
-              className="h-14 w-14 items-center justify-center rounded-full"
-              style={{ backgroundColor: speakerOn ? '#b39aff30' : '#FFFFFF0A' }}
+              style={{
+                height: 56,
+                width: 56,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 28,
+                backgroundColor: speakerOn ? GENESIS_COLORS.primary + '30' : 'rgba(255,255,255,0.04)',
+              }}
             >
-              <Volume2 size={22} color={speakerOn ? '#b39aff' : '#FFFFFF'} />
+              <Volume2 size={22} color={speakerOn ? GENESIS_COLORS.primaryLight : '#FFFFFF'} />
             </Pressable>
           </View>
 
-          <Text className="font-inter text-[11px] text-[#6b6b7b]">
+          <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 11, fontFamily: 'Inter' }}>
             Powered by GENESIS + ElevenLabs
           </Text>
         </View>

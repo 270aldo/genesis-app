@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { X, Camera, ScanLine, Utensils, Dumbbell, RefreshCw } from 'lucide-react-native';
 import { GlassCard } from '../../components/ui';
+import { GENESIS_COLORS } from '../../constants/colors';
 
 type ScanMode = 'food' | 'equipment';
 
@@ -18,8 +19,6 @@ export default function CameraScannerScreen() {
     setScanning(true);
     setResult(null);
     try {
-      // TODO: Connect to Vision API via visionApi service
-      // Simulate scan delay
       setTimeout(() => {
         setResult(
           mode === 'food'
@@ -39,46 +38,44 @@ export default function CameraScannerScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, paddingHorizontal: 20, paddingTop: 16, gap: 20 }}>
         {/* Header */}
-        <View className="flex-row items-center justify-between">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Pressable
             onPress={() => router.back()}
-            className="h-10 w-10 items-center justify-center rounded-full bg-[#FFFFFF0A]"
+            style={{ height: 40, width: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)' }}
           >
             <X size={20} color="#FFFFFF" />
           </Pressable>
-          <Text className="font-inter-bold text-[18px] text-white">
+          <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>
             {mode === 'food' ? 'Scan Food' : 'Scan Equipment'}
           </Text>
-          <View className="h-10 w-10" />
+          <View style={{ height: 40, width: 40 }} />
         </View>
 
         {/* Mode Selector */}
-        <View className="flex-row gap-3">
-          <Pressable onPress={() => { setMode('food'); handleReset(); }} className="flex-1">
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Pressable onPress={() => { setMode('food'); handleReset(); }} style={{ flex: 1 }}>
             <GlassCard
-              className={`items-center gap-2 ${mode === 'food' ? 'border-[#b39aff]' : ''}`}
+              className={`items-center gap-2`}
               shadow={mode === 'food' ? 'primary' : undefined}
+              style={mode === 'food' ? { borderColor: GENESIS_COLORS.borderActive, borderWidth: 1 } : undefined}
             >
-              <Utensils size={20} color={mode === 'food' ? '#b39aff' : '#6b6b7b'} />
-              <Text
-                className={`font-jetbrains-semibold text-[12px] ${mode === 'food' ? 'text-white' : 'text-[#827a89]'}`}
-              >
+              <Utensils size={20} color={mode === 'food' ? GENESIS_COLORS.primary : GENESIS_COLORS.textMuted} />
+              <Text style={{ color: mode === 'food' ? '#FFFFFF' : GENESIS_COLORS.textTertiary, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>
                 FOOD
               </Text>
             </GlassCard>
           </Pressable>
-          <Pressable onPress={() => { setMode('equipment'); handleReset(); }} className="flex-1">
+          <Pressable onPress={() => { setMode('equipment'); handleReset(); }} style={{ flex: 1 }}>
             <GlassCard
-              className={`items-center gap-2 ${mode === 'equipment' ? 'border-[#b39aff]' : ''}`}
+              className={`items-center gap-2`}
               shadow={mode === 'equipment' ? 'primary' : undefined}
+              style={mode === 'equipment' ? { borderColor: GENESIS_COLORS.borderActive, borderWidth: 1 } : undefined}
             >
-              <Dumbbell size={20} color={mode === 'equipment' ? '#b39aff' : '#6b6b7b'} />
-              <Text
-                className={`font-jetbrains-semibold text-[12px] ${mode === 'equipment' ? 'text-white' : 'text-[#827a89]'}`}
-              >
+              <Dumbbell size={20} color={mode === 'equipment' ? GENESIS_COLORS.primary : GENESIS_COLORS.textMuted} />
+              <Text style={{ color: mode === 'equipment' ? '#FFFFFF' : GENESIS_COLORS.textTertiary, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>
                 EQUIPMENT
               </Text>
             </GlassCard>
@@ -86,22 +83,31 @@ export default function CameraScannerScreen() {
         </View>
 
         {/* Camera Viewfinder */}
-        <View className="flex-1 items-center justify-center overflow-hidden rounded-[20px] border border-[#FFFFFF14] bg-[#0D0D2B]">
+        <View style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: GENESIS_COLORS.borderSubtle,
+          backgroundColor: GENESIS_COLORS.bgVoid,
+        }}>
           {/* Corner markers */}
-          <View className="absolute left-4 top-4 h-8 w-8 border-l-2 border-t-2 border-[#b39aff] rounded-tl-[4px]" />
-          <View className="absolute right-4 top-4 h-8 w-8 border-r-2 border-t-2 border-[#b39aff] rounded-tr-[4px]" />
-          <View className="absolute bottom-4 left-4 h-8 w-8 border-b-2 border-l-2 border-[#b39aff] rounded-bl-[4px]" />
-          <View className="absolute bottom-4 right-4 h-8 w-8 border-b-2 border-r-2 border-[#b39aff] rounded-br-[4px]" />
+          <View style={{ position: 'absolute', left: 16, top: 16, height: 32, width: 32, borderLeftWidth: 2, borderTopWidth: 2, borderColor: GENESIS_COLORS.primary, borderTopLeftRadius: 4 }} />
+          <View style={{ position: 'absolute', right: 16, top: 16, height: 32, width: 32, borderRightWidth: 2, borderTopWidth: 2, borderColor: GENESIS_COLORS.primary, borderTopRightRadius: 4 }} />
+          <View style={{ position: 'absolute', bottom: 16, left: 16, height: 32, width: 32, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: GENESIS_COLORS.primary, borderBottomLeftRadius: 4 }} />
+          <View style={{ position: 'absolute', bottom: 16, right: 16, height: 32, width: 32, borderBottomWidth: 2, borderRightWidth: 2, borderColor: GENESIS_COLORS.primary, borderBottomRightRadius: 4 }} />
 
           {scanning ? (
-            <View className="items-center gap-3">
-              <ScanLine size={48} color="#b39aff" />
-              <Text className="font-jetbrains-medium text-[13px] text-[#b39aff]">Scanning...</Text>
+            <View style={{ alignItems: 'center', gap: 12 }}>
+              <ScanLine size={48} color={GENESIS_COLORS.primary} />
+              <Text style={{ color: GENESIS_COLORS.primary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>Scanning...</Text>
             </View>
           ) : (
-            <View className="items-center gap-3">
-              <Camera size={48} color="#6b6b7b" />
-              <Text className="font-inter text-[13px] text-[#827a89]">
+            <View style={{ alignItems: 'center', gap: 12 }}>
+              <Camera size={48} color={GENESIS_COLORS.textMuted} />
+              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'Inter' }}>
                 Point camera at {mode === 'food' ? 'your meal' : 'gym equipment'}
               </Text>
             </View>
@@ -111,13 +117,13 @@ export default function CameraScannerScreen() {
         {/* Result */}
         {result && (
           <GlassCard shine className="gap-2">
-            <Text className="font-jetbrains-medium text-[11px] tracking-[1px] text-[#22ff73]">
+            <Text style={{ color: GENESIS_COLORS.success, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
               SCAN RESULT
             </Text>
-            <Text className="font-inter-bold text-[14px] text-white">{result}</Text>
-            <Pressable onPress={handleReset} className="mt-1 flex-row items-center gap-2">
-              <RefreshCw size={14} color="#b39aff" />
-              <Text className="font-jetbrains-medium text-[12px] text-[#b39aff]">Scan Again</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{result}</Text>
+            <Pressable onPress={handleReset} style={{ marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <RefreshCw size={14} color={GENESIS_COLORS.primary} />
+              <Text style={{ color: GENESIS_COLORS.primary, fontSize: 12, fontFamily: 'JetBrainsMonoMedium' }}>Scan Again</Text>
             </Pressable>
           </GlassCard>
         )}
@@ -130,7 +136,7 @@ export default function CameraScannerScreen() {
             style={{ opacity: scanning ? 0.5 : 1, marginBottom: 16 }}
           >
             <LinearGradient
-              colors={['#6D00FF', '#5B21B6']}
+              colors={[GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
@@ -140,10 +146,15 @@ export default function CameraScannerScreen() {
                 flexDirection: 'row',
                 justifyContent: 'center',
                 gap: 8,
+                shadowColor: GENESIS_COLORS.primary,
+                shadowOpacity: 0.4,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 8,
               }}
             >
               <ScanLine size={18} color="#FFFFFF" />
-              <Text className="font-jetbrains-semibold text-[14px] text-white">
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>
                 {scanning ? 'SCANNING...' : 'SCAN NOW'}
               </Text>
             </LinearGradient>

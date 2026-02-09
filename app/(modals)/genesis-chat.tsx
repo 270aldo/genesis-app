@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { GenesisChat, VoiceCallUI } from '../../components/genesis';
 import { theme } from '../../constants/theme';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { useGenesisStore } from '../../stores';
 import { QUICK_ACTIONS } from '../../data';
 
@@ -22,18 +23,29 @@ export default function GenesisChatModal() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.bgStart, padding: 20, paddingTop: 56, gap: 12 }}>
+      {/* Header */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ color: theme.colors.textPrimary, fontSize: 22, fontFamily: 'InterBold' }}>GENESIS Chat</Text>
+        <View style={{ gap: 2 }}>
+          <Text style={{ color: GENESIS_COLORS.primary, fontSize: 14, fontFamily: 'JetBrainsMonoBold' }}>
+            GENESIS
+          </Text>
+          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 12, fontFamily: 'Inter' }}>
+            AI Coach
+          </Text>
+        </View>
         <Pressable onPress={() => router.back()} style={{ borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: theme.colors.surface }}>
           <Text style={{ color: theme.colors.textSecondary, fontFamily: 'Inter' }}>Close</Text>
         </Pressable>
       </View>
+
       <VoiceCallUI
         state={voiceState}
         onToggle={() =>
           setVoiceState(voiceState === 'idle' ? 'listening' : voiceState === 'listening' ? 'speaking' : 'idle')
         }
       />
+
+      {/* Quick Action Pills */}
       {showQuickActions && messages.length === 0 && (
         <ScrollView
           horizontal
@@ -45,21 +57,27 @@ export default function GenesisChatModal() {
               key={action.id}
               onPress={() => handleQuickAction(action.prompt)}
               style={{
-                backgroundColor: 'rgba(255,255,255,0.06)',
+                backgroundColor: GENESIS_COLORS.primaryDim,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.08)',
-                borderRadius: 12,
+                borderColor: GENESIS_COLORS.primary,
+                borderRadius: 9999,
                 paddingHorizontal: 14,
                 paddingVertical: 8,
               }}
             >
-              <Text style={{ color: '#b39aff', fontSize: 12, fontFamily: 'JetBrainsMonoMedium' }}>
+              <Text style={{
+                color: GENESIS_COLORS.primary,
+                fontSize: 10,
+                fontFamily: 'JetBrainsMonoMedium',
+                textTransform: 'uppercase',
+              }}>
                 {action.label}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
       )}
+
       <GenesisChat />
     </View>
   );

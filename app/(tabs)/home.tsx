@@ -3,10 +3,11 @@ import { Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight } from 'lucide-react-native';
+import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
+import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useWellnessStore, useTrainingStore, useNutritionStore } from '../../stores';
 import { getMockBriefing, MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
@@ -36,7 +37,7 @@ export default function HomeScreen() {
   const todayLesson = phaseEducation[0];
 
   return (
-    <LinearGradient colors={['#0D0D2B', '#1A0A30']} style={{ flex: 1 }}>
+    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
@@ -50,14 +51,40 @@ export default function HomeScreen() {
             weeks={weeks}
           />
 
-          {/* GENESIS Daily Briefing — Hero Card with Image */}
-          <ImageCard
-            imageUrl={briefing.imageUrl}
-            height={200}
-            onPress={() => router.push('/(modals)/genesis-chat')}
-            overlayColors={['transparent', 'rgba(13, 13, 43, 0.6)', 'rgba(13, 13, 43, 0.95)']}
-          >
-            <View style={{ gap: 8 }}>
+          {/* GENESIS Daily Briefing — Glass Card */}
+          <Pressable onPress={() => router.push('/(modals)/genesis-chat')}>
+            <View style={{
+              backgroundColor: GENESIS_COLORS.surfaceCard,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: GENESIS_COLORS.borderSubtle,
+              padding: 20,
+              gap: 12,
+              shadowColor: '#6D00FF',
+              shadowOpacity: 0.25,
+              shadowRadius: 15,
+              shadowOffset: { width: 0, height: 0 },
+              elevation: 8,
+            }}>
+              {/* Phase Badge */}
+              <View style={{
+                alignSelf: 'flex-start',
+                backgroundColor: GENESIS_COLORS.primaryDim,
+                borderRadius: 9999,
+                borderWidth: 1,
+                borderColor: GENESIS_COLORS.borderActive,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+              }}>
+                <Text style={{
+                  color: GENESIS_COLORS.primary,
+                  fontSize: 10,
+                  fontFamily: 'JetBrainsMonoSemiBold',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                }}>{phaseConfig.label}</Text>
+              </View>
+
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Sparkles size={16} color={phaseConfig.accentColor} />
                 <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
@@ -67,11 +94,19 @@ export default function HomeScreen() {
               <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold', lineHeight: 20 }}>
                 {briefing.greeting}
               </Text>
-              <Text style={{ color: '#c4bfcc', fontSize: 13, fontFamily: 'Inter', lineHeight: 19 }}>
+              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', lineHeight: 19 }}>
                 {briefing.message}
               </Text>
             </View>
-          </ImageCard>
+          </Pressable>
+
+          {/* Quick Metrics Row */}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <MetricMini icon={<Flame size={14} color="#FF6B6B" />} value="1,847" label="kcal" />
+            <MetricMini icon={<Moon size={14} color={GENESIS_COLORS.info} />} value="7.4h" label="sleep" />
+            <MetricMini icon={<Droplets size={14} color={GENESIS_COLORS.cyan} />} value="6" label="cups" />
+            <MetricMini icon={<Footprints size={14} color={GENESIS_COLORS.warning} />} value="8,231" label="steps" />
+          </View>
 
           {/* Daily Missions */}
           <SectionLabel title="HOY">
@@ -85,16 +120,16 @@ export default function HomeScreen() {
                 onPress={() => router.push('/(tabs)/train')}
               />
               <MissionCard
-                icon={<Utensils size={18} color="#22ff73" />}
-                iconBg="#22ff7320"
+                icon={<Utensils size={18} color={GENESIS_COLORS.success} />}
+                iconBg={GENESIS_COLORS.success + '20'}
                 title="Fuel"
                 subtitle="1,847 / 2,400"
                 detail="Faltan 2 comidas"
                 onPress={() => router.push('/(tabs)/fuel')}
               />
               <MissionCard
-                icon={<Brain size={18} color="#38bdf8" />}
-                iconBg="#38bdf820"
+                icon={<Brain size={18} color={GENESIS_COLORS.info} />}
+                iconBg={GENESIS_COLORS.info + '20'}
                 title="Check-in"
                 subtitle={todayCheckIn ? 'Completado' : 'Pendiente'}
                 detail={todayCheckIn ? todayCheckIn.mood : 'Registra tu día'}
@@ -130,7 +165,7 @@ export default function HomeScreen() {
             <GlassCard shine>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Progreso Semanal</Text>
-                <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{completedDays}/7 días</Text>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{completedDays}/7 días</Text>
               </View>
               <ProgressBar progress={(completedDays / 7) * 100} gradient />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 }}>
@@ -172,13 +207,32 @@ export default function HomeScreen() {
               <Flame size={22} color="#F97316" />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{streak} Day Streak</Text>
-                <Text style={{ color: '#827a89', fontSize: 11, fontFamily: 'Inter' }}>Personal best! Keep going.</Text>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>Personal best! Keep going.</Text>
               </View>
             </View>
           </GlassCard>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
+  );
+}
+
+function MetricMini({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  return (
+    <View style={{
+      flex: 1,
+      backgroundColor: GENESIS_COLORS.surfaceCard,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: GENESIS_COLORS.borderSubtle,
+      padding: 10,
+      alignItems: 'center',
+      gap: 4,
+    }}>
+      {icon}
+      <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>{value}</Text>
+      <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>{label}</Text>
+    </View>
   );
 }
 
@@ -205,7 +259,7 @@ function MissionCard({
       </View>
       <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoBold' }}>{title}</Text>
       <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'Inter' }}>{subtitle}</Text>
-      <Text style={{ color: '#827a89', fontSize: 10, fontFamily: 'Inter' }}>{detail}</Text>
+      <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'Inter' }}>{detail}</Text>
     </Pressable>
   );
 }

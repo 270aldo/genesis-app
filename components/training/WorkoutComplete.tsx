@@ -29,7 +29,7 @@ export function WorkoutComplete({ session, prs, onDismiss }: WorkoutCompleteProp
     : `${session.duration}m`;
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(13, 13, 43, 0.95)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+    <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.95)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
       <View style={{ width: '100%', maxWidth: 360, gap: 24, alignItems: 'center' }}>
         {/* Title */}
         <View style={{ alignItems: 'center', gap: 8 }}>

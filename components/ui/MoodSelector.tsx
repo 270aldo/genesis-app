@@ -2,11 +2,11 @@ import { Pressable, Text, View } from 'react-native';
 import { Smile, SmilePlus, Meh, Frown, Angry } from 'lucide-react-native';
 
 const moods = [
-  { key: 'great', label: 'Great', icon: Smile, color: '#22ff73' },
-  { key: 'good', label: 'Good', icon: SmilePlus, color: '#b39aff' },
-  { key: 'okay', label: 'Okay', icon: Meh, color: '#38bdf8' },
-  { key: 'low', label: 'Low', icon: Frown, color: '#F97316' },
-  { key: 'bad', label: 'Bad', icon: Angry, color: '#ff6b6b' },
+  { key: 'great', label: 'Great', icon: Smile, color: '#00F5AA' },
+  { key: 'good', label: 'Good', icon: SmilePlus, color: '#6D00FF' },
+  { key: 'okay', label: 'Okay', icon: Meh, color: '#00D4FF' },
+  { key: 'low', label: 'Low', icon: Frown, color: '#FFD93D' },
+  { key: 'bad', label: 'Bad', icon: Angry, color: '#FF6B6B' },
 ] as const;
 
 type MoodSelectorProps = {
@@ -23,15 +23,15 @@ export function MoodSelector({ selected, onSelect }: MoodSelectorProps) {
         return (
           <Pressable key={mood.key} className="items-center gap-1" onPress={() => onSelect?.(mood.key)}>
             <View
-              className="h-12 w-12 items-center justify-center rounded-full border bg-[#14121aB3]"
+              className="h-12 w-12 items-center justify-center rounded-full border bg-[#0A0A0AD9]"
               style={[
                 { borderColor: isSelected ? mood.color : '#FFFFFF14' },
                 isSelected ? { shadowColor: mood.color, shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } } : {},
               ]}
             >
-              <IconComponent size={22} color={isSelected ? mood.color : '#6b6b7b'} />
+              <IconComponent size={22} color={isSelected ? mood.color : 'rgba(255, 255, 255, 0.40)'} />
             </View>
-            <Text className="font-jetbrains text-[9px] text-[#827a89]">{mood.label}</Text>
+            <Text className="font-jetbrains text-[9px]" style={{ color: 'rgba(192, 192, 192, 0.60)' }}>{mood.label}</Text>
           </Pressable>
         );
       })}

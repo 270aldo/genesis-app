@@ -107,7 +107,7 @@ export function WidgetRenderer({ widget }: WidgetRendererProps) {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ color: '#0D0D2B', fontWeight: '700', fontSize: 12 }}>Send</Text>
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 12 }}>Send</Text>
               </Pressable>
             </View>
           </View>
@@ -135,7 +135,7 @@ export function WidgetRenderer({ widget }: WidgetRendererProps) {
             onPress={handleAction}
             style={{ borderRadius: 14, padding: 12, alignItems: 'center', backgroundColor: theme.colors.primary }}
           >
-            <Text style={{ color: '#0D0D2B', fontWeight: '700' }}>{widget.title ?? 'Take action'}</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>{widget.title ?? 'Take action'}</Text>
           </Pressable>
         );
 

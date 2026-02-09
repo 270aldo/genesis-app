@@ -18,7 +18,7 @@ export function Button({ label, onPress }: ButtonProps) {
         backgroundColor: theme.colors.primary,
       }}
     >
-      <Text style={{ color: '#0D0D2B', fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>{label}</Text>
     </Pressable>
   );
 }
