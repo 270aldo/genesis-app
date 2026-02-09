@@ -1,24 +1,35 @@
 export interface VisionFoodScanResult {
   detectedItems: Array<{ name: string; confidence: number }>;
   estimatedCalories: number;
+  estimatedProtein?: number;
+  estimatedCarbs?: number;
+  estimatedFat?: number;
 }
 
 export interface VisionEquipmentResult {
   detectedEquipment: Array<{ name: string; confidence: number }>;
 }
 
-const visionApiUrl = process.env.EXPO_PUBLIC_VISION_API_URL ?? '';
+import { useAuthStore } from '../stores/useAuthStore';
+
+const bffUrl = process.env.EXPO_PUBLIC_BFF_URL ?? '';
+
+function getAuthHeaders(): Record<string, string> {
+  const token = useAuthStore.getState().session?.access_token;
+  if (token) return { Authorization: `Bearer ${token}` };
+  return {};
+}
 
 export const visionApi = {
   async scanFood(imageBase64: string): Promise<VisionFoodScanResult> {
-    if (!visionApiUrl) {
+    if (!bffUrl) {
       return { detectedItems: [], estimatedCalories: 0 };
     }
 
-    const response = await fetch(`${visionApiUrl}/scan-food`, {
+    const response = await fetch(`${bffUrl}/mobile/vision/scan-food`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64 }),
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ imageBase64, mode: 'food' }),
     });
 
     if (!response.ok) throw new Error('Vision API scanFood failed');
@@ -26,14 +37,14 @@ export const visionApi = {
   },
 
   async detectEquipment(imageBase64: string): Promise<VisionEquipmentResult> {
-    if (!visionApiUrl) {
+    if (!bffUrl) {
       return { detectedEquipment: [] };
     }
 
-    const response = await fetch(`${visionApiUrl}/detect-equipment`, {
+    const response = await fetch(`${bffUrl}/mobile/vision/detect-equipment`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64 }),
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ imageBase64, mode: 'equipment' }),
     });
 
     if (!response.ok) throw new Error('Vision API detectEquipment failed');

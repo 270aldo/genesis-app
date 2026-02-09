@@ -10,6 +10,7 @@ import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useWellnessStore, useTrainingStore, useNutritionStore, useTrackStore } from '../../stores';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useHealthKit } from '../../hooks/useHealthKit';
 import { MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
 
@@ -21,6 +22,9 @@ export default function HomeScreen() {
   // Store data
   const { seasonNumber, currentWeek, currentPhase, weeks, progressPercent, fetchSeasonPlan } = useSeasonStore();
   const todayCheckIn = useWellnessStore((s) => s.todayCheckIn);
+
+  // HealthKit data
+  const { snapshot: healthSnapshot, status: healthStatus } = useHealthKit();
 
   // Auth & greeting
   const userName = useAuthStore((s) => s.user?.name);
@@ -40,11 +44,19 @@ export default function HomeScreen() {
   const remaining = useNutritionStore((s) => s.getRemainingCalories());
   const waterValue = useNutritionStore((s) => s.water > 0 ? `${s.water}` : '--');
 
-  // Sleep from today's check-in
-  const sleepValue = todayCheckIn?.sleepHours ? `${todayCheckIn.sleepHours}h` : '--';
+  // Sleep — prefer HealthKit data, fall back to check-in
+  const sleepValue = healthSnapshot?.sleepHours
+    ? `${healthSnapshot.sleepHours}h`
+    : todayCheckIn?.sleepHours
+      ? `${todayCheckIn.sleepHours}h`
+      : '--';
 
-  // Steps — HealthKit not integrated yet
-  const stepsValue = '--';
+  // Steps — from HealthKit
+  const stepsValue = healthStatus === 'loading'
+    ? '...'
+    : healthSnapshot?.steps
+      ? healthSnapshot.steps.toLocaleString()
+      : '--';
 
   // Completed days this week (training sessions completed since Monday)
   const previousSessions = useTrainingStore((s) => s.previousSessions);

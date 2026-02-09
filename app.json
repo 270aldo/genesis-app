@@ -14,7 +14,11 @@
       "backgroundColor": "#0D0D2B"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "GENESIS necesita acceso a tus datos de salud para mostrar pasos, sueño y frecuencia cardíaca.",
+        "NSHealthUpdateUsageDescription": "GENESIS puede registrar entrenamientos en Apple Health."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +30,21 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-health-connect",
+        {
+          "healthSharePermission": "GENESIS necesita acceso a tus datos de salud para mostrar pasos, sueño y frecuencia cardíaca.",
+          "healthUpdatePermission": "GENESIS puede registrar entrenamientos en Apple Health."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "GENESIS necesita acceso a la cámara para escanear alimentos y equipamiento."
+        }
+      ],
+      "react-native-health-connect"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

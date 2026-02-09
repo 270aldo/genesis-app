@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
-from models.requests import ChatRequest, CheckInRequest, ExerciseLogRequest, MealLogRequest, WaterLogRequest
-from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse, TrackStatsResponse, StrengthProgressResponse, MealResponse, WaterResponse, ExerciseListResponse, EducationListResponse
+from models.requests import ChatRequest, CheckInRequest, ExerciseLogRequest, MealLogRequest, WaterLogRequest, VisionScanRequest
+from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse, TrackStatsResponse, StrengthProgressResponse, MealResponse, WaterResponse, ExerciseListResponse, EducationListResponse, VisionFoodScanResponse, VisionEquipmentResponse
 from services.auth import get_current_user_id
 from services.supabase import get_supabase
 from services.agent_router import route_to_agent
@@ -422,3 +422,19 @@ async def get_education_detail(article_id: str, user_id: str = Depends(get_curre
     sb = get_supabase()
     result = sb.table("education_content").select("*").eq("id", article_id).single().execute()
     return result.data
+
+
+@router.post("/vision/scan-food", response_model=VisionFoodScanResponse)
+async def vision_scan_food(req: VisionScanRequest, user_id: str = Depends(get_current_user_id)):
+    """Analyze a food image and return detected items with estimated macros."""
+    from services.vision import scan_food
+    result = await scan_food(req.imageBase64)
+    return VisionFoodScanResponse(**result)
+
+
+@router.post("/vision/detect-equipment", response_model=VisionEquipmentResponse)
+async def vision_detect_equipment(req: VisionScanRequest, user_id: str = Depends(get_current_user_id)):
+    """Analyze an image and return detected gym equipment."""
+    from services.vision import detect_equipment
+    result = await detect_equipment(req.imageBase64)
+    return VisionEquipmentResponse(**result)

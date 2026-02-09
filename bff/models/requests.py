@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ChatRequest(BaseModel):
@@ -38,3 +38,17 @@ class MealLogRequest(BaseModel):
 class WaterLogRequest(BaseModel):
     date: str
     glasses: int
+
+
+class VisionScanRequest(BaseModel):
+    imageBase64: str
+    mode: str = "food"
+
+    @field_validator("imageBase64")
+    @classmethod
+    def validate_base64_size(cls, v: str) -> str:
+        # ~5.5MB base64 ≈ ~4MB raw image — generous limit for phone photos
+        max_length = 5_500_000
+        if len(v) > max_length:
+            raise ValueError(f"Image too large: {len(v)} chars exceeds {max_length} limit")
+        return v

@@ -104,3 +104,20 @@ class ExerciseListResponse(BaseModel):
 
 class EducationListResponse(BaseModel):
     articles: list[dict[str, Any]] = []
+
+
+class DetectedItem(BaseModel):
+    name: str
+    confidence: float
+
+
+class VisionFoodScanResponse(BaseModel):
+    detectedItems: list[DetectedItem] = []
+    estimatedCalories: int = 0
+    estimatedProtein: int | None = None
+    estimatedCarbs: int | None = None
+    estimatedFat: int | None = None
+
+
+class VisionEquipmentResponse(BaseModel):
+    detectedEquipment: list[DetectedItem] = []
