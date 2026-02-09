@@ -22,6 +22,7 @@ type NutritionState = {
   getDailyTotals: () => DailyTotals;
   getRemainingCalories: () => number;
   fetchMeals: (date?: string) => Promise<void>;
+  fetchWater: (date?: string) => Promise<void>;
 };
 
 export const useNutritionStore = create<NutritionState>((set, get) => ({
@@ -56,7 +57,24 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
   },
 
   removeMeal: (mealId) => set((state) => ({ meals: state.meals.filter((meal) => meal.id !== mealId) })),
-  addWater: () => set((state) => ({ water: Math.min(state.water + 1, state.targetWater) })),
+  addWater: () => {
+    const newWater = Math.min(get().water + 1, get().targetWater);
+    set({ water: newWater });
+
+    // Persist to Supabase
+    if (hasSupabaseConfig) {
+      (async () => {
+        try {
+          const { upsertWaterLog, getCurrentUserId } = await import('../services/supabaseQueries');
+          const userId = getCurrentUserId();
+          if (!userId) return;
+          await upsertWaterLog(userId, new Date().toISOString().split('T')[0], newWater);
+        } catch (err: any) {
+          console.warn('addWater persist failed:', err?.message);
+        }
+      })();
+    }
+  },
   setWater: (water) => set({ water }),
 
   getDailyTotals: () => {
@@ -106,6 +124,23 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
       console.warn('fetchMeals failed:', err?.message);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  fetchWater: async (date) => {
+    try {
+      if (hasSupabaseConfig) {
+        const { fetchWaterLog, getCurrentUserId } = await import('../services/supabaseQueries');
+        const userId = getCurrentUserId();
+        if (userId) {
+          const data = await fetchWaterLog(userId, date);
+          if (data) {
+            set({ water: data.glasses ?? 0 });
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('fetchWater failed:', err?.message);
     }
   },
 }));

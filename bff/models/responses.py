@@ -88,3 +88,11 @@ class StrengthProgressResponse(BaseModel):
     exercise_name: str
     data_points: list[StrengthDataPoint] = []
     change_percent: int = 0
+
+
+class MealResponse(BaseModel):
+    meals: list[dict[str, Any]] = []
+
+
+class WaterResponse(BaseModel):
+    glasses: int = 0
