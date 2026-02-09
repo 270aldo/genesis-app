@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TrendingUp, Trophy, Target, Flame, Calendar, Zap } from 'lucide-react-native';
+import { TrendingUp, Trophy, Target, Calendar, Zap } from 'lucide-react-native';
 import {
   GlassCard,
   ScoreCard,
@@ -14,38 +15,41 @@ import {
 } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
-import { useSeasonStore } from '../../stores';
+import { useSeasonStore, useTrackStore, useTrainingStore } from '../../stores';
 import { PHASE_CONFIG, IMAGES } from '../../data';
 import type { PhaseType } from '../../types';
 
-// Mock strength progression data
-const benchProgress = [
-  { label: 'S1', value: 55, active: false },
-  { label: 'S2', value: 65, active: false },
-  { label: 'S3', value: 72, active: false },
-  { label: 'S4', value: 70, active: false },
-  { label: 'S5', value: 78, active: false },
-  { label: 'S6', value: 85, active: true },
-  { label: 'S7', value: 0, active: false },
-];
-
-const personalRecords = [
-  { id: '1', name: 'Bench Press', value: '100 kg', previous: '95 kg', color: '#FFD700' },
-  { id: '2', name: 'Squat', value: '120 kg', previous: '115 kg', color: '#FFD700' },
-  { id: '3', name: 'Deadlift', value: '140 kg', previous: '135 kg', color: '#FFD700' },
-  { id: '4', name: '5K Run', value: '23:45', previous: '24:10', color: '#38bdf8' },
-];
-
 export default function TrackScreen() {
   const { seasonNumber, currentWeek, currentPhase, weeks, progressPercent } = useSeasonStore();
+  const {
+    personalRecords,
+    completedWorkouts,
+    totalPlanned,
+    strengthProgress,
+    streak,
+    fetchPersonalRecords,
+    fetchTrackStats,
+    fetchStrengthProgress,
+    fetchStreak,
+  } = useTrackStore();
+  const { fetchPreviousSessions } = useTrainingStore();
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
   const phaseConfig = PHASE_CONFIG[phase];
 
-  // Season stats (mock)
-  const totalWorkouts = 18;
-  const completedWorkouts = 14;
-  const adherence = Math.round((completedWorkouts / totalWorkouts) * 100);
-  const totalPRs = 4;
+  useEffect(() => {
+    fetchPersonalRecords();
+    fetchTrackStats();
+    fetchStrengthProgress();
+    fetchStreak();
+    fetchPreviousSessions();
+  }, []);
+
+  // Real stats
+  const adherence = totalPlanned > 0 ? Math.round((completedWorkouts / totalPlanned) * 100) : 0;
+  const totalPRs = personalRecords.length;
+
+  // Strength chart data from store
+  const chartData = strengthProgress.dataPoints;
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
@@ -106,38 +110,58 @@ export default function TrackScreen() {
           </SectionLabel>
 
           {/* Strength Chart */}
-          <SectionLabel title="BENCH PRESS TREND">
+          <SectionLabel title={strengthProgress.exerciseName ? `${strengthProgress.exerciseName.toUpperCase()} TREND` : 'STRENGTH TREND'}>
             <GlassCard shine>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <TrendingUp size={16} color={GENESIS_COLORS.success} />
-                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Progresión</Text>
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Progresion</Text>
                 </View>
-                <Text style={{ color: GENESIS_COLORS.success, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>+12% este season</Text>
+                <Text style={{ color: GENESIS_COLORS.success, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                  {strengthProgress.changePercent > 0 ? `+${strengthProgress.changePercent}% este season` : 'Sin datos aun'}
+                </Text>
               </View>
-              <SimpleBarChart data={benchProgress} />
+              {chartData.length > 0 ? (
+                <SimpleBarChart data={chartData} />
+              ) : (
+                <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', textAlign: 'center', paddingVertical: 16 }}>
+                  Completa mas sesiones para ver tu progresion de fuerza.
+                </Text>
+              )}
             </GlassCard>
           </SectionLabel>
 
           {/* Personal Records */}
           <SectionLabel title="PERSONAL RECORDS">
             <View style={{ gap: 12 }}>
-              {personalRecords.map((pr) => (
-                <GlassCard key={pr.id}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: pr.color + '20', alignItems: 'center', justifyContent: 'center' }}>
-                        <Trophy size={18} color={pr.color} />
+              {personalRecords.length > 0 ? (
+                personalRecords.map((pr) => (
+                  <GlassCard key={`${pr.exerciseId}-${pr.type}`}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFD70020', alignItems: 'center', justifyContent: 'center' }}>
+                          <Trophy size={18} color="#FFD700" />
+                        </View>
+                        <View style={{ gap: 2 }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{pr.exerciseName}</Text>
+                          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
+                            {pr.type} · {new Date(pr.achievedAt).toLocaleDateString('es', { month: 'short', day: 'numeric' })}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={{ gap: 2 }}>
-                        <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{pr.name}</Text>
-                        <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>Anterior: {pr.previous}</Text>
-                      </View>
+                      <Text style={{ color: '#FFD700', fontSize: 16, fontFamily: 'InterBold' }}>
+                        {pr.value} {pr.type === 'weight' ? 'kg' : pr.type === 'time' ? 's' : ''}
+                      </Text>
                     </View>
-                    <Text style={{ color: pr.color, fontSize: 16, fontFamily: 'InterBold' }}>{pr.value}</Text>
-                  </View>
+                  </GlassCard>
+                ))
+              ) : (
+                <GlassCard>
+                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', textAlign: 'center' }}>
+                    Completa sesiones para desbloquear tus records personales.
+                  </Text>
                 </GlassCard>
-              ))}
+              )}
             </View>
           </SectionLabel>
 
@@ -148,7 +172,10 @@ export default function TrackScreen() {
               <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS INSIGHT</Text>
             </View>
             <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
-              Tu adherencia del {adherence}% está por encima del promedio. En fase de {phaseConfig.label.toLowerCase()}, mantener esta consistencia es clave para maximizar adaptaciones. Sigue así.
+              {completedWorkouts > 0
+                ? `Tu adherencia del ${adherence}% ${adherence >= 70 ? 'esta por encima del promedio' : 'tiene margen de mejora'}. En fase de ${phaseConfig.label.toLowerCase()}, la consistencia es clave para maximizar adaptaciones.`
+                : 'Empieza tu primera sesion para que GENESIS analice tu progreso y te de insights personalizados.'
+              }
             </Text>
           </GlassCard>
         </ScrollView>

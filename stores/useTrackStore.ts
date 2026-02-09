@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import type { Measurement, ProgressPhoto } from '../types';
 import { hasSupabaseConfig } from '../services/supabaseClient';
 
+type StrengthProgressData = {
+  exerciseName: string;
+  dataPoints: Array<{ label: string; value: number; active: boolean }>;
+  changePercent: number;
+};
+
 type TrackingState = {
   measurements: Measurement[];
   photos: ProgressPhoto[];
@@ -9,6 +15,9 @@ type TrackingState = {
   streak: number;
   personalRecords: Array<{ exerciseId: string; exerciseName: string; type: string; value: number; achievedAt: string }>;
   isLoading: boolean;
+  completedWorkouts: number;
+  totalPlanned: number;
+  strengthProgress: StrengthProgressData;
   addMeasurement: (measurement: Measurement) => void;
   addPhoto: (photo: ProgressPhoto) => void;
   updateStrengthMetric: (exercise: string, value: number) => void;
@@ -17,6 +26,8 @@ type TrackingState = {
   fetchMeasurements: () => Promise<void>;
   fetchPersonalRecords: () => Promise<void>;
   fetchStreak: () => Promise<void>;
+  fetchTrackStats: () => Promise<void>;
+  fetchStrengthProgress: (exerciseName?: string) => Promise<void>;
 };
 
 export const useTrackStore = create<TrackingState>((set, get) => ({
@@ -26,6 +37,9 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
   streak: 0,
   personalRecords: [],
   isLoading: false,
+  completedWorkouts: 0,
+  totalPlanned: 0,
+  strengthProgress: { exerciseName: '', dataPoints: [], changePercent: 0 },
 
   addMeasurement: (measurement) => {
     // Optimistic local update
@@ -144,6 +158,35 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
       }
     } catch (err: any) {
       console.warn('fetchStreak failed:', err?.message);
+    }
+  },
+
+  fetchTrackStats: async () => {
+    try {
+      const { genesisAgentApi } = await import('../services/genesisAgentApi');
+      const data = await genesisAgentApi.getTrackStats();
+      set({
+        completedWorkouts: data.completed_workouts,
+        totalPlanned: data.total_planned,
+      });
+    } catch (err: any) {
+      console.warn('fetchTrackStats failed:', err?.message);
+    }
+  },
+
+  fetchStrengthProgress: async (exerciseName?: string) => {
+    try {
+      const { genesisAgentApi } = await import('../services/genesisAgentApi');
+      const data = await genesisAgentApi.getStrengthProgress(exerciseName);
+      set({
+        strengthProgress: {
+          exerciseName: data.exercise_name,
+          dataPoints: data.data_points,
+          changePercent: data.change_percent,
+        },
+      });
+    } catch (err: any) {
+      console.warn('fetchStrengthProgress failed:', err?.message);
     }
   },
 }));

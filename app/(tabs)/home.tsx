@@ -8,8 +8,9 @@ import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
-import { useSeasonStore, useWellnessStore, useTrainingStore, useNutritionStore } from '../../stores';
-import { getMockBriefing, MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
+import { useSeasonStore, useWellnessStore, useTrainingStore, useNutritionStore, useTrackStore } from '../../stores';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
 
 const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -21,16 +22,57 @@ export default function HomeScreen() {
   const { seasonNumber, currentWeek, currentPhase, weeks, progressPercent, fetchSeasonPlan } = useSeasonStore();
   const todayCheckIn = useWellnessStore((s) => s.todayCheckIn);
 
+  // Auth & greeting
+  const userName = useAuthStore((s) => s.user?.name);
+  const hour = new Date().getHours();
+  const timeGreeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches';
+  const greeting = timeGreeting + (userName ? `, ${userName}` : '');
+
+  // Today's training plan
+  const todayPlan = useTrainingStore((s) => s.todayPlan);
+
+  // Nutrition data
+  const nutritionTotals = useNutritionStore((s) => s.getDailyTotals());
+  const kcalValue = nutritionTotals.calories > 0 ? nutritionTotals.calories.toLocaleString() : '--';
+  const dailyGoal = useNutritionStore((s) => s.dailyGoal);
+  const remaining = useNutritionStore((s) => s.getRemainingCalories());
+  const waterValue = useNutritionStore((s) => s.water > 0 ? `${s.water}` : '--');
+
+  // Sleep from today's check-in
+  const sleepValue = todayCheckIn?.sleepHours ? `${todayCheckIn.sleepHours}h` : '--';
+
+  // Steps — HealthKit not integrated yet
+  const stepsValue = '--';
+
+  // Completed days this week (training sessions completed since Monday)
+  const previousSessions = useTrainingStore((s) => s.previousSessions);
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)); // Monday
+  startOfWeek.setHours(0, 0, 0, 0);
+  const completedDays = previousSessions.filter(
+    (s) => s.completed && new Date(s.date) >= startOfWeek,
+  ).length;
+
+  // Streak from track store
+  const streak = useTrackStore((s) => s.streak);
+
   useEffect(() => {
     if (weeks.length === 0) fetchSeasonPlan();
+    useTrainingStore.getState().fetchTodayPlan();
+    useNutritionStore.getState().fetchMeals();
+    useTrainingStore.getState().fetchPreviousSessions();
+    useTrackStore.getState().fetchStreak();
+    useWellnessStore.getState().fetchTodayCheckIn();
   }, []);
 
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
-  const briefing = getMockBriefing(phase, currentWeek);
   const phaseConfig = PHASE_CONFIG[phase];
-  const completedDays = 5;
   const currentDayIndex = new Date().getDay();
-  const streak = 12;
+
+  // Build briefing from real data
+  const briefingMessage = todayPlan
+    ? `Semana ${currentWeek} de ${phaseConfig.label}. Hoy toca ${todayPlan.name} — ${todayPlan.exercises.length} ejercicios, ~${todayPlan.estimatedDuration} min.`
+    : `Semana ${currentWeek} de ${phaseConfig.label}. Hoy es día de descanso. Enfócate en recovery y nutrición.`;
 
   // Filter education by current phase
   const phaseEducation = MOCK_EDUCATION.filter((e) => e.relevantPhases.includes(phase));
@@ -92,20 +134,20 @@ export default function HomeScreen() {
                 </Text>
               </View>
               <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold', lineHeight: 20 }}>
-                {briefing.greeting}
+                {greeting}
               </Text>
               <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', lineHeight: 19 }}>
-                {briefing.message}
+                {briefingMessage}
               </Text>
             </View>
           </Pressable>
 
           {/* Quick Metrics Row */}
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <MetricMini icon={<Flame size={14} color="#FF6B6B" />} value="1,847" label="kcal" />
-            <MetricMini icon={<Moon size={14} color={GENESIS_COLORS.info} />} value="7.4h" label="sleep" />
-            <MetricMini icon={<Droplets size={14} color={GENESIS_COLORS.cyan} />} value="6" label="cups" />
-            <MetricMini icon={<Footprints size={14} color={GENESIS_COLORS.warning} />} value="8,231" label="steps" />
+            <MetricMini icon={<Flame size={14} color="#FF6B6B" />} value={kcalValue} label="kcal" />
+            <MetricMini icon={<Moon size={14} color={GENESIS_COLORS.info} />} value={sleepValue} label="sleep" />
+            <MetricMini icon={<Droplets size={14} color={GENESIS_COLORS.cyan} />} value={waterValue} label="cups" />
+            <MetricMini icon={<Footprints size={14} color={GENESIS_COLORS.warning} />} value={stepsValue} label="steps" />
           </View>
 
           {/* Daily Missions */}
@@ -115,16 +157,16 @@ export default function HomeScreen() {
                 icon={<Dumbbell size={18} color={phaseConfig.color} />}
                 iconBg={phaseConfig.color + '20'}
                 title="Train"
-                subtitle="Push Day"
-                detail="6 ejercicios · 55 min"
+                subtitle={todayPlan ? todayPlan.name : 'Día de descanso'}
+                detail={todayPlan ? `${todayPlan.exercises.length} ejercicios · ${todayPlan.estimatedDuration} min` : 'Recovery activo'}
                 onPress={() => router.push('/(tabs)/train')}
               />
               <MissionCard
                 icon={<Utensils size={18} color={GENESIS_COLORS.success} />}
                 iconBg={GENESIS_COLORS.success + '20'}
                 title="Fuel"
-                subtitle="1,847 / 2,400"
-                detail="Faltan 2 comidas"
+                subtitle={`${kcalValue} / ${dailyGoal.toLocaleString()}`}
+                detail={remaining > 0 ? `Faltan ${remaining.toLocaleString()} kcal` : 'Meta alcanzada'}
                 onPress={() => router.push('/(tabs)/fuel')}
               />
               <MissionCard
@@ -188,7 +230,7 @@ export default function HomeScreen() {
                       }}
                     >
                       <Text style={{
-                        color: isCompleted || isToday ? '#FFFFFF' : '#6b6b7b',
+                        color: isCompleted || isToday ? '#FFFFFF' : GENESIS_COLORS.textMuted,
                         fontSize: 10,
                         fontFamily: 'JetBrainsMono',
                       }}>
@@ -206,8 +248,8 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Flame size={22} color="#F97316" />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{streak} Day Streak</Text>
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>Personal best! Keep going.</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{streak} {streak === 1 ? 'día' : 'días'} de racha</Text>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{streak > 0 ? '¡Sigue así!' : 'Completa tu check-in para iniciar tu racha.'}</Text>
               </View>
             </View>
           </GlassCard>

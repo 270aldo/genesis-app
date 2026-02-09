@@ -7,7 +7,9 @@ import type {
   GenesisResponse,
   GetSessionsParams,
   SessionResponse,
+  StrengthProgressResponse,
   TodayPlanResponse,
+  TrackStatsResponse,
   User,
 } from '../types';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -79,5 +81,14 @@ export const genesisAgentApi = {
 
   async getTodayPlan(): Promise<TodayPlanResponse> {
     return request<TodayPlanResponse>('/mobile/training/today');
+  },
+
+  async getTrackStats(): Promise<TrackStatsResponse> {
+    return request<TrackStatsResponse>('/mobile/track/stats');
+  },
+
+  async getStrengthProgress(exerciseName?: string): Promise<StrengthProgressResponse> {
+    const query = exerciseName ? `?exercise_name=${encodeURIComponent(exerciseName)}` : '';
+    return request<StrengthProgressResponse>(`/mobile/track/strength-progress${query}`);
   },
 };

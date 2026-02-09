@@ -72,3 +72,21 @@ export interface TodayPlanResponse {
     phase_focus?: string;
   } | null;
 }
+
+export interface TrackStatsResponse {
+  completed_workouts: number;
+  total_prs: number;
+  total_planned: number;
+}
+
+export interface StrengthDataPoint {
+  label: string;
+  value: number;
+  active: boolean;
+}
+
+export interface StrengthProgressResponse {
+  exercise_name: string;
+  data_points: StrengthDataPoint[];
+  change_percent: number;
+}

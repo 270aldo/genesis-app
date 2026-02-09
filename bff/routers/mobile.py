@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from models.requests import ChatRequest, CheckInRequest, ExerciseLogRequest
-from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse
+from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse, TrackStatsResponse, StrengthProgressResponse
 from services.auth import get_current_user_id
 from services.supabase import get_supabase
 from services.agent_router import route_to_agent
@@ -183,3 +183,139 @@ async def get_today_plan(user_id: str = Depends(get_current_user_id)):
         "exercises": exercises_with_details,
         "phase_focus": phase.get("focus"),
     })
+
+
+@router.get("/track/stats", response_model=TrackStatsResponse)
+async def get_track_stats(user_id: str = Depends(get_current_user_id)):
+    """Season stats: completed workouts, total PRs, adherence."""
+    sb = get_supabase()
+
+    # Get active season date range
+    season_result = (
+        sb.table("seasons")
+        .select("id, start_date, end_date")
+        .eq("user_id", user_id)
+        .eq("status", "active")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not season_result.data:
+        return TrackStatsResponse(completed_workouts=0, total_prs=0, total_planned=0)
+
+    season = season_result.data[0]
+
+    # Count completed sessions in this season
+    sessions_result = (
+        sb.table("sessions")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .gte("scheduled_date", season["start_date"])
+        .lte("scheduled_date", season["end_date"])
+        .filter("completed_at", "not.is", "null")
+        .execute()
+    )
+    completed_workouts = sessions_result.count or 0
+
+    # Count PRs
+    prs_result = (
+        sb.table("personal_records")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    total_prs = prs_result.count or 0
+
+    # Count total planned sessions from weekly_plans x season weeks
+    phases_result = (
+        sb.table("phases")
+        .select("id")
+        .eq("season_id", season["id"])
+        .execute()
+    )
+    phase_ids = [p["id"] for p in (phases_result.data or [])]
+
+    total_planned = 0
+    if phase_ids:
+        plans_result = (
+            sb.table("weekly_plans")
+            .select("id", count="exact")
+            .in_("phase_id", phase_ids)
+            .execute()
+        )
+        plans_per_week = plans_result.count or 0
+        total_planned = plans_per_week * 12  # simplified approx
+
+    return TrackStatsResponse(
+        completed_workouts=completed_workouts,
+        total_prs=total_prs,
+        total_planned=max(total_planned, completed_workouts),
+    )
+
+
+@router.get("/track/strength-progress", response_model=StrengthProgressResponse)
+async def get_strength_progress(
+    user_id: str = Depends(get_current_user_id),
+    exercise_name: str | None = None,
+):
+    """Last 7 sessions' max weight for a specific exercise (or top exercise)."""
+    from collections import defaultdict
+
+    sb = get_supabase()
+
+    # Get recent exercise logs with exercise details
+    logs_result = (
+        sb.table("exercise_logs")
+        .select("sets, exercises(name), sessions!inner(user_id, completed_at, scheduled_date)")
+        .eq("sessions.user_id", user_id)
+        .filter("sessions.completed_at", "not.is", "null")
+        .order("created_at", desc=True)
+        .limit(50)
+        .execute()
+    )
+
+    if not logs_result.data:
+        return StrengthProgressResponse(
+            exercise_name=exercise_name or "N/A", data_points=[], change_percent=0
+        )
+
+    # Group by exercise, find max weight per session
+    exercise_sessions: dict[str, list[dict]] = defaultdict(list)
+
+    for log in logs_result.data:
+        ex_name = (log.get("exercises") or {}).get("name", "Unknown")
+        sets_data = log.get("sets", [])
+        if isinstance(sets_data, list):
+            max_weight = max((s.get("weight", 0) for s in sets_data), default=0)
+            sched_date = (log.get("sessions") or {}).get("scheduled_date", "")
+            if max_weight > 0:
+                exercise_sessions[ex_name].append({"date": sched_date, "weight": max_weight})
+
+    # Pick the requested exercise or the one with most data
+    target = exercise_name
+    if not target or target not in exercise_sessions:
+        target = max(exercise_sessions, key=lambda k: len(exercise_sessions[k]), default="N/A")
+
+    points = exercise_sessions.get(target, [])
+    # Sort by date ascending, take last 7
+    points.sort(key=lambda x: x["date"])
+    points = points[-7:]
+
+    # Calculate change %
+    change_percent = 0
+    if len(points) >= 2 and points[0]["weight"] > 0:
+        change_percent = round(
+            ((points[-1]["weight"] - points[0]["weight"]) / points[0]["weight"]) * 100
+        )
+
+    data_points = [
+        {"label": f"S{i+1}", "value": p["weight"], "active": i == len(points) - 1}
+        for i, p in enumerate(points)
+    ]
+
+    return StrengthProgressResponse(
+        exercise_name=target,
+        data_points=data_points,
+        change_percent=change_percent,
+    )
