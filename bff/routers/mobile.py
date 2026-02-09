@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
-from models.requests import ChatRequest, CheckInRequest, ExerciseLogRequest
-from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse, TrackStatsResponse, StrengthProgressResponse
+from models.requests import ChatRequest, CheckInRequest, ExerciseLogRequest, MealLogRequest, WaterLogRequest
+from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse, TrackStatsResponse, StrengthProgressResponse, MealResponse, WaterResponse
 from services.auth import get_current_user_id
 from services.supabase import get_supabase
 from services.agent_router import route_to_agent
@@ -319,3 +319,67 @@ async def get_strength_progress(
         data_points=data_points,
         change_percent=change_percent,
     )
+
+
+@router.get("/meals", response_model=MealResponse)
+async def get_meals(user_id: str = Depends(get_current_user_id), date: str | None = None):
+    from datetime import date as date_type
+
+    sb = get_supabase()
+    target_date = date or date_type.today().isoformat()
+    result = (
+        sb.table("meals")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("date", target_date)
+        .order("logged_at", desc=False)
+        .execute()
+    )
+    return MealResponse(meals=result.data or [])
+
+
+@router.post("/meals")
+async def log_meal(req: MealLogRequest, user_id: str = Depends(get_current_user_id)):
+    sb = get_supabase()
+    payload = {
+        "user_id": user_id,
+        "date": req.date,
+        "meal_type": req.meal_type,
+        "food_items": req.food_items,
+        "total_macros": req.total_macros,
+    }
+    result = sb.table("meals").insert(payload).execute()
+    row = result.data[0] if result.data else payload
+    return row
+
+
+@router.get("/water", response_model=WaterResponse)
+async def get_water(user_id: str = Depends(get_current_user_id), date: str | None = None):
+    from datetime import date as date_type
+
+    sb = get_supabase()
+    target_date = date or date_type.today().isoformat()
+    result = (
+        sb.table("water_logs")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("date", target_date)
+        .maybe_single()
+        .execute()
+    )
+    return WaterResponse(glasses=result.data.get("glasses", 0) if result.data else 0)
+
+
+@router.post("/water")
+async def update_water(req: WaterLogRequest, user_id: str = Depends(get_current_user_id)):
+    sb = get_supabase()
+    result = (
+        sb.table("water_logs")
+        .upsert(
+            {"user_id": user_id, "date": req.date, "glasses": req.glasses},
+            on_conflict="user_id,date",
+        )
+        .execute()
+    )
+    row = result.data[0] if result.data else {"glasses": req.glasses}
+    return row

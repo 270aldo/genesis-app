@@ -1,46 +1,44 @@
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Coffee, Utensils, Apple, UtensilsCrossed, Droplets, Info, Sparkles } from 'lucide-react-native';
+import { Droplets, Info } from 'lucide-react-native';
 import {
   GlassCard,
   MacroCard,
   ScreenHeader,
   SectionLabel,
-  ProgressBar,
   WaterDots,
   CircularProgress,
   SeasonHeader,
 } from '../../components/ui';
-import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useNutritionStore } from '../../stores';
-import { MOCK_MEALS, PHASE_CONFIG, getPhaseNutritionTargets } from '../../data';
+import { PHASE_CONFIG, getPhaseNutritionTargets } from '../../data';
 import type { PhaseType } from '../../types';
-
-const mealIcons: Record<string, typeof Coffee> = {
-  Breakfast: Coffee,
-  Lunch: Utensils,
-  Snack: Apple,
-  Dinner: UtensilsCrossed,
-};
 
 export default function FuelScreen() {
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
-  const { water, targetWater, addWater } = useNutritionStore();
+  const { meals, water, targetWater, addWater, getDailyTotals, isLoading } = useNutritionStore();
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
   const phaseConfig = PHASE_CONFIG[phase];
+
+  // Fetch real data on mount
+  useEffect(() => {
+    useNutritionStore.getState().fetchMeals();
+    useNutritionStore.getState().fetchWater();
+  }, []);
 
   // Phase-aware targets
   const targets = getPhaseNutritionTargets(phase);
 
-  // Sum consumed from mock meals (exclude unlogged)
-  const loggedMeals = MOCK_MEALS.filter((m) => m.calories > 0);
-  const consumed = loggedMeals.reduce((sum, m) => sum + m.calories, 0);
-  const proteinConsumed = loggedMeals.reduce((sum, m) => sum + m.protein, 0);
-  const carbsConsumed = loggedMeals.reduce((sum, m) => sum + m.carbs, 0);
-  const fatConsumed = loggedMeals.reduce((sum, m) => sum + m.fat, 0);
+  // Daily totals from real store data
+  const totals = getDailyTotals();
+  const consumed = totals.calories;
+  const proteinConsumed = totals.protein;
+  const carbsConsumed = totals.carbs;
+  const fatConsumed = totals.fat;
   const remaining = Math.max(0, targets.calories - consumed);
   const progress = Math.min(100, (consumed / targets.calories) * 100);
 
@@ -108,39 +106,35 @@ export default function FuelScreen() {
             </View>
           </SectionLabel>
 
-          {/* Meals with Images */}
+          {/* Meals */}
           <SectionLabel title="COMIDAS">
             <View style={{ gap: 12 }}>
-              {MOCK_MEALS.map((meal) => {
-                const isLogged = meal.calories > 0;
-                return (
-                  <ImageCard
-                    key={meal.id}
-                    imageUrl={meal.imageUrl ?? ''}
-                    height={100}
-                    overlayColors={['transparent', 'rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.92)']}
-                  >
+              {meals.length === 0 ? (
+                <GlassCard>
+                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', textAlign: 'center' }}>
+                    {isLoading ? 'Cargando comidas...' : 'Registra tu primera comida del día.'}
+                  </Text>
+                </GlassCard>
+              ) : (
+                meals.map((meal) => (
+                  <GlassCard key={meal.id}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <View style={{ gap: 2 }}>
-                        <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{meal.name}</Text>
+                        <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
+                          {meal.name.charAt(0).toUpperCase() + meal.name.slice(1)}
+                        </Text>
                         <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{meal.time}</Text>
                       </View>
-                      {isLogged ? (
-                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                          <Text style={{ color: GENESIS_COLORS.success, fontSize: 14, fontFamily: 'InterBold' }}>{meal.calories} cal</Text>
-                          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
-                            P:{meal.protein}g · C:{meal.carbs}g · F:{meal.fat}g
-                          </Text>
-                        </View>
-                      ) : (
-                        <View style={{ backgroundColor: GENESIS_COLORS.error + '26', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                          <Text style={{ color: GENESIS_COLORS.error, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>Sin registrar</Text>
-                        </View>
-                      )}
+                      <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                        <Text style={{ color: GENESIS_COLORS.success, fontSize: 14, fontFamily: 'InterBold' }}>{meal.calories} cal</Text>
+                        <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
+                          P:{meal.protein}g · C:{meal.carbs}g · F:{meal.fat}g
+                        </Text>
+                      </View>
                     </View>
-                  </ImageCard>
-                );
-              })}
+                  </GlassCard>
+                ))
+              )}
             </View>
           </SectionLabel>
 

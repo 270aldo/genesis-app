@@ -26,3 +26,15 @@ class ExerciseLogRequest(BaseModel):
     sets: list[dict]
     rpe: int = 0
     notes: str | None = None
+
+
+class MealLogRequest(BaseModel):
+    date: str
+    meal_type: str
+    food_items: list[dict] = []
+    total_macros: dict = {}
+
+
+class WaterLogRequest(BaseModel):
+    date: str
+    glasses: int

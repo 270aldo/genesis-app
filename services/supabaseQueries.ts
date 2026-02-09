@@ -222,6 +222,37 @@ export async function insertMeal(
   return data;
 }
 
+// ── Water Logs ──
+
+export async function fetchWaterLog(userId: string, date?: string) {
+  if (!hasSupabaseConfig) return null;
+  const { data, error } = await supabaseClient
+    .from('water_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('date', date ?? today())
+    .maybeSingle();
+  if (error) {
+    console.warn('fetchWaterLog:', error.message);
+    return null;
+  }
+  return data;
+}
+
+export async function upsertWaterLog(userId: string, date: string, glasses: number) {
+  if (!hasSupabaseConfig) return null;
+  const { data, error } = await supabaseClient
+    .from('water_logs')
+    .upsert({ user_id: userId, date, glasses }, { onConflict: 'user_id,date' })
+    .select()
+    .single();
+  if (error) {
+    console.warn('upsertWaterLog:', error.message);
+    return null;
+  }
+  return data;
+}
+
 // ── Biomarkers ──
 
 export async function fetchBiomarkers(userId: string) {
