@@ -51,7 +51,7 @@ export default function ExerciseDetailScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: 'rgba(13,13,43,0.7)',
+                backgroundColor: GENESIS_COLORS.surfaceCard,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}

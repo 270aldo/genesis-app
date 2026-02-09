@@ -1,34 +1,88 @@
-import { Pressable, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Clock, Sparkles, ChevronRight, Info } from 'lucide-react-native';
+import { Dumbbell, Sparkles, ChevronRight, Info, Moon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { GlassCard, GradientCard, ListItemCard, Pill, ScreenHeader, SectionLabel, Divider, SeasonHeader } from '../../components/ui';
+import { GlassCard, GradientCard, ListItemCard, Divider, SeasonHeader } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useTrainingStore } from '../../stores';
 import { MOCK_WORKOUT_PLANS, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
 
-const EXERCISE_NAME_TO_LIB_ID: Record<string, string> = {
-  'Bench Press': 'lib_bench',
-  'Incline DB Press': 'lib_incline_db',
-  'Cable Flyes': 'lib_cable_fly',
-  'OHP': 'lib_ohp',
-  'Lateral Raises': 'lib_lat_raise',
-  'Tricep Pushdowns': 'lib_tricep_pushdown',
-};
-
 export default function TrainScreen() {
   const router = useRouter();
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
-  const phase = (currentPhase || 'hypertrophy') as PhaseType;
+  const { todayPlan, isTodayPlanLoading, fetchTodayPlan } = useTrainingStore();
+
+  useEffect(() => {
+    fetchTodayPlan();
+  }, []);
+
+  // Use real plan from BFF, fall back to mock for demo mode
+  const workout = todayPlan ?? MOCK_WORKOUT_PLANS.push_hyp;
+  const exercises = workout.exercises;
+  const phase = ((todayPlan?.phase || currentPhase || 'hypertrophy') as PhaseType);
   const phaseConfig = PHASE_CONFIG[phase];
 
-  // Get today's workout plan
-  const workout = MOCK_WORKOUT_PLANS.push_hyp;
-  const exercises = workout.exercises;
+  // Loading state
+  if (isTodayPlanLoading) {
+    return (
+      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} edges={['top']}>
+          <ActivityIndicator size="large" color={GENESIS_COLORS.primary} />
+          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 12, fontFamily: 'JetBrainsMonoMedium', marginTop: 12 }}>
+            Cargando tu plan...
+          </Text>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  // Rest day state (BFF returned plan: null and we have a real season)
+  if (todayPlan === null && !isTodayPlanLoading && seasonNumber > 0) {
+    // Check if fetchTodayPlan has been called (todayPlan starts as null before fetch too)
+    // We use a simple heuristic: if the store has attempted the fetch, show rest day
+    return (
+      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <SeasonHeader
+              seasonNumber={seasonNumber}
+              currentWeek={currentWeek}
+              currentPhase={phase}
+              weeks={weeks}
+            />
+            <GlassCard>
+              <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
+                <Moon size={40} color={GENESIS_COLORS.success} />
+                <Text style={{ color: '#FFFFFF', fontSize: 20, fontFamily: 'InterBold' }}>
+                  Hoy es día de descanso
+                </Text>
+                <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', textAlign: 'center', lineHeight: 20 }}>
+                  Tu cuerpo se recupera y crece mientras descansas. Enfócate en nutrición, hidratación y dormir bien.
+                </Text>
+              </View>
+            </GlassCard>
+            <GlassCard shine>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={14} color={GENESIS_COLORS.success} />
+                <Text style={{ color: GENESIS_COLORS.success, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
+              </View>
+              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+                Los días de descanso son tan importantes como los de entrenamiento. La hipertrofia ocurre durante la recuperación, no durante el entrenamiento.
+              </Text>
+            </GlassCard>
+          </ScrollView>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
@@ -102,11 +156,10 @@ export default function TrainScreen() {
                   key={ex.id}
                   icon={<Dumbbell size={18} color={phaseConfig.accentColor} />}
                   title={ex.name}
-                  subtitle={`${ex.sets} × ${ex.reps} reps · ${ex.weight} ${ex.unit}`}
+                  subtitle={`${ex.sets} × ${ex.reps} reps${ex.weight ? ` · ${ex.weight} ${ex.unit}` : ''}`}
                   variant="purple"
                   onPress={() => {
-                    const libId = EXERCISE_NAME_TO_LIB_ID[ex.name];
-                    if (libId) router.push(`/(screens)/exercise-detail?id=${libId}`);
+                    router.push(`/(screens)/exercise-detail?id=${ex.id}`);
                   }}
                   right={<ChevronRight size={16} color={GENESIS_COLORS.textTertiary} />}
                 />

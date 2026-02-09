@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Exercise, ExerciseSet, WorkoutSession } from '../types';
+import type { Exercise, ExerciseSet, WorkoutPlan, WorkoutSession } from '../types';
 import type { Json } from '../types/supabase';
 import { hasSupabaseConfig } from '../services/supabaseClient';
 
@@ -11,6 +11,10 @@ type TrainingState = {
   isLoading: boolean;
   isRestTimerActive: boolean;
   restTimeRemaining: number;
+
+  // Today's plan from BFF
+  todayPlan: WorkoutPlan | null;
+  isTodayPlanLoading: boolean;
 
   // Workout state machine
   workoutStatus: WorkoutStatus;
@@ -28,6 +32,7 @@ type TrainingState = {
   pauseRestTimer: () => void;
   fetchPreviousSessions: () => Promise<void>;
   fetchTodaySession: () => Promise<void>;
+  fetchTodayPlan: () => Promise<void>;
 
   // Workout state machine actions
   startWorkout: (session: WorkoutSession) => void;
@@ -47,6 +52,9 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   isLoading: false,
   isRestTimerActive: false,
   restTimeRemaining: 0,
+
+  todayPlan: null,
+  isTodayPlanLoading: false,
 
   workoutStatus: 'idle',
   startTime: null,
@@ -177,6 +185,40 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
       console.warn('fetchTodaySession failed:', err?.message);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  fetchTodayPlan: async () => {
+    set({ isTodayPlanLoading: true });
+    try {
+      const { genesisAgentApi } = await import('../services/genesisAgentApi');
+      const response = await genesisAgentApi.getTodayPlan();
+      if (response.plan) {
+        const plan: WorkoutPlan = {
+          id: `plan-${Date.now()}`,
+          name: response.plan.name,
+          dayLabel: new Date().toLocaleDateString('es', { weekday: 'long' }),
+          muscleGroups: response.plan.muscle_groups,
+          estimatedDuration: response.plan.estimated_duration,
+          phase: (response.plan.phase_focus as any) ?? 'hypertrophy',
+          imageUrl: '',
+          exercises: response.plan.exercises.map((ex) => ({
+            id: ex.exercise_id,
+            name: ex.name,
+            sets: ex.sets,
+            reps: ex.reps,
+            weight: 0,
+            unit: 'kg' as const,
+            completed: false,
+          })),
+        };
+        set({ todayPlan: plan });
+      }
+    } catch (err: any) {
+      console.warn('fetchTodayPlan failed, using fallback:', err?.message);
+      // Fallback handled in the component
+    } finally {
+      set({ isTodayPlanLoading: false });
     }
   },
 

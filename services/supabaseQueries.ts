@@ -301,6 +301,79 @@ export async function insertPersonalRecord(
   return data;
 }
 
+// ── Season / Phase / Plan Creation ──
+
+export async function createSeason(
+  userId: string,
+  data: { name: string; goal: 'build' | 'cut' | 'maintain' | 'peak'; start_date: string; end_date: string },
+) {
+  if (!hasSupabaseConfig) return null;
+  const { data: row, error } = await supabaseClient
+    .from('seasons')
+    .insert({ user_id: userId, ...data, status: 'active' as const })
+    .select()
+    .single();
+  if (error) {
+    console.warn('createSeason:', error.message);
+    return null;
+  }
+  return row;
+}
+
+export async function createPhase(
+  seasonId: string,
+  data: { name: string; focus: 'hypertrophy' | 'strength' | 'power' | 'endurance' | 'deload'; order_index: number; start_date: string; end_date: string },
+) {
+  if (!hasSupabaseConfig) return null;
+  const { data: row, error } = await supabaseClient
+    .from('phases')
+    .insert({ season_id: seasonId, ...data })
+    .select()
+    .single();
+  if (error) {
+    console.warn('createPhase:', error.message);
+    return null;
+  }
+  return row;
+}
+
+export async function createWeeklyPlans(
+  phaseId: string,
+  plans: Array<{
+    day_of_week: number;
+    name: string;
+    muscle_groups: string[];
+    exercises: any;
+    estimated_duration: number;
+  }>,
+) {
+  if (!hasSupabaseConfig) return null;
+  const rows = plans.map((p) => ({ phase_id: phaseId, ...p }));
+  const { data, error } = await supabaseClient
+    .from('weekly_plans')
+    .insert(rows)
+    .select();
+  if (error) {
+    console.warn('createWeeklyPlans:', error.message);
+    return null;
+  }
+  return data;
+}
+
+export async function fetchExercisesByMuscleGroups(groups: string[]) {
+  if (!hasSupabaseConfig) return [];
+  const { data, error } = await supabaseClient
+    .from('exercises')
+    .select('id, name, muscle_groups')
+    .overlaps('muscle_groups', groups)
+    .limit(8);
+  if (error) {
+    console.warn('fetchExercisesByMuscleGroups:', error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
 // ── Conversations ──
 
 export async function fetchConversation(userId: string, agentId: AgentId) {
