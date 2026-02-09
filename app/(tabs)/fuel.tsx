@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -58,6 +58,12 @@ export default function FuelScreen() {
           />
 
           <ScreenHeader title="Nutrition" subtitle={new Date().toLocaleDateString('es-MX', { weekday: 'long', month: 'short', day: 'numeric' })} />
+
+          {isLoading && (
+            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <ActivityIndicator size="small" color={GENESIS_COLORS.primary} />
+            </View>
+          )}
 
           {/* Phase Nutrition Banner */}
           <GlassCard>

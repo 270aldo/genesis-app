@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from models.requests import ChatRequest, CheckInRequest, ExerciseLogRequest, MealLogRequest, WaterLogRequest
-from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse, TrackStatsResponse, StrengthProgressResponse, MealResponse, WaterResponse
+from models.responses import ChatResponse, ProfileResponse, SessionListResponse, CheckInResponse, ExerciseLogResponse, TodayWorkoutResponse, TodayPlanResponse, TrackStatsResponse, StrengthProgressResponse, MealResponse, WaterResponse, ExerciseListResponse, EducationListResponse
 from services.auth import get_current_user_id
 from services.supabase import get_supabase
 from services.agent_router import route_to_agent
@@ -383,3 +383,42 @@ async def update_water(req: WaterLogRequest, user_id: str = Depends(get_current_
     )
     row = result.data[0] if result.data else {"glasses": req.glasses}
     return row
+
+
+@router.get("/exercises", response_model=ExerciseListResponse)
+async def get_exercises(
+    user_id: str = Depends(get_current_user_id),
+    muscle_group: str | None = None,
+    search: str | None = None,
+):
+    """Exercise catalog from the exercises table."""
+    sb = get_supabase()
+    query = sb.table("exercises").select("*").order("name")
+    if muscle_group:
+        query = query.contains("muscle_groups", [muscle_group])
+    if search:
+        query = query.ilike("name", f"%{search}%")
+    result = query.limit(100).execute()
+    return ExerciseListResponse(exercises=result.data or [])
+
+
+@router.get("/education", response_model=EducationListResponse)
+async def get_education(
+    user_id: str = Depends(get_current_user_id),
+    category: str | None = None,
+):
+    """List education articles, optionally filtered by category."""
+    sb = get_supabase()
+    query = sb.table("education_content").select("*").order("created_at", desc=True)
+    if category:
+        query = query.eq("category", category)
+    result = query.execute()
+    return EducationListResponse(articles=result.data or [])
+
+
+@router.get("/education/{article_id}")
+async def get_education_detail(article_id: str, user_id: str = Depends(get_current_user_id)):
+    """Fetch a single education article by id."""
+    sb = get_supabase()
+    result = sb.table("education_content").select("*").eq("id", article_id).single().execute()
+    return result.data

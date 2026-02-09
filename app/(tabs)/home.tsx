@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +30,8 @@ export default function HomeScreen() {
 
   // Today's training plan
   const todayPlan = useTrainingStore((s) => s.todayPlan);
+  const isTodayPlanLoading = useTrainingStore((s) => s.isTodayPlanLoading);
+  const isTrainingLoading = useTrainingStore((s) => s.isLoading);
 
   // Nutrition data
   const nutritionTotals = useNutritionStore((s) => s.getDailyTotals());
@@ -74,6 +76,9 @@ export default function HomeScreen() {
     ? `Semana ${currentWeek} de ${phaseConfig.label}. Hoy toca ${todayPlan.name} — ${todayPlan.exercises.length} ejercicios, ~${todayPlan.estimatedDuration} min.`
     : `Semana ${currentWeek} de ${phaseConfig.label}. Hoy es día de descanso. Enfócate en recovery y nutrición.`;
 
+  // Loading flag
+  const isDataLoading = isTodayPlanLoading || isTrainingLoading;
+
   // Filter education by current phase
   const phaseEducation = MOCK_EDUCATION.filter((e) => e.relevantPhases.includes(phase));
   const todayLesson = phaseEducation[0];
@@ -92,6 +97,12 @@ export default function HomeScreen() {
             currentPhase={phase}
             weeks={weeks}
           />
+
+          {isDataLoading && (
+            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <ActivityIndicator size="small" color={GENESIS_COLORS.primary} />
+            </View>
+          )}
 
           {/* GENESIS Daily Briefing — Glass Card */}
           <Pressable onPress={() => router.push('/(modals)/genesis-chat')}>

@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +8,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GlassCard } from '../../components/ui';
 import { GENESIS_COLORS } from '../../constants/colors';
-import { MOCK_EXERCISE_LIBRARY, PHASE_CONFIG } from '../../data';
+import { PHASE_CONFIG } from '../../data';
+import { useTrainingStore } from '../../stores/useTrainingStore';
 import type { PhaseType } from '../../types';
 
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -19,17 +21,36 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export default function ExerciseDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const exercise = MOCK_EXERCISE_LIBRARY.find((e) => e.id === id);
+  const { exerciseCatalog, isCatalogLoading, fetchExerciseCatalog } = useTrainingStore();
+
+  // If catalog is empty (e.g., deep link), fetch on mount
+  useEffect(() => {
+    if (exerciseCatalog.length === 0) {
+      fetchExerciseCatalog();
+    }
+  }, []);
+
+  const exercise = exerciseCatalog.find((e) => e.id === id);
+
+  // Alternatives: same muscle group, exclude current exercise, take first 3
+  const alternatives = useMemo(() => {
+    if (!exercise) return [];
+    return exerciseCatalog
+      .filter((e) => e.id !== exercise.id && e.muscleGroup === exercise.muscleGroup)
+      .slice(0, 3);
+  }, [exercise, exerciseCatalog]);
 
   if (!exercise) {
     return (
       <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: GENESIS_COLORS.textTertiary, fontFamily: 'Inter', fontSize: 16 }}>Exercise not found</Text>
+        {isCatalogLoading ? (
+          <ActivityIndicator size="large" color={GENESIS_COLORS.primary} />
+        ) : (
+          <Text style={{ color: GENESIS_COLORS.textTertiary, fontFamily: 'Inter', fontSize: 16 }}>Exercise not found</Text>
+        )}
       </LinearGradient>
     );
   }
-
-  const alternatives = MOCK_EXERCISE_LIBRARY.filter((e) => exercise.alternatives.includes(e.id));
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>

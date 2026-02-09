@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { FlatList, ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +7,7 @@ import { ArrowLeft, Search } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
-import { MOCK_EXERCISE_LIBRARY } from '../../data';
+import { useTrainingStore } from '../../stores/useTrainingStore';
 import type { ExerciseLibraryItem } from '../../types';
 
 const MUSCLE_GROUPS = ['Chest', 'Back', 'Shoulders', 'Legs', 'Arms', 'Core', 'Full Body'] as const;
@@ -33,8 +33,14 @@ export default function LibraryScreen() {
   const [muscleFilter, setMuscleFilter] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
 
+  const { exerciseCatalog, isCatalogLoading, fetchExerciseCatalog } = useTrainingStore();
+
+  useEffect(() => {
+    fetchExerciseCatalog();
+  }, []);
+
   const filtered = useMemo(() => {
-    let items = MOCK_EXERCISE_LIBRARY;
+    let items = exerciseCatalog;
     if (muscleFilter) {
       const mapped = MUSCLE_MAP[muscleFilter];
       items = items.filter((e) => e.muscleGroup === mapped);
@@ -46,7 +52,7 @@ export default function LibraryScreen() {
       );
     }
     return items;
-  }, [search, muscleFilter]);
+  }, [search, muscleFilter, exerciseCatalog]);
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
@@ -151,7 +157,11 @@ export default function LibraryScreen() {
           )}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 40 }}>
-              <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 14, fontFamily: 'Inter' }}>No exercises found</Text>
+              {isCatalogLoading ? (
+                <ActivityIndicator size="large" color={GENESIS_COLORS.primary} />
+              ) : (
+                <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 14, fontFamily: 'Inter' }}>No exercises found</Text>
+              )}
             </View>
           }
         />

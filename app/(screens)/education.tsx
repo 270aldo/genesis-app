@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,8 +7,8 @@ import { ArrowLeft, Search } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
-import { MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
-import { useSeasonStore } from '../../stores';
+import { PHASE_CONFIG } from '../../data';
+import { useEducationStore, useSeasonStore } from '../../stores';
 import type { PhaseType } from '../../types';
 
 const CATEGORIES = ['Training', 'Nutrition', 'Recovery', 'Mindset', 'Science'] as const;
@@ -33,11 +33,16 @@ export default function EducationScreen() {
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
   const phaseConfig = PHASE_CONFIG[phase];
 
+  const { articles, isLoading, fetchArticles } = useEducationStore();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
   const filtered = useMemo(() => {
-    let items = MOCK_EDUCATION;
+    let items = articles;
     if (categoryFilter) {
       const mapped = CATEGORY_MAP[categoryFilter];
       items = items.filter((e) => e.category === mapped);
@@ -49,7 +54,7 @@ export default function EducationScreen() {
       );
     }
     return items;
-  }, [search, categoryFilter]);
+  }, [search, categoryFilter, articles]);
 
   const featured = useMemo(() => {
     return filtered.find((e) => e.relevantPhases.includes(phase)) ?? filtered[0];
@@ -129,6 +134,13 @@ export default function EducationScreen() {
               );
             })}
           </ScrollView>
+
+          {/* Loading */}
+          {isLoading && articles.length === 0 && (
+            <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+              <ActivityIndicator color={phaseConfig.color} />
+            </View>
+          )}
 
           {/* Featured */}
           {featured && (

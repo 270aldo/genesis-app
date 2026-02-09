@@ -1,5 +1,6 @@
 export * from './useAuthStore';
 export * from './useCacheStore';
+export * from './useEducationStore';
 export * from './useGenesisStore';
 export * from './useNutritionStore';
 export * from './useSeasonStore';

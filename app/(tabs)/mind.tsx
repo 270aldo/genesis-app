@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,6 +55,7 @@ export default function MindScreen() {
   const router = useRouter();
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
   const todayCheckIn = useWellnessStore((s) => s.todayCheckIn);
+  const isWellnessLoading = useWellnessStore((s) => s.isLoading);
   const calculateWellnessScore = useWellnessStore((s) => s.calculateWellnessScore);
   const getRecoveryRecommendations = useWellnessStore((s) => s.getRecoveryRecommendations);
   const previousSessions = useTrainingStore((s) => s.previousSessions);
@@ -161,6 +162,12 @@ export default function MindScreen() {
           />
 
           <ScreenHeader title="Mind & Recovery" subtitle="¿Cómo estás hoy?" />
+
+          {isWellnessLoading && (
+            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <ActivityIndicator size="small" color={GENESIS_COLORS.primary} />
+            </View>
+          )}
 
           {/* Mood Check-in */}
           <SectionLabel title="CHECK-IN">
