@@ -545,6 +545,34 @@ export type Database = {
           updated_at?: string;
         }
       >;
+      progress_photos: BaseTable<
+        {
+          id: string;
+          user_id: string;
+          date: string;
+          category: 'front' | 'side' | 'back' | 'other';
+          storage_path: string;
+          thumbnail_path: string | null;
+          notes: string | null;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          date: string;
+          category?: 'front' | 'side' | 'back' | 'other';
+          storage_path: string;
+          thumbnail_path?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        },
+        {
+          category?: 'front' | 'side' | 'back' | 'other';
+          storage_path?: string;
+          thumbnail_path?: string | null;
+          notes?: string | null;
+        }
+      >;
     };
     Views: {};
     Functions: {};
