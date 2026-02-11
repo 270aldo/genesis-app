@@ -38,11 +38,18 @@ export default function HomeScreen() {
   const isTrainingLoading = useTrainingStore((s) => s.isLoading);
 
   // Nutrition data
-  const nutritionTotals = useNutritionStore((s) => s.getDailyTotals());
-  const kcalValue = nutritionTotals.calories > 0 ? nutritionTotals.calories.toLocaleString() : '--';
+  const meals = useNutritionStore((s) => s.meals);
   const dailyGoal = useNutritionStore((s) => s.dailyGoal);
-  const remaining = useNutritionStore((s) => s.getRemainingCalories());
-  const waterValue = useNutritionStore((s) => s.water > 0 ? `${s.water}` : '--');
+  const water = useNutritionStore((s) => s.water);
+  const nutritionTotals = {
+    calories: meals.reduce((sum, meal) => sum + meal.calories, 0),
+    protein: meals.reduce((sum, meal) => sum + meal.protein, 0),
+    carbs: meals.reduce((sum, meal) => sum + meal.carbs, 0),
+    fat: meals.reduce((sum, meal) => sum + meal.fat, 0),
+  };
+  const kcalValue = nutritionTotals.calories > 0 ? nutritionTotals.calories.toLocaleString() : '--';
+  const remaining = Math.max(0, dailyGoal - nutritionTotals.calories);
+  const waterValue = water > 0 ? `${water}` : '--';
 
   // Sleep — prefer HealthKit data, fall back to check-in
   const sleepValue = healthSnapshot?.sleepHours
