@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Droplets, Info } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Camera, Droplets, Info } from 'lucide-react-native';
 import {
   GlassCard,
   MacroCard,
@@ -19,6 +20,7 @@ import { PHASE_CONFIG, getPhaseNutritionTargets } from '../../data';
 import type { PhaseType } from '../../types';
 
 export default function FuelScreen() {
+  const router = useRouter();
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
   const { meals, water, targetWater, addWater, getDailyTotals, isLoading } = useNutritionStore();
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
@@ -157,6 +159,30 @@ export default function FuelScreen() {
           </SectionLabel>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Scan FAB */}
+      <Pressable
+        onPress={() => router.push('/(modals)/camera-scanner')}
+        style={{ position: 'absolute', bottom: 24, right: 24 }}
+      >
+        <LinearGradient
+          colors={[GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: GENESIS_COLORS.primary,
+            shadowOpacity: 0.5,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 8,
+          }}
+        >
+          <Camera size={24} color="#FFFFFF" />
+        </LinearGradient>
+      </Pressable>
     </LinearGradient>
   );
 }
