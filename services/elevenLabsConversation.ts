@@ -15,6 +15,11 @@ export class ElevenLabsConversation {
   private ws: WebSocket | null = null;
   private state: ConversationState = 'idle';
   private callbacks: ConversationCallbacks;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 3;
+  private reconnectDelay = 1000;
+  private pingInterval: ReturnType<typeof setInterval> | null = null;
+  private intentionalDisconnect = false;
 
   constructor(callbacks: ConversationCallbacks) {
     this.callbacks = callbacks;
@@ -30,6 +35,7 @@ export class ElevenLabsConversation {
       return;
     }
 
+    this.intentionalDisconnect = false;
     this.state = 'connecting';
 
     try {
@@ -38,6 +44,8 @@ export class ElevenLabsConversation {
 
       this.ws.onopen = () => {
         this.state = 'connected';
+        this.reconnectAttempts = 0;
+        this.startPing();
         this.callbacks.onConnected?.();
       };
 
@@ -66,7 +74,18 @@ export class ElevenLabsConversation {
       };
 
       this.ws.onclose = () => {
+        this.stopPing();
+        const wasConnected = this.state === 'connected';
         this.state = 'idle';
+
+        if (!this.intentionalDisconnect && wasConnected && this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.reconnectAttempts++;
+          const delay = this.reconnectDelay * this.reconnectAttempts;
+          console.log(`[ElevenLabs] Reconnecting attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
+          setTimeout(() => this.connect(), delay);
+          return;
+        }
+
         this.callbacks.onDisconnected?.();
       };
     } catch (err: any) {
@@ -83,8 +102,26 @@ export class ElevenLabsConversation {
   }
 
   disconnect(): void {
+    this.intentionalDisconnect = true;
+    this.stopPing();
     this.ws?.close();
     this.ws = null;
     this.state = 'idle';
+  }
+
+  private startPing(): void {
+    this.stopPing();
+    this.pingInterval = setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 15000);
+  }
+
+  private stopPing(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
   }
 }

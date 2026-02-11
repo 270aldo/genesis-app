@@ -3,7 +3,7 @@ import logging
 from datetime import date
 
 from models.responses import ChatResponse, WidgetPayload
-from services.gemini_client import generate_response
+from services.gemini_client import generate_response, GeminiError, GeminiRateLimitError
 from services.supabase import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -262,10 +262,17 @@ async def route_to_agent(
     )
 
     # --- Call Gemini ---
-    response_text = await generate_response(
-        system_prompt=system_prompt,
-        user_message=message,
-    )
+    try:
+        response_text = await generate_response(
+            system_prompt=system_prompt,
+            user_message=message,
+        )
+    except GeminiRateLimitError:
+        logger.warning("Gemini rate limit hit for agent=%s, falling back to stub", agent_id)
+        response_text = ""
+    except GeminiError as exc:
+        logger.error("Gemini error for agent=%s: %s", agent_id, exc)
+        response_text = ""
 
     # --- Fallback to stubs if Gemini returned nothing ---
     if not response_text:

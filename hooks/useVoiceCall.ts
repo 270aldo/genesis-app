@@ -1,6 +1,34 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Audio } from 'expo-av';
 import { ElevenLabsConversation } from '../services/elevenLabsConversation';
+import { File } from 'expo-file-system';
+
+const PCM_RECORDING_OPTIONS: Audio.RecordingOptions = {
+  isMeteringEnabled: false,
+  android: {
+    extension: '.wav',
+    outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+    audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 256000,
+  },
+  ios: {
+    extension: '.wav',
+    outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+    audioQuality: Audio.IOSAudioQuality.LOW,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 256000,
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+  web: {
+    mimeType: 'audio/wav',
+    bitsPerSecond: 256000,
+  },
+};
 
 type CallState = 'idle' | 'connecting' | 'connected' | 'error';
 
@@ -105,12 +133,12 @@ export function useVoiceCall() {
   async function startRecording() {
     try {
       const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.LOW_QUALITY,
+        PCM_RECORDING_OPTIONS,
       );
       recordingRef.current = recording;
 
       // Send audio chunks on a reliable interval
-      chunkIntervalRef.current = setInterval(sendAudioChunk, 250);
+      chunkIntervalRef.current = setInterval(sendAudioChunk, 500);
     } catch {
       // Recording may fail on simulator
     }
@@ -132,11 +160,38 @@ export function useVoiceCall() {
   }
 
   async function sendAudioChunk() {
-    // ElevenLabs expects PCM16 audio chunks
-    // expo-av Recording doesn't expose raw buffer directly,
-    // so for MVP we rely on ElevenLabs server-side VAD to detect speech
     if (!conversationRef.current || !recordingRef.current) return;
-    // TODO: Extract audio buffer from recording and send as base64 PCM16
+
+    try {
+      // Stop current recording to flush audio to file
+      const currentRecording = recordingRef.current;
+      recordingRef.current = null;
+
+      await currentRecording.stopAndUnloadAsync();
+      const uri = currentRecording.getURI();
+
+      if (uri) {
+        // Read the audio file as base64 using the new File API
+        const audioFile = new File(uri);
+        const base64 = await audioFile.base64();
+
+        // Only send if we have actual audio data (not just headers)
+        if (base64.length > 100) {
+          conversationRef.current.sendAudio(base64);
+        }
+
+        // Clean up the temp file
+        audioFile.delete();
+      }
+
+      // Start a new recording for the next chunk
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        PCM_RECORDING_OPTIONS,
+      );
+      recordingRef.current = newRecording;
+    } catch (err) {
+      console.warn('[VoiceCall] sendAudioChunk error:', err);
+    }
   }
 
   async function playAudioChunk(base64Audio: string) {
