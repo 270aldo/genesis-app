@@ -73,6 +73,11 @@ def get_current_season(tool_context=None) -> dict:
             "status": s.get("status"),
             "start_date": s.get("start_date"),
             "end_date": s.get("end_date"),
+            "suggested_widgets": [{
+                "type": "season-timeline",
+                "title": s.get("name", "Season"),
+                "data": {"status": s.get("status"), "start_date": s.get("start_date"), "end_date": s.get("end_date")},
+            }],
         }
     except Exception as exc:
         logger.error("get_current_season failed: %s", exc)
@@ -109,6 +114,11 @@ def get_today_checkin(tool_context=None) -> dict:
             "sleep_quality": ci.get("sleep_quality"),
             "stress": ci.get("stress"),
             "soreness": ci.get("soreness"),
+            "suggested_widgets": [{
+                "type": "today-card",
+                "title": "Check-in de Hoy",
+                "data": {"mood": ci.get("mood"), "energy": ci.get("energy"), "sleep_hours": ci.get("sleep_hours")},
+            }],
         }
     except Exception as exc:
         logger.error("get_today_checkin failed: %s", exc)

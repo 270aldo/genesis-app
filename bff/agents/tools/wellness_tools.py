@@ -54,6 +54,12 @@ def submit_check_in(
             "submitted": True,
             "date": date.today().isoformat(),
             "check_in_id": row.get("id", ""),
+            "suggested_widgets": [{
+                "type": "insight-card",
+                "title": "Check-in Registrado",
+                "value": date.today().isoformat(),
+                "data": {"mood": mood, "energy": energy, "sleep_hours": sleep_hours},
+            }],
         }
     except Exception as exc:
         logger.error("submit_check_in failed: %s", exc)
@@ -106,6 +112,10 @@ def get_wellness_trends(days: int = 7, tool_context=None) -> dict:
                 "stress": avg_stress,
                 "soreness": avg_soreness,
             },
+            "suggested_widgets": [
+                {"type": "metric-card", "title": "Ánimo Promedio", "value": str(avg_mood), "data": {"metric": "mood", "days": days}},
+                {"type": "metric-card", "title": "Energía Promedio", "value": str(avg_energy), "data": {"metric": "energy", "days": days}},
+            ],
         }
     except Exception as exc:
         logger.error("get_wellness_trends failed: %s", exc)

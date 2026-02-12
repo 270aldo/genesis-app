@@ -34,7 +34,17 @@ def get_today_workout(tool_context=None) -> dict:
         session = result.data[0] if result.data else None
         if not session:
             return {"message": "No workout scheduled for today"}
-        return {"session": session}
+        return {
+            "session": session,
+            "suggested_widgets": [{
+                "type": "workout-card",
+                "title": session.get("name", "Workout del Día"),
+                "data": {
+                    "exercise_count": len(session.get("exercise_logs", [])),
+                    "session_id": session["id"],
+                },
+            }],
+        }
     except Exception as exc:
         logger.error("get_today_workout failed: %s", exc)
         return {"error": f"Could not fetch today's workout: {exc}"}
@@ -57,7 +67,18 @@ def get_exercise_catalog(query: str = "", muscle_group: str = "", tool_context=N
         if query:
             q = q.ilike("name", f"%{query}%")
         result = q.limit(20).execute()
-        return {"exercises": result.data or []}
+        exercises = result.data or []
+        response = {"exercises": exercises}
+        if exercises:
+            response["suggested_widgets"] = [
+                {
+                    "type": "exercise-row",
+                    "title": ex.get("name", "Exercise"),
+                    "data": {"id": ex.get("id", ""), "muscle_groups": ex.get("muscle_groups", [])},
+                }
+                for ex in exercises[:5]
+            ]
+        return response
     except Exception as exc:
         logger.error("get_exercise_catalog failed: %s", exc)
         return {"error": f"Could not fetch exercises: {exc}"}
@@ -119,6 +140,12 @@ def log_exercise_set(
             "weight_kg": weight_kg,
             "reps": reps,
             "log_id": row.get("id", ""),
+            "suggested_widgets": [{
+                "type": "metric-card",
+                "title": "Set Registrado",
+                "value": f"{weight_kg}kg x {reps}",
+                "data": {"set_number": set_number, "rpe": rpe},
+            }],
         }
     except Exception as exc:
         logger.error("log_exercise_set failed: %s", exc)
@@ -147,7 +174,19 @@ def get_personal_records(exercise_id: str = "", tool_context=None) -> dict:
         if exercise_id:
             q = q.eq("exercise_id", exercise_id)
         result = q.execute()
-        return {"personal_records": result.data or []}
+        records = result.data or []
+        response = {"personal_records": records}
+        if records:
+            response["suggested_widgets"] = [
+                {
+                    "type": "metric-card",
+                    "title": f"PR: {pr.get('exercise_name', 'Exercise')}",
+                    "value": f"{pr.get('weight', 0)}kg",
+                    "data": {"reps": pr.get("reps", 0)},
+                }
+                for pr in records[:3]
+            ]
+        return response
     except Exception as exc:
         logger.error("get_personal_records failed: %s", exc)
         return {"error": f"Could not fetch personal records: {exc}"}

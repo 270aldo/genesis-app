@@ -82,6 +82,12 @@ def get_progress_stats(tool_context=None) -> dict:
             "total_prs": total_prs,
             "total_planned": max(total_planned, completed),
             "adherence_pct": round((completed / max(total_planned, 1)) * 100),
+            "suggested_widgets": [{
+                "type": "progress-dashboard",
+                "title": "Progreso del Season",
+                "value": f"{round((completed / max(total_planned, 1)) * 100)}%",
+                "data": {"completed": completed, "total": max(total_planned, completed), "prs": total_prs},
+            }],
         }
     except Exception as exc:
         logger.error("get_progress_stats failed: %s", exc)
@@ -143,6 +149,12 @@ def get_strength_progress(exercise_id: str, tool_context=None) -> dict:
             "exercise_id": exercise_id,
             "data_points": points,
             "change_percent": change_pct,
+            "suggested_widgets": [{
+                "type": "metric-card",
+                "title": f"Progresión: {exercise_name}",
+                "value": f"{change_pct:+d}%",
+                "data": {"data_points": len(points)},
+            }],
         }
     except Exception as exc:
         logger.error("get_strength_progress failed: %s", exc)
@@ -213,6 +225,12 @@ def compare_periods(
             "period1": {"start": period1_start, "end": period1_end, "avg": avg1, "count": len(d1)},
             "period2": {"start": period2_start, "end": period2_end, "avg": avg2, "count": len(d2)},
             "delta": round(avg2 - avg1, 1),
+            "suggested_widgets": [{
+                "type": "metric-card",
+                "title": f"{metric.capitalize()} Δ",
+                "value": f"{round(avg2 - avg1, 1):+}",
+                "data": {"period1_avg": avg1, "period2_avg": avg2},
+            }],
         }
     except Exception as exc:
         logger.error("compare_periods failed: %s", exc)

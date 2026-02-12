@@ -55,7 +55,7 @@ describe('useGenesisStore', () => {
   it('queueWidget() adds to widgetQueue', () => {
     const widget: WidgetPayload = {
       id: 'widget-1',
-      type: 'metric_card',
+      type: 'metric-card',
       title: 'Recovery',
       value: '85%',
     };
@@ -69,8 +69,8 @@ describe('useGenesisStore', () => {
   it('clearWidgetQueue() empties widgetQueue', () => {
     useGenesisStore.setState({
       widgetQueue: [
-        { id: 'w-1', type: 'metric_card', title: 'Test' },
-        { id: 'w-2', type: 'recommendation', title: 'Test 2' },
+        { id: 'w-1', type: 'metric-card', title: 'Test' },
+        { id: 'w-2', type: 'coach-message', title: 'Test 2' },
       ],
     });
 

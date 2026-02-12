@@ -61,3 +61,41 @@ def test_genesis_agent_name():
     from agents.genesis_agent import genesis_agent
 
     assert genesis_agent.name == "genesis"
+
+
+def test_no_agent_identity_leak_in_instructions():
+    """Verify no instruction reveals internal agent structure."""
+    from agents.genesis_agent import genesis_agent
+
+    forbidden = ["agente Train", "agente Fuel", "agente Mind", "agente Track",
+                 "sub-agente", "sub_agente", "delega al especialista",
+                 "4 agentes especialistas"]
+
+    all_agents = [genesis_agent] + list(genesis_agent.sub_agents)
+    for agent in all_agents:
+        for phrase in forbidden:
+            assert phrase not in agent.instruction, (
+                f"Agent '{agent.name}' instruction contains forbidden phrase: '{phrase}'"
+            )
+
+
+def test_all_agents_identify_as_genesis():
+    """Verify all agents present themselves as GENESIS."""
+    from agents.genesis_agent import genesis_agent
+
+    all_agents = [genesis_agent] + list(genesis_agent.sub_agents)
+    for agent in all_agents:
+        assert "GENESIS" in agent.instruction, (
+            f"Agent '{agent.name}' instruction doesn't mention GENESIS"
+        )
+
+
+def test_all_agents_have_widget_instruction():
+    """Verify all agents include widget instruction block."""
+    from agents.genesis_agent import genesis_agent
+
+    all_agents = [genesis_agent] + list(genesis_agent.sub_agents)
+    for agent in all_agents:
+        assert "widget" in agent.instruction.lower(), (
+            f"Agent '{agent.name}' instruction missing widget instructions"
+        )

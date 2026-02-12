@@ -413,3 +413,250 @@ class TestComparePeriods:
         ctx = make_mock_tool_context()
         result = compare_periods("invalid", "2026-01-01", "2026-01-07", "2026-02-01", "2026-02-07", tool_context=ctx)
         assert "error" in result
+
+
+# =====================================================================
+# Personal records
+# =====================================================================
+
+class TestGetPersonalRecords:
+    def test_success(self):
+        from agents.tools.training_tools import get_personal_records
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(
+            data=[{"exercise_name": "Bench Press", "weight": 100, "reps": 5}]
+        )
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.training_tools.get_supabase", return_value=mock_sb):
+            result = get_personal_records(tool_context=ctx)
+
+        assert "personal_records" in result
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "metric-card"
+
+
+# =====================================================================
+# suggested_widgets tests
+# =====================================================================
+
+class TestWidgetGetTodayWorkout:
+    def test_suggested_widgets_present(self):
+        from agents.tools.training_tools import get_today_workout
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(
+            data=[{"id": "sess1", "name": "Upper Body", "exercise_logs": [{"id": "l1"}]}]
+        )
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.training_tools.get_supabase", return_value=mock_sb):
+            result = get_today_workout(tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "workout-card"
+
+
+class TestWidgetGetExerciseCatalog:
+    def test_suggested_widgets_present(self):
+        from agents.tools.training_tools import get_exercise_catalog
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(
+            data=[{"id": "ex1", "name": "Bench Press", "muscle_groups": ["chest"]}]
+        )
+
+        with patch("agents.tools.training_tools.get_supabase", return_value=mock_sb):
+            result = get_exercise_catalog(query="bench")
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "exercise-row"
+
+
+class TestWidgetLogExerciseSet:
+    def test_suggested_widgets_present(self):
+        from agents.tools.training_tools import log_exercise_set
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.side_effect = [
+            MagicMock(data=[{"id": "sess1"}]),
+            MagicMock(data=[{"id": "log1"}]),
+        ]
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.training_tools.get_supabase", return_value=mock_sb):
+            result = log_exercise_set("ex1", 1, 100.0, 8, tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "metric-card"
+
+
+class TestWidgetGetTodayMeals:
+    def test_suggested_widgets_present(self):
+        from agents.tools.nutrition_tools import get_today_meals
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(
+            data=[{"id": "m1", "meal_type": "breakfast", "total_macros": {"calories": 500}}]
+        )
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.nutrition_tools.get_supabase", return_value=mock_sb):
+            result = get_today_meals(tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "meal-plan"
+
+
+class TestWidgetGetWaterIntake:
+    def test_suggested_widgets_present(self):
+        from agents.tools.nutrition_tools import get_water_intake
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(data={"glasses": 6})
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.nutrition_tools.get_supabase", return_value=mock_sb):
+            result = get_water_intake(tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "hydration-tracker"
+
+
+class TestWidgetLogMeal:
+    def test_suggested_widgets_present(self):
+        from agents.tools.nutrition_tools import log_meal
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(data=[{"id": "m1"}])
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.nutrition_tools.get_supabase", return_value=mock_sb):
+            result = log_meal("breakfast", [{"name": "eggs"}], 300, 20, 2, 22, tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "insight-card"
+
+
+class TestWidgetLogWater:
+    def test_suggested_widgets_present(self):
+        from agents.tools.nutrition_tools import log_water
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(data=[{"glasses": 8}])
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.nutrition_tools.get_supabase", return_value=mock_sb):
+            result = log_water(glasses=8, tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "hydration-tracker"
+
+
+class TestWidgetSubmitCheckIn:
+    def test_suggested_widgets_present(self):
+        from agents.tools.wellness_tools import submit_check_in
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(data=[{"id": "ci1"}])
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.wellness_tools.get_supabase", return_value=mock_sb):
+            result = submit_check_in(8, 7, 7.5, 8, 3, 4, tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "insight-card"
+
+
+class TestWidgetGetWellnessTrends:
+    def test_suggested_widgets_present(self):
+        from agents.tools.wellness_tools import get_wellness_trends
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(
+            data=[
+                {"date": "2026-02-10", "mood": 8, "energy": 7, "sleep_hours": 7.5, "sleep_quality": 8, "stress": 3, "soreness": 4},
+                {"date": "2026-02-11", "mood": 7, "energy": 6, "sleep_hours": 8.0, "sleep_quality": 7, "stress": 4, "soreness": 3},
+            ]
+        )
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.wellness_tools.get_supabase", return_value=mock_sb):
+            result = get_wellness_trends(days=7, tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "metric-card"
+
+
+class TestWidgetGetProgressStats:
+    def test_suggested_widgets_present(self):
+        from agents.tools.tracking_tools import get_progress_stats
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.side_effect = [
+            MagicMock(data=[{"id": "s1", "start_date": "2026-01-01", "end_date": "2026-03-25"}]),
+            MagicMock(data=[], count=15),
+            MagicMock(data=[], count=3),
+            MagicMock(data=[{"id": "p1"}, {"id": "p2"}]),
+            MagicMock(data=[], count=4),
+        ]
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.tracking_tools.get_supabase", return_value=mock_sb):
+            result = get_progress_stats(tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "progress-dashboard"
+
+
+class TestWidgetComparePeriods:
+    def test_suggested_widgets_present(self):
+        from agents.tools.tracking_tools import compare_periods
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.side_effect = [
+            MagicMock(data=[{"date": "2026-01-01", "mood": 6}, {"date": "2026-01-02", "mood": 7}]),
+            MagicMock(data=[{"date": "2026-02-01", "mood": 8}, {"date": "2026-02-02", "mood": 9}]),
+        ]
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.tracking_tools.get_supabase", return_value=mock_sb):
+            result = compare_periods("mood", "2026-01-01", "2026-01-07", "2026-02-01", "2026-02-07", tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "metric-card"
+
+
+class TestWidgetGetCurrentSeason:
+    def test_suggested_widgets_present(self):
+        from agents.tools.profile_tools import get_current_season
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(
+            data=[{"id": "s1", "name": "Season 1", "status": "active", "start_date": "2026-01-01", "end_date": "2026-03-25"}]
+        )
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.profile_tools.get_supabase", return_value=mock_sb):
+            result = get_current_season(tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "season-timeline"
+
+
+class TestWidgetGetTodayCheckin:
+    def test_suggested_widgets_present(self):
+        from agents.tools.profile_tools import get_today_checkin
+
+        mock_sb, chain = make_mock_supabase()
+        chain.execute.return_value = MagicMock(
+            data=[{"mood": 8, "energy": 7, "sleep_hours": 7.5, "sleep_quality": 8, "stress": 3, "soreness": 4}]
+        )
+        ctx = make_mock_tool_context()
+
+        with patch("agents.tools.profile_tools.get_supabase", return_value=mock_sb):
+            result = get_today_checkin(tool_context=ctx)
+
+        assert "suggested_widgets" in result
+        assert result["suggested_widgets"][0]["type"] == "today-card"

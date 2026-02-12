@@ -4,7 +4,7 @@
 
 GENESIS is a premium AI-powered fitness coaching app built with Expo (React Native) and a FastAPI BFF (Backend for Frontend). It features 7 AI agent personas (genesis, train, fuel, mind, track, vision, coach_bridge) powered by Gemini, 12-week periodized training seasons, and comprehensive wellness tracking.
 
-## Current Status (Phase 8 STEEL complete — Feb 2026)
+## Current Status (Phase 9 Sprint 2 complete — Feb 2026)
 
 ### Completed Phases
 - **Phase 1-4**: Core screens, navigation, chat, UI polish
@@ -16,10 +16,17 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - **Phase 6 Sprint 4**: Exercise library, education content, loading states
 - **Phase 7**: HealthKit integration, camera scanner, voice call audio pipeline, Zustand fix
 - **Phase 8 STEEL**: Env/BFF hardening, PR detection, progress photos, nutrition validation, offline queue, push notifications, auth refresh, Jest + Pytest testing, EAS build config, performance optimizations
+- **Phase 9 Sprint 1**: ADK multi-agent system (genesis + train/fuel/mind/track sub-agents), 16 Supabase-backed tools, ADK Runner-based routing, InMemorySessionService
+- **Phase 9 Sprint 2**: A2UI widget pipeline, unified GENESIS voice (agent identity fix), widget extraction from agent responses, 20 A2UI widget types on mobile
 
 ### What works right now
 - 5 main tabs: Home, Train, Fuel, Mind, Track
-- AI chat with Gemini via BFF (7 agent personas)
+- AI chat with Gemini via BFF — GENESIS speaks as ONE unified entity (never reveals sub-agents)
+- ADK multi-agent orchestration: genesis root + train/fuel/mind/track sub-agents via ADK Runner
+- 16 Supabase-backed tools across 5 tool modules, all returning `suggested_widgets`
+- A2UI widget pipeline: tools → agent response → `_extract_widgets()` → mobile renderer
+- 20 A2UI widget types rendered on mobile (8 priority with full UI, 12 with GlassCard fallback)
+- Widget extraction from ```widget JSON blocks in agent responses, with heuristic fallback
 - Camera scanner for food/equipment recognition
 - Voice call audio pipeline (ElevenLabs)
 - HealthKit integration (steps, sleep, heart rate)
@@ -36,14 +43,13 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - Progress photos (upload to Supabase Storage with thumbnails)
 - Nutrition validation (macro sanity checks)
 - Jest unit tests (~45 test cases across 8 stores + 1 service)
-- BFF Pytest tests (~26 test cases across 7 test modules)
+- BFF Pytest tests (~86 test cases across 10 test modules)
 - EAS build configuration (development/preview/production profiles)
 - Performance optimizations (useMemo for nutrition totals, useCallback for workout handlers)
 
 ### Known issues
 - `react-native-svg` version mismatch warning (15.15.2 installed, 15.12.1 expected)
 - `expo-av` deprecated warning (migrate to `expo-audio` + `expo-video` in future)
-- Widget rendering from AI responses is basic (metric_card + recommendation types only)
 - EAS `projectId` and Apple Team ID need to be filled after `npx eas init`
 
 ## Tech Stack
@@ -107,23 +113,38 @@ genesis-app/
 ├── bff/                          # FastAPI Backend for Frontend
 │   ├── main.py                   # App entry, CORS, routes
 │   ├── conftest.py               # Pytest fixtures + mock Supabase
+│   ├── agents/                   # ADK agent definitions
+│   │   ├── genesis_agent.py      # Root agent — orchestrates sub-agents
+│   │   ├── train_agent.py        # Training sub-agent
+│   │   ├── fuel_agent.py         # Nutrition sub-agent
+│   │   ├── mind_agent.py         # Wellness sub-agent
+│   │   ├── track_agent.py        # Progress tracking sub-agent
+│   │   └── tools/                # Supabase-backed tools for agents
+│   │       ├── profile_tools.py  # get_user_profile, get_current_season, get_today_checkin
+│   │       ├── training_tools.py # get_today_workout, get_exercise_catalog, get_personal_records, log_exercise_set
+│   │       ├── nutrition_tools.py # get_today_meals, log_meal, get_water_intake, log_water
+│   │       ├── wellness_tools.py # get_wellness_trends, submit_check_in
+│   │       └── tracking_tools.py # get_progress_stats, get_strength_progress, compare_periods
 │   ├── routers/
 │   │   ├── mobile.py             # Mobile-specific endpoints (/mobile/chat, etc.)
 │   │   └── agents.py             # Agent management endpoints
 │   ├── services/
-│   │   ├── agent_router.py       # Routes messages to correct AI agent persona
+│   │   ├── agent_router.py       # ADK Runner routing + widget extraction
 │   │   ├── gemini_client.py      # Gemini API integration
 │   │   ├── auth.py               # JWT validation with Supabase
 │   │   ├── supabase.py           # Supabase client for BFF
 │   │   └── vision.py             # Image analysis for camera scanner
-│   └── tests/                    # Pytest test suite
+│   └── tests/                    # Pytest test suite (86 tests)
 │       ├── test_health.py        # Health endpoint tests
 │       ├── test_mobile_chat.py   # Chat endpoint tests
 │       ├── test_mobile_training.py # Training endpoint tests
 │       ├── test_mobile_nutrition.py # Nutrition endpoint tests
 │       ├── test_mobile_wellness.py  # Wellness endpoint tests
 │       ├── test_auth.py          # JWT auth tests
-│       └── test_vision.py        # Vision endpoint tests
+│       ├── test_vision.py        # Vision endpoint tests
+│       ├── test_agents.py        # Agent structure + instruction tests
+│       ├── test_agent_router_adk.py # ADK routing + widget extraction tests
+│       └── test_tools.py         # Tool unit tests + widget presence tests
 ├── __tests__/                    # Jest test suite
 │   ├── stores/                   # Zustand store unit tests
 │   │   ├── useAuthStore.test.ts
@@ -203,7 +224,9 @@ npx eas submit --platform ios          # Submit to TestFlight
 - **State**: Zustand stores in `stores/` — each store handles its own data fetching. IMPORTANT: Never call store methods (getDailyTotals, etc.) inside Zustand selectors — read primitives and compute inline to avoid infinite re-render loops.
 - **API calls**: BFF endpoints via `services/genesisAgentApi.ts`, direct Supabase via `services/supabaseQueries.ts`
 - **Styling**: NativeWind (Tailwind) for simple styles, inline `style` objects for complex layouts
-- **AI chat**: User message -> BFF `/mobile/chat` -> agent_router -> Gemini -> ChatResponse with optional widgets
+- **AI chat**: User message -> BFF `/mobile/chat` -> agent_router -> ADK Runner (genesis root agent delegates to sub-agents) -> ChatResponse with extracted widgets
+- **GENESIS identity**: GENESIS is ONE unified entity. All agents (root + sub) present themselves as "GENESIS". No instruction reveals internal sub-agents, transfers, or delegation. Tests enforce this.
+- **A2UI widgets**: Tools return `suggested_widgets` in responses. Agents embed widgets as ```widget JSON blocks. `_extract_widgets()` parses them into WidgetPayload objects. Mobile renders 20 A2UI widget types. All widgets use `#6D00FF` accent. No per-chip color variations.
 - **Auth**: Supabase Auth -> JWT -> BFF validates with python-jose. Auto-refresh on 401 via interceptor in `genesisAgentApi.ts`.
 - **Error handling**: Graceful degradation — BFF falls back to AGENT_STUBS, mobile falls back to mock responses
 - **Offline-first**: `hasSupabaseConfig` guard in services prevents crashes when env vars aren't set. Failed writes are queued in `offlineQueue.ts` (AsyncStorage) and replayed when connectivity returns via `useOfflineSupport.ts`.
@@ -221,4 +244,5 @@ npx eas submit --platform ios          # Submit to TestFlight
 - The app uses React 19 + New Architecture (Fabric renderer)
 - EAS build requires running `npx eas init` first to set `projectId` in app.json
 - Supabase Storage bucket `progress-photos` must exist with appropriate RLS policies
-- Phase 9 target: ADK multi-agent orchestration, advanced widget rendering, full TestFlight submission
+- A2UI widget types (20): `metric-card`, `workout-card`, `meal-plan`, `hydration-tracker`, `progress-dashboard`, `insight-card`, `season-timeline`, `today-card`, `exercise-row`, `workout-history`, `body-stats`, `max-rep-calculator`, `rest-timer`, `heart-rate`, `supplement-stack`, `streak-counter`, `achievement`, `coach-message`, `sleep-tracker`, `alert-banner`
+- Phase 9 Sprint 3 target: Full TestFlight submission, end-to-end agent testing with real Gemini, production session persistence

@@ -12,6 +12,18 @@ os.environ.setdefault("GCP_PROJECT_ID", "test-project")
 # Ensure bff/ is on sys.path so imports work
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
+# Workaround: google-adk 1.1.1 requires AudioTranscriptionConfig which is
+# missing in google-genai 1.1.0. Patch it so tests can import the ADK.
+from google.genai import types as _genai_types  # noqa: E402
+
+if not hasattr(_genai_types, "AudioTranscriptionConfig"):
+    from pydantic import BaseModel as _BM
+
+    class _AudioTranscriptionConfig(_BM):
+        pass
+
+    _genai_types.AudioTranscriptionConfig = _AudioTranscriptionConfig  # type: ignore[attr-defined]
+
 from fastapi.testclient import TestClient
 from main import app
 from services.auth import get_current_user_id

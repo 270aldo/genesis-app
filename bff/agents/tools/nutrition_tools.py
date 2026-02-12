@@ -30,7 +30,19 @@ def get_today_meals(tool_context=None) -> dict:
             .order("logged_at", desc=False)
             .execute()
         )
-        return {"meals": result.data or []}
+        meals = result.data or []
+        response = {"meals": meals}
+        if meals:
+            total_cal = sum(
+                (m.get("total_macros") or {}).get("calories", 0) for m in meals
+            )
+            response["suggested_widgets"] = [{
+                "type": "meal-plan",
+                "title": "Comidas de Hoy",
+                "value": f"{total_cal} kcal",
+                "data": {"meal_count": len(meals)},
+            }]
+        return response
     except Exception as exc:
         logger.error("get_today_meals failed: %s", exc)
         return {"error": f"Could not fetch meals: {exc}"}
@@ -82,6 +94,12 @@ def log_meal(
             "meal_type": meal_type,
             "total_calories": total_calories,
             "meal_id": row.get("id", ""),
+            "suggested_widgets": [{
+                "type": "insight-card",
+                "title": "Comida Registrada",
+                "value": f"{total_calories} kcal",
+                "data": {"meal_type": meal_type, "protein": protein, "carbs": carbs, "fat": fat},
+            }],
         }
     except Exception as exc:
         logger.error("log_meal failed: %s", exc)
@@ -108,7 +126,16 @@ def get_water_intake(tool_context=None) -> dict:
             .execute()
         )
         glasses = result.data.get("glasses", 0) if result.data else 0
-        return {"glasses": glasses, "date": date.today().isoformat()}
+        return {
+            "glasses": glasses,
+            "date": date.today().isoformat(),
+            "suggested_widgets": [{
+                "type": "hydration-tracker",
+                "title": "Hidratación",
+                "value": f"{glasses} vasos",
+                "data": {"glasses": glasses, "goal": 8},
+            }],
+        }
     except Exception as exc:
         logger.error("get_water_intake failed: %s", exc)
         return {"error": f"Could not fetch water intake: {exc}"}
@@ -141,7 +168,16 @@ def log_water(glasses: int = 1, tool_context=None) -> dict:
             .execute()
         )
         row = result.data[0] if result.data else {"glasses": glasses}
-        return {"logged": True, "glasses": row.get("glasses", glasses)}
+        return {
+            "logged": True,
+            "glasses": row.get("glasses", glasses),
+            "suggested_widgets": [{
+                "type": "hydration-tracker",
+                "title": "Agua Actualizada",
+                "value": f"{row.get('glasses', glasses)} vasos",
+                "data": {"glasses": row.get("glasses", glasses), "goal": 8},
+            }],
+        }
     except Exception as exc:
         logger.error("log_water failed: %s", exc)
         return {"error": f"Could not log water: {exc}"}

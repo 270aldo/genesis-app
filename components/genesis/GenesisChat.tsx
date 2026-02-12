@@ -15,7 +15,14 @@ export function GenesisChat() {
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  const widgets = useMemo(() => messages.flatMap((message) => message.widgets ?? []), [messages]);
+  const lastAssistantWidgets = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant' && messages[i].widgets?.length) {
+        return messages[i].widgets!;
+      }
+    }
+    return [];
+  }, [messages]);
 
   const lastMsg = messages[messages.length - 1];
   const isOffline = lastMsg?.id?.startsWith('mock-');
@@ -63,10 +70,10 @@ export function GenesisChat() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
-        {widgets.length > 0 ? (
+        {lastAssistantWidgets.length > 0 ? (
           <View style={{ gap: 8 }}>
-            {widgets.slice(-2).map((widget) => (
-              <WidgetRenderer key={widget.id} widget={widget} />
+            {lastAssistantWidgets.map((widget, index) => (
+              <WidgetRenderer key={widget.id} widget={widget} staggerIndex={index} />
             ))}
           </View>
         ) : null}

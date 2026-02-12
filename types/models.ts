@@ -101,14 +101,26 @@ export interface ProgressPhoto {
 }
 
 export type WidgetType =
-  | 'metric_card'
-  | 'chart_line'
-  | 'recommendation'
-  | 'form_field'
-  | 'insight_card'
-  | 'progress_indicator'
-  | 'action_button'
-  | 'fallback';
+  | 'metric-card'
+  | 'workout-card'
+  | 'meal-plan'
+  | 'hydration-tracker'
+  | 'progress-dashboard'
+  | 'insight-card'
+  | 'season-timeline'
+  | 'today-card'
+  | 'exercise-row'
+  | 'workout-history'
+  | 'body-stats'
+  | 'max-rep-calculator'
+  | 'rest-timer'
+  | 'heart-rate'
+  | 'supplement-stack'
+  | 'streak-counter'
+  | 'achievement'
+  | 'coach-message'
+  | 'sleep-tracker'
+  | 'alert-banner';
 
 export interface WidgetPayload {
   id: string;
@@ -116,7 +128,7 @@ export interface WidgetPayload {
   title?: string;
   subtitle?: string;
   value?: string | number;
-  data?: Record<string, string | number | boolean | null>;
+  data?: Record<string, unknown>;
 }
 
 export interface ChatMessage {

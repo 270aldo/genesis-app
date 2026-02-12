@@ -119,7 +119,7 @@ async def test_route_to_agent_empty_response_uses_stub(mock_event_empty, mock_se
         from services.agent_router import route_to_agent
         result = await route_to_agent("train", "test", "user-1")
 
-    assert "Train" in result.response
+    assert "GENESIS" in result.response
 
 
 @pytest.mark.asyncio
@@ -129,4 +129,64 @@ async def test_route_to_agent_adk_unavailable():
         from services.agent_router import route_to_agent
         result = await route_to_agent("fuel", "test", "user-1")
 
-    assert "Fuel" in result.response
+    assert "GENESIS" in result.response
+
+
+def test_extract_widgets_from_text():
+    """Verify _extract_widgets parses widget blocks correctly."""
+    from services.agent_router import _extract_widgets
+
+    text = 'Some response text.\n```widget\n{"type": "metric-card", "title": "Test", "value": "42"}\n```\nMore text.'
+    clean, widgets = _extract_widgets(text)
+    assert len(widgets) == 1
+    assert widgets[0].type == "metric-card"
+    assert widgets[0].title == "Test"
+    assert widgets[0].value == "42"
+
+
+def test_extract_widgets_cleans_text():
+    """Verify widget blocks are removed from clean text."""
+    from services.agent_router import _extract_widgets
+
+    text = 'Before.\n```widget\n{"type": "insight-card", "title": "X"}\n```\nAfter.'
+    clean, widgets = _extract_widgets(text)
+    assert "```widget" not in clean
+    assert "Before." in clean
+    assert "After." in clean
+
+
+def test_extract_widgets_empty_fallback():
+    """Verify empty list when no widget blocks present."""
+    from services.agent_router import _extract_widgets
+
+    clean, widgets = _extract_widgets("Just regular text with no widgets.")
+    assert widgets == []
+    assert clean == "Just regular text with no widgets."
+
+
+def test_extract_widgets_invalid_json():
+    """Verify invalid JSON in widget block is skipped gracefully."""
+    from services.agent_router import _extract_widgets
+
+    text = 'Text.\n```widget\n{not valid json}\n```\nEnd.'
+    clean, widgets = _extract_widgets(text)
+    assert widgets == []
+    assert "Text." in clean
+    assert "End." in clean
+
+
+def test_extract_widgets_multiple_blocks():
+    """Verify multiple widget blocks are all extracted."""
+    from services.agent_router import _extract_widgets
+
+    text = (
+        'Intro.\n'
+        '```widget\n{"type": "metric-card", "title": "A", "value": "1"}\n```\n'
+        'Middle.\n'
+        '```widget\n{"type": "insight-card", "title": "B"}\n```\n'
+        'End.'
+    )
+    clean, widgets = _extract_widgets(text)
+    assert len(widgets) == 2
+    assert widgets[0].type == "metric-card"
+    assert widgets[1].type == "insight-card"

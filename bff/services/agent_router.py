@@ -8,6 +8,8 @@ The function signature `route_to_agent(agent_id, message, user_id,
 conversation_id) -> ChatResponse` is preserved for backward compatibility.
 """
 
+import json
+import re
 import uuid
 import logging
 
@@ -47,13 +49,13 @@ except Exception as exc:
 # ---------------------------------------------------------------------------
 
 AGENT_STUBS: dict[str, str] = {
-    "genesis": "Soy GENESIS, tu asistente de entrenamiento con IA. ¿En qué puedo ayudarte hoy con tu training, nutrición o recovery?",
-    "train": "Soy el agente Train. Puedo ayudarte a planificar y optimizar tus entrenamientos.",
-    "fuel": "Soy el agente Fuel. Puedo ayudarte con planificación nutricional y tracking de comidas.",
-    "mind": "Soy el agente Mind. Puedo ayudarte con mindset, manejo de estrés y rendimiento mental.",
-    "track": "Soy el agente Track. Puedo ayudarte a monitorear tu progreso y analizar tendencias.",
-    "vision": "Soy el agente Vision. Puedo ayudarte con escaneo de alimentos y análisis de forma.",
-    "coach_bridge": "Soy el agente Coach Bridge. Transmito tus datos e insights a tu coach.",
+    "genesis": "Soy GENESIS, tu coach de fitness con IA. ¿En qué puedo ayudarte hoy con tu training, nutrición o recovery?",
+    "train": "Soy GENESIS. Puedo ayudarte a planificar y optimizar tus entrenamientos.",
+    "fuel": "Soy GENESIS. Puedo ayudarte con planificación nutricional y tracking de comidas.",
+    "mind": "Soy GENESIS. Puedo ayudarte con bienestar, manejo de estrés y rendimiento mental.",
+    "track": "Soy GENESIS. Puedo ayudarte a monitorear tu progreso y analizar tendencias.",
+    "vision": "Soy GENESIS. Puedo ayudarte con escaneo de alimentos y análisis de forma.",
+    "coach_bridge": "Soy GENESIS. Transmito tus datos e insights a tu coach.",
 }
 
 
@@ -94,7 +96,7 @@ def _generate_widgets(message: str, response_text: str) -> list[WidgetPayload]:
         widgets.append(
             WidgetPayload(
                 id=str(uuid.uuid4()),
-                type="metric_card",
+                type="metric-card",
                 title="Recovery Score",
                 value="--",
                 data={"status": "info", "note": "Basado en tu último check-in"},
@@ -104,7 +106,7 @@ def _generate_widgets(message: str, response_text: str) -> list[WidgetPayload]:
         widgets.append(
             WidgetPayload(
                 id=str(uuid.uuid4()),
-                type="metric_card",
+                type="metric-card",
                 title="Resumen Nutricional",
                 value="--",
                 data={"note": "Revisa tu tracking de macros"},
@@ -114,13 +116,42 @@ def _generate_widgets(message: str, response_text: str) -> list[WidgetPayload]:
         widgets.append(
             WidgetPayload(
                 id=str(uuid.uuid4()),
-                type="progress_indicator",
+                type="progress-dashboard",
                 title="Progreso del Season",
                 value="--",
             )
         )
 
     return widgets
+
+
+# ---------------------------------------------------------------------------
+# Widget extraction from agent response text
+# ---------------------------------------------------------------------------
+
+def _extract_widgets(text: str) -> tuple[str, list[WidgetPayload]]:
+    """Extract ```widget JSON blocks from agent response text.
+
+    Returns (clean_text, extracted_widgets) where clean_text has
+    the widget blocks removed.
+    """
+    pattern = r"```widget\s*\n(.*?)\n```"
+    widgets: list[WidgetPayload] = []
+    for match in re.finditer(pattern, text, re.DOTALL):
+        try:
+            data = json.loads(match.group(1))
+            widgets.append(WidgetPayload(
+                id=str(uuid.uuid4()),
+                type=data.get("type", "insight-card"),
+                title=data.get("title"),
+                subtitle=data.get("subtitle"),
+                value=data.get("value"),
+                data=data.get("data"),
+            ))
+        except (json.JSONDecodeError, KeyError):
+            continue
+    clean_text = re.sub(pattern, "", text, flags=re.DOTALL).strip()
+    return clean_text, widgets
 
 
 # ---------------------------------------------------------------------------
@@ -178,8 +209,13 @@ async def route_to_agent(
         )
         response_text = AGENT_STUBS.get(agent_id, AGENT_STUBS["genesis"])
 
-    # Widget generation (Sprint 1 backward compat)
-    widgets = _generate_widgets(message, response_text)
+    # Widget extraction from agent response, with heuristic fallback
+    clean_text, extracted_widgets = _extract_widgets(response_text)
+    if extracted_widgets:
+        response_text = clean_text
+        widgets = extracted_widgets
+    else:
+        widgets = _generate_widgets(message, response_text)
 
     return ChatResponse(
         id=str(uuid.uuid4()),
