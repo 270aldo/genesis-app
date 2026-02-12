@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TrendingUp, Trophy, Target, Calendar, Zap } from 'lucide-react-native';
+import { TrendingUp, Trophy, Target, Calendar, Zap, Camera, Trash2 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import {
   GlassCard,
   ScoreCard,
@@ -23,12 +24,16 @@ export default function TrackScreen() {
   const { seasonNumber, currentWeek, currentPhase, weeks, progressPercent } = useSeasonStore();
   const {
     personalRecords,
+    photos,
     completedWorkouts,
     totalPlanned,
     strengthProgress,
     streak,
     isLoading: isTrackLoading,
     fetchPersonalRecords,
+    fetchPhotos,
+    addPhoto,
+    deletePhoto,
     fetchTrackStats,
     fetchStrengthProgress,
     fetchStreak,
@@ -39,11 +44,37 @@ export default function TrackScreen() {
 
   useEffect(() => {
     fetchPersonalRecords();
+    fetchPhotos();
     fetchTrackStats();
     fetchStrengthProgress();
     fetchStreak();
     fetchPreviousSessions();
   }, []);
+
+  const handlePickPhoto = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [3, 4],
+    });
+    if (!result.canceled && result.assets[0]) {
+      await addPhoto(result.assets[0].uri, 'front');
+    }
+  }, [addPhoto]);
+
+  const handleTakePhoto = useCallback(async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [3, 4],
+    });
+    if (!result.canceled && result.assets[0]) {
+      await addPhoto(result.assets[0].uri, 'front');
+    }
+  }, [addPhoto]);
 
   // Real stats
   const adherence = totalPlanned > 0 ? Math.round((completedWorkouts / totalPlanned) * 100) : 0;
@@ -166,6 +197,89 @@ export default function TrackScreen() {
                 <GlassCard>
                   <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', textAlign: 'center' }}>
                     Completa sesiones para desbloquear tus records personales.
+                  </Text>
+                </GlassCard>
+              )}
+            </View>
+          </SectionLabel>
+
+          {/* Progress Photos */}
+          <SectionLabel title="PROGRESS PHOTOS">
+            <View style={{ gap: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Pressable
+                  onPress={handleTakePhoto}
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    backgroundColor: `${GENESIS_COLORS.primary}20`,
+                    borderWidth: 1,
+                    borderColor: `${GENESIS_COLORS.primary}40`,
+                  }}
+                >
+                  <Camera size={16} color={GENESIS_COLORS.primary} />
+                  <Text style={{ color: GENESIS_COLORS.primary, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>TAKE PHOTO</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handlePickPhoto}
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    backgroundColor: `${phaseConfig.color}15`,
+                    borderWidth: 1,
+                    borderColor: `${phaseConfig.color}33`,
+                  }}
+                >
+                  <Text style={{ color: phaseConfig.accentColor, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>GALLERY</Text>
+                </Pressable>
+              </View>
+
+              {photos.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                  {photos.map((photo, index) => (
+                    <View key={photo.id ?? `photo-${index}`} style={{ width: 120, gap: 6 }}>
+                      <View style={{ borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                        {photo.uri ? (
+                          <Image source={{ uri: photo.uri }} style={{ width: 120, height: 160, borderRadius: 12 }} />
+                        ) : (
+                          <View style={{ width: 120, height: 160, borderRadius: 12, backgroundColor: `${GENESIS_COLORS.primary}10`, alignItems: 'center', justifyContent: 'center' }}>
+                            <Camera size={24} color={GENESIS_COLORS.textTertiary} />
+                          </View>
+                        )}
+                        {/* Category badge */}
+                        <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                          <Text style={{ color: '#FFF', fontSize: 9, fontFamily: 'JetBrainsMonoMedium', textTransform: 'uppercase' }}>{photo.category}</Text>
+                        </View>
+                        {/* Delete button */}
+                        {photo.id && (
+                          <Pressable
+                            onPress={() => deletePhoto(photo.id!, photo.storagePath)}
+                            style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, padding: 4 }}
+                          >
+                            <Trash2 size={12} color="#FF6B6B" />
+                          </Pressable>
+                        )}
+                      </View>
+                      <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium', textAlign: 'center' }}>
+                        {new Date(photo.date).toLocaleDateString('es', { month: 'short', day: 'numeric' })}
+                      </Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : (
+                <GlassCard>
+                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', textAlign: 'center' }}>
+                    Toma tu primera foto de progreso para comparar tu transformacion.
                   </Text>
                 </GlassCard>
               )}

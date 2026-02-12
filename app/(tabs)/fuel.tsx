@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,7 +22,7 @@ import type { PhaseType } from '../../types';
 export default function FuelScreen() {
   const router = useRouter();
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
-  const { meals, water, targetWater, addWater, getDailyTotals, isLoading } = useNutritionStore();
+  const { meals, water, targetWater, addWater, isLoading } = useNutritionStore();
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
   const phaseConfig = PHASE_CONFIG[phase];
 
@@ -35,14 +35,21 @@ export default function FuelScreen() {
   // Phase-aware targets
   const targets = getPhaseNutritionTargets(phase);
 
-  // Daily totals from real store data
-  const totals = getDailyTotals();
-  const consumed = totals.calories;
-  const proteinConsumed = totals.protein;
-  const carbsConsumed = totals.carbs;
-  const fatConsumed = totals.fat;
-  const remaining = Math.max(0, targets.calories - consumed);
-  const progress = Math.min(100, (consumed / targets.calories) * 100);
+  // Daily totals from real store data — memoized to avoid recalc on every render
+  const { consumed, proteinConsumed, carbsConsumed, fatConsumed, remaining, progress } = useMemo(() => {
+    const cal = meals.reduce((sum, m) => sum + m.calories, 0);
+    const prot = meals.reduce((sum, m) => sum + m.protein, 0);
+    const carb = meals.reduce((sum, m) => sum + m.carbs, 0);
+    const f = meals.reduce((sum, m) => sum + m.fat, 0);
+    return {
+      consumed: cal,
+      proteinConsumed: prot,
+      carbsConsumed: carb,
+      fatConsumed: f,
+      remaining: Math.max(0, targets.calories - cal),
+      progress: Math.min(100, (cal / targets.calories) * 100),
+    };
+  }, [meals, targets.calories]);
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>

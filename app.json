@@ -8,6 +8,7 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "scheme": "genesis",
+    "owner": "ngxgenesis",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,12 +16,14 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.ngxgenesis.app",
       "infoPlist": {
         "NSHealthShareUsageDescription": "GENESIS necesita acceso a tus datos de salud para mostrar pasos, sueño y frecuencia cardíaca.",
         "NSHealthUpdateUsageDescription": "GENESIS puede registrar entrenamientos en Apple Health."
       }
     },
     "android": {
+      "package": "com.ngxgenesis.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0D0D2B"
@@ -44,8 +47,27 @@
           "cameraPermission": "GENESIS necesita acceso a la cámara para escanear alimentos y equipamiento."
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6D00FF"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GENESIS necesita acceso a tu galería para fotos de progreso.",
+          "cameraPermission": "GENESIS necesita la cámara para fotos de progreso y escaneo."
+        }
+      ],
       "react-native-health-connect"
     ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     }

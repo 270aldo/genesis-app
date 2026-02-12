@@ -124,22 +124,25 @@ export const useWellnessStore = create<WellnessState>((set, get) => ({
 
     // Persist to Supabase
     if (hasSupabaseConfig) {
+      const checkInPayload = {
+        date: new Date().toISOString().split('T')[0],
+        sleep_hours: data.sleepHours,
+        sleep_quality: sleepQualityToNumber[data.sleepQuality] ?? 2,
+        energy: data.energyLevel,
+        mood: moodToNumber[data.mood] ?? 3,
+        stress: data.stressLevel,
+        soreness: data.soreness ?? 0,
+        notes: data.notes ?? null,
+      };
       try {
         const { upsertCheckIn, getCurrentUserId } = await import('../services/supabaseQueries');
         const userId = getCurrentUserId();
         if (!userId) return;
-        await upsertCheckIn(userId, {
-          date: new Date().toISOString().split('T')[0],
-          sleep_hours: data.sleepHours,
-          sleep_quality: sleepQualityToNumber[data.sleepQuality] ?? 2,
-          energy: data.energyLevel,
-          mood: moodToNumber[data.mood] ?? 3,
-          stress: data.stressLevel,
-          soreness: data.soreness ?? 0,
-          notes: data.notes ?? null,
-        });
+        await upsertCheckIn(userId, checkInPayload);
       } catch (err: any) {
-        console.warn('submitCheckIn persist failed:', err?.message);
+        console.warn('submitCheckIn persist failed, queuing offline:', err?.message);
+        const { addToQueue } = await import('../services/offlineQueue');
+        await addToQueue('check_in', checkInPayload as unknown as Record<string, unknown>);
       }
     }
   },

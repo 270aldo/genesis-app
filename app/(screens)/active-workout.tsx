@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -77,18 +77,23 @@ export default function ActiveWorkoutScreen() {
   const totalSets = currentExercise?.exerciseSets?.length ?? currentExercise?.sets ?? 0;
   const allExercisesDone = currentSession.exercises.every((ex) => ex.completed);
 
-  const handleLogSet = (exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => {
+  const handleLogSet = useCallback((exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => {
     logSet(exerciseId, setNumber, data);
     // Auto-start rest timer
     startRestTimer(phaseConfig.restSeconds);
-  };
+  }, [logSet, startRestTimer, phaseConfig.restSeconds]);
 
-  const handleFinish = async () => {
-    // Detect PRs before finishing
-    const prs = detectPersonalRecords(currentSession.exercises, {});
+  const handleFinish = useCallback(async () => {
+    // Fetch existing PRs for comparison
+    const exerciseIds = currentSession.exercises.map((e) => e.id);
+    const { fetchExistingPRMap, getCurrentUserId } = await import('../../services/supabaseQueries');
+    const userId = getCurrentUserId();
+    const existingRecords = userId ? await fetchExistingPRMap(userId, exerciseIds) : {};
+
+    const prs = detectPersonalRecords(currentSession.exercises, existingRecords);
     setDetectedPRs(prs);
-    await finishWorkout();
-  };
+    await finishWorkout(prs);
+  }, [currentSession, finishWorkout]);
 
   const handleDismiss = () => {
     setShowComplete(false);

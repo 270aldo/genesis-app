@@ -1,32 +1,66 @@
-import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import NetInfo from '@react-native-community/netinfo';
+import { processQueue, getQueueSize } from '../services/offlineQueue';
 
-/**
- * Monitors network connectivity using the browser-compatible `navigator.onLine`
- * on web and a simple fetch probe on native. Returns `isOnline` so components
- * can show offline banners or queue mutations.
- *
- * For production, install @react-native-community/netinfo for real-time
- * connectivity events on native platforms.
- */
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
+
 export function useOfflineSupport() {
   const [isOnline, setIsOnline] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const wasOffline = useRef(false);
 
+  // Listen to connectivity changes
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const handleOnline = () => setIsOnline(true);
-      const handleOffline = () => setIsOnline(false);
-      setIsOnline(navigator.onLine);
-      window.addEventListener('online', handleOnline);
-      window.addEventListener('offline', handleOffline);
-      return () => {
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
-      };
-    }
-    // On native, default to online. Swap for NetInfo when installed.
-    setIsOnline(true);
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const online = !!(state.isConnected && state.isInternetReachable !== false);
+      setIsOnline(online);
+
+      if (!online) {
+        wasOffline.current = true;
+      }
+    });
+
+    // Initial check
+    NetInfo.fetch().then((state) => {
+      setIsOnline(!!(state.isConnected && state.isInternetReachable !== false));
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  return { isOnline } as const;
+  // When coming back online, process the queue
+  useEffect(() => {
+    if (isOnline && wasOffline.current) {
+      wasOffline.current = false;
+      (async () => {
+        const count = await getQueueSize();
+        if (count === 0) return;
+        setPendingCount(count);
+        setSyncStatus('syncing');
+        try {
+          const result = await processQueue();
+          setPendingCount(result.failed);
+          setSyncStatus(result.failed > 0 ? 'error' : 'synced');
+          // Reset synced status after 3 seconds
+          if (result.failed === 0) {
+            setTimeout(() => setSyncStatus('idle'), 3000);
+          }
+        } catch {
+          setSyncStatus('error');
+        }
+      })();
+    }
+  }, [isOnline]);
+
+  // Periodically refresh pending count
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const count = await getQueueSize();
+      setPendingCount(count);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { isOnline, pendingCount, syncStatus } as const;
 }

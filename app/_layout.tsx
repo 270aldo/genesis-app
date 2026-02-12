@@ -18,6 +18,7 @@ import {
 } from '@expo-google-fonts/jetbrains-mono';
 import { useAuthStore } from '../stores';
 import { supabaseClient, hasSupabaseConfig } from '../services/supabaseClient';
+import { registerForPushNotifications, scheduleDailyReminders } from '../services/pushNotifications';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,6 +54,15 @@ export default function RootLayout() {
 
     return () => subscription.unsubscribe();
   }, [setSession]);
+
+  // Register push notifications after auth is initialized
+  useEffect(() => {
+    if (!isInitialized) return;
+    (async () => {
+      await registerForPushNotifications();
+      await scheduleDailyReminders();
+    })();
+  }, [isInitialized]);
 
   useEffect(() => {
     if (fontsLoaded && isInitialized) SplashScreen.hideAsync();

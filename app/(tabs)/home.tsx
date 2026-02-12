@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -41,15 +41,20 @@ export default function HomeScreen() {
   const meals = useNutritionStore((s) => s.meals);
   const dailyGoal = useNutritionStore((s) => s.dailyGoal);
   const water = useNutritionStore((s) => s.water);
-  const nutritionTotals = {
-    calories: meals.reduce((sum, meal) => sum + meal.calories, 0),
-    protein: meals.reduce((sum, meal) => sum + meal.protein, 0),
-    carbs: meals.reduce((sum, meal) => sum + meal.carbs, 0),
-    fat: meals.reduce((sum, meal) => sum + meal.fat, 0),
-  };
-  const kcalValue = nutritionTotals.calories > 0 ? nutritionTotals.calories.toLocaleString() : '--';
-  const remaining = Math.max(0, dailyGoal - nutritionTotals.calories);
-  const waterValue = water > 0 ? `${water}` : '--';
+  const { nutritionTotals, kcalValue, remaining, waterValue } = useMemo(() => {
+    const totals = {
+      calories: meals.reduce((sum, meal) => sum + meal.calories, 0),
+      protein: meals.reduce((sum, meal) => sum + meal.protein, 0),
+      carbs: meals.reduce((sum, meal) => sum + meal.carbs, 0),
+      fat: meals.reduce((sum, meal) => sum + meal.fat, 0),
+    };
+    return {
+      nutritionTotals: totals,
+      kcalValue: totals.calories > 0 ? totals.calories.toLocaleString() : '--',
+      remaining: Math.max(0, dailyGoal - totals.calories),
+      waterValue: water > 0 ? `${water}` : '--',
+    };
+  }, [meals, dailyGoal, water]);
 
   // Sleep — prefer HealthKit data, fall back to check-in
   const sleepValue = healthSnapshot?.sleepHours

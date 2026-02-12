@@ -40,19 +40,22 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
 
     // Persist to Supabase
     if (hasSupabaseConfig) {
+      const mealPayload = {
+        date: new Date().toISOString().split('T')[0],
+        meal_type: (meal.name.toLowerCase() as 'breakfast' | 'lunch' | 'dinner' | 'snack') || 'snack',
+        food_items: [{ name: meal.name }],
+        total_macros: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
+      };
       (async () => {
         try {
           const { insertMeal, getCurrentUserId } = await import('../services/supabaseQueries');
           const userId = getCurrentUserId();
           if (!userId) return;
-          await insertMeal(userId, {
-            date: new Date().toISOString().split('T')[0],
-            meal_type: (meal.name.toLowerCase() as 'breakfast' | 'lunch' | 'dinner' | 'snack') || 'snack',
-            food_items: [{ name: meal.name }],
-            total_macros: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
-          });
+          await insertMeal(userId, mealPayload);
         } catch (err: any) {
-          console.warn('addMeal persist failed:', err?.message);
+          console.warn('addMeal persist failed, queuing offline:', err?.message);
+          const { addToQueue } = await import('../services/offlineQueue');
+          await addToQueue('meal_log', mealPayload as unknown as Record<string, unknown>);
         }
       })();
     }
@@ -65,14 +68,17 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
 
     // Persist to Supabase
     if (hasSupabaseConfig) {
+      const date = new Date().toISOString().split('T')[0];
       (async () => {
         try {
           const { upsertWaterLog, getCurrentUserId } = await import('../services/supabaseQueries');
           const userId = getCurrentUserId();
           if (!userId) return;
-          await upsertWaterLog(userId, new Date().toISOString().split('T')[0], newWater);
+          await upsertWaterLog(userId, date, newWater);
         } catch (err: any) {
-          console.warn('addWater persist failed:', err?.message);
+          console.warn('addWater persist failed, queuing offline:', err?.message);
+          const { addToQueue } = await import('../services/offlineQueue');
+          await addToQueue('water_log', { date, glasses: newWater });
         }
       })();
     }

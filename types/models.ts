@@ -91,9 +91,13 @@ export interface Measurement {
 }
 
 export interface ProgressPhoto {
+  id?: string;
   date: string;
-  url: string;
-  angle: 'front' | 'back' | 'side';
+  category: 'front' | 'side' | 'back' | 'other';
+  storagePath: string;
+  thumbnailPath?: string | null;
+  notes?: string | null;
+  uri?: string; // Local display URL (signed or public)
 }
 
 export type WidgetType =
