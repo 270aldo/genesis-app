@@ -2,7 +2,7 @@
 
 ## What is this?
 
-GENESIS is a premium AI-powered fitness coaching app built with Expo (React Native) and a FastAPI BFF (Backend for Frontend). It features 7 AI agent personas (genesis, train, fuel, mind, track, vision, coach_bridge) powered by Gemini, 12-week periodized training seasons, and comprehensive wellness tracking.
+GENESIS is a premium AI-powered fitness coaching app built with Expo (React Native) and a FastAPI BFF (Backend for Frontend). It currently runs 5 ADK agents (genesis orchestrator + train, fuel, mind, track sub-agents) powered by Gemini, with 2 more planned (vision, coach_bridge). The app features 12-week periodized training seasons and comprehensive wellness tracking. A companion coach web app (GENESIS BRAIN, Next.js) is planned for Sprint 6.
 
 ## Current Status (Phase 9 Sprint 2 complete — Feb 2026)
 
@@ -52,6 +52,17 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - `expo-av` deprecated warning (migrate to `expo-audio` + `expo-video` in future)
 - EAS `projectId` and Apple Team ID need to be filled after `npx eas init`
 
+### Not yet implemented (Sprint 3+ targets)
+- Sessions are ephemeral — BFF restart loses conversation context (Sprint 3: DatabaseSessionService)
+- No user memory — GENESIS doesn't remember preferences across conversations (Sprint 3: user_memory table)
+- No input/output guardrails — no injection blocking or agent-leak prevention (Sprint 3: guardrails module)
+- BFF runs locally only, not on Cloud Run (Sprint 4)
+- Agents run inside BFF process, not on Vertex AI Agent Engine (Sprint 4-5)
+- VISION is not an ADK agent — `vision.py` calls Gemini directly (Sprint 5: VISION ADK agent)
+- COACH_BRIDGE agent not built — no A2A protocol (Sprint 5)
+- No RAG Engine, no Upstash Redis cache, no Context Caching (Sprint 5-6)
+- GENESIS BRAIN coach app not started (Sprint 6)
+
 ## Tech Stack
 
 ### Mobile
@@ -68,13 +79,15 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - **Python 3.12**
 - **Pydantic v2** (2.10.4)
 - **Supabase Python SDK** (2.11.0)
-- **Google GenAI** (1.1.0) — Gemini 2.0 Flash
+- **Google ADK** (1.25.0) — Agent Development Kit for multi-agent orchestration
+- **Google GenAI** (1.1.0) — Gemini 2.0 Flash (vision service)
 - **python-jose** for JWT auth
 - **httpx** for HTTP client
 
 ### Infrastructure
 - **Database**: Supabase (PostgreSQL + Auth + RLS)
-- **AI**: Google Gemini 2.0 Flash via google-genai SDK
+- **AI Agents**: Google ADK multi-agent system (5 agents) → `gemini-2.5-flash` via ADK Runner
+- **Vision**: `gemini-2.0-flash` multimodal via google-genai SDK (separate from ADK, will become ADK agent in Sprint 5)
 - **Voice**: ElevenLabs for conversational voice
 - **Health**: HealthKit (iOS) / Health Connect (Android)
 - **Storage**: Supabase Storage (`progress-photos` bucket) for progress photo uploads
@@ -245,4 +258,40 @@ npx eas submit --platform ios          # Submit to TestFlight
 - EAS build requires running `npx eas init` first to set `projectId` in app.json
 - Supabase Storage bucket `progress-photos` must exist with appropriate RLS policies
 - A2UI widget types (20): `metric-card`, `workout-card`, `meal-plan`, `hydration-tracker`, `progress-dashboard`, `insight-card`, `season-timeline`, `today-card`, `exercise-row`, `workout-history`, `body-stats`, `max-rep-calculator`, `rest-timer`, `heart-rate`, `supplement-stack`, `streak-counter`, `achievement`, `coach-message`, `sleep-tracker`, `alert-banner`
-- Phase 9 Sprint 3 target: Full TestFlight submission, end-to-end agent testing with real Gemini, production session persistence
+
+## Target Architecture (from GENESIS.md)
+
+```
+[GENESIS App (Expo)] → [FastAPI BFF (Cloud Run)] → [ADK Agents (Vertex AI Agent Engine)]
+                                                  → [Supabase (DB + Auth + Realtime)]
+                                                  → [Upstash Redis (Cache)]
+
+[GENESIS BRAIN (Next.js)] → [Same FastAPI BFF] → [Same agents + Supabase]
+
+[ElevenLabs] ← direct WebRTC from GENESIS App (bypasses BFF)
+```
+
+Currently: BFF runs locally (not yet on Cloud Run), agents run inside BFF process via ADK Runner (not yet on Agent Engine). Sprint 3-6 progressively moves toward the target architecture.
+
+## Roadmap — Phase 9 Sprints
+
+| Sprint | Name | Focus | Deploys? |
+|--------|------|-------|----------|
+| Sprint 1 ✅ | ADK Multi-Agent | 5 ADK agents, 16 Supabase tools, Runner routing | No |
+| Sprint 2 ✅ | A2UI Pipeline | 20 widget types, unified GENESIS voice, widget extraction | No |
+| **Sprint 3** | **Encender GENESIS** | **Real Gemini AI, DatabaseSessionService, user memory, guardrails** | **No** |
+| Sprint 4 | El Split | BFF → Cloud Run, genesis agent → Agent Engine, VertexAiSessionService | Yes (Cloud Run + AE) |
+| Sprint 5 | Visión + A2A | All agents to AE, VISION ADK agent, COACH_BRIDGE, A2A protocol, RAG | Yes (full AE) |
+| Sprint 6 | BRAIN + Alpha | Next.js BRAIN app, A2A bidirectional, Upstash Redis cache, TestFlight | Yes (full stack) |
+
+## 7 Target Agents (GENESIS.md)
+
+| Agent | Model | Status | Notes |
+|-------|-------|--------|-------|
+| GENESIS | Gemini 3 Pro | ✅ Sprint 1 (as gemini-2.5-flash) | Orchestrator, routes to sub-agents |
+| TRAIN | Gemini 3 Flash | ✅ Sprint 1 | 4 training tools |
+| FUEL | Gemini 3 Flash | ✅ Sprint 1 | 4 nutrition tools |
+| MIND | Gemini 3 Flash | ✅ Sprint 1 | 2 wellness tools |
+| TRACK | Gemini 3 Flash | ✅ Sprint 1 | 3 tracking tools |
+| VISION | Gemini 3 Flash Multimodal | ❌ Sprint 5 | Currently vision.py (non-ADK) |
+| COACH_BRIDGE | Gemini 3 Flash | ❌ Sprint 5 | Needs BRAIN app + A2A |

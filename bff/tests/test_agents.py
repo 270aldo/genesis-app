@@ -14,11 +14,13 @@ def test_genesis_agent_has_sub_agents():
 def test_genesis_agent_has_tools():
     from agents.genesis_agent import genesis_agent
 
-    assert len(genesis_agent.tools) == 3
+    assert len(genesis_agent.tools) == 5
     tool_names = {t.__name__ for t in genesis_agent.tools}
     assert "get_user_profile" in tool_names
     assert "get_current_season" in tool_names
     assert "get_today_checkin" in tool_names
+    assert "get_user_memories" in tool_names
+    assert "store_user_memory" in tool_names
 
 
 def test_train_agent_has_tools():
@@ -99,3 +101,12 @@ def test_all_agents_have_widget_instruction():
         assert "widget" in agent.instruction.lower(), (
             f"Agent '{agent.name}' instruction missing widget instructions"
         )
+
+
+def test_genesis_agent_has_memory_instruction():
+    """Verify genesis agent instruction includes memory usage guidance."""
+    from agents.genesis_agent import genesis_agent
+
+    assert "get_user_memories" in genesis_agent.instruction
+    assert "store_user_memory" in genesis_agent.instruction
+    assert "Memoria" in genesis_agent.instruction

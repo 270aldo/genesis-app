@@ -8,6 +8,7 @@ os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret-for-testing-only-32chars!")
 os.environ.setdefault("GCP_PROJECT_ID", "test-project")
+os.environ.setdefault("GOOGLE_API_KEY", "test-api-key-for-gemini")
 
 # Ensure bff/ is on sys.path so imports work
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))

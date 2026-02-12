@@ -9,6 +9,7 @@ conversation_id) -> ChatResponse` is preserved for backward compatibility.
 """
 
 import json
+import os
 import re
 import uuid
 import logging
@@ -18,6 +19,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 
 from models.responses import ChatResponse, WidgetPayload
+from services.guardrails import validate_input, validate_output
 
 logger = logging.getLogger(__name__)
 
@@ -26,20 +28,37 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _runner: Runner | None = None
-_session_service: InMemorySessionService | None = None
+_session_service = None
 _adk_available = False
+_session_type = "none"
 
 try:
     from agents.genesis_agent import genesis_agent
 
-    _session_service = InMemorySessionService()
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        try:
+            from google.adk.sessions import DatabaseSessionService
+
+            _session_service = DatabaseSessionService(db_url=db_url)
+            _session_type = "database"
+            logger.info("Using DatabaseSessionService (persistent)")
+        except Exception as db_exc:
+            logger.warning("DatabaseSessionService init failed (%s) — falling back to in-memory", db_exc)
+            _session_service = InMemorySessionService()
+            _session_type = "in_memory"
+    else:
+        _session_service = InMemorySessionService()
+        _session_type = "in_memory"
+        logger.info("No DATABASE_URL — using InMemorySessionService")
+
     _runner = Runner(
         agent=genesis_agent,
         app_name="genesis_bff",
         session_service=_session_service,
     )
     _adk_available = True
-    logger.info("ADK Runner initialized successfully")
+    logger.info("ADK Runner initialized successfully (session_type=%s)", _session_type)
 except Exception as exc:
     logger.warning("ADK Runner init failed (%s) — falling back to stubs", exc)
 
@@ -172,6 +191,16 @@ async def route_to_agent(
     """
     resolved_conversation_id = conversation_id or str(uuid.uuid4())
 
+    # Input guardrail
+    guardrail_result = validate_input(message)
+    if not guardrail_result.allowed:
+        return ChatResponse(
+            id=str(uuid.uuid4()),
+            response=f"No puedo procesar ese mensaje. {guardrail_result.reason}",
+            widgets=None,
+            conversation_id=resolved_conversation_id,
+        )
+
     response_text = ""
 
     if _adk_available and _runner and _session_service:
@@ -199,7 +228,11 @@ async def route_to_agent(
                             response_text += part.text
 
         except Exception as exc:
-            logger.error("ADK agent error: %s", exc, exc_info=True)
+            err_str = str(exc).lower()
+            if any(kw in err_str for kw in ("api key", "authentication", "permission", "403", "401")):
+                logger.critical("ADK auth error (check GOOGLE_API_KEY): %s", exc, exc_info=True)
+            else:
+                logger.error("ADK agent error: %s", exc, exc_info=True)
 
     # Fallback to stubs if ADK returned nothing
     if not response_text:
@@ -208,6 +241,9 @@ async def route_to_agent(
             agent_id,
         )
         response_text = AGENT_STUBS.get(agent_id, AGENT_STUBS["genesis"])
+
+    # Output guardrail — sanitize agent identity leaks
+    response_text = validate_output(response_text)
 
     # Widget extraction from agent response, with heuristic fallback
     clean_text, extracted_widgets = _extract_widgets(response_text)

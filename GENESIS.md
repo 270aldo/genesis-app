@@ -27,7 +27,7 @@ AI-powered coaching platform for adults 30-60. Integrates training, nutrition, c
 | Auth persistence | SecureStore | Expo built-in |
 | Data persistence | AsyncStorage | Expo built-in |
 | Database | Supabase PostgreSQL + RLS | Postgres 17 |
-| AI Agents | Google ADK on Vertex AI Agent Engine | v1.24.0 |
+| AI Agents | Google ADK on Vertex AI Agent Engine | v1.25.0 |
 | LLMs | Gemini 3 Pro (orchestrator) / Flash (specialists) | — |
 | Cache | Upstash Redis (3-level: exact + semantic + session) | — |
 | Voice | ElevenLabs React Native SDK (WebRTC) | v0.5.10 |
@@ -647,29 +647,48 @@ Thin layer between mobile app and backend services. Handles auth verification, r
 
 ---
 
-## Current Implementation Status
+## Current Implementation Status (Phase 9 Sprint 2 — Feb 2026)
 
-### Phase 1-4 Complete (Season-Aware UI with Mock Data)
-- 5 tab screens fully rewritten: home, train, fuel, mind, track — season/phase-aware via `useSeasonStore`
-- 4 stack screens (new): library, exercise-detail, education, education-detail
-- 5 modal screens: genesis-chat (enhanced with quick actions), camera-scanner, voice-call, exercise-video, check-in
-- 4 auth screens wired to Supabase: login, sign-up, onboarding, forgot-password
-- ImageCard component with expo-image + LinearGradient overlays + blurhash
-- SeasonHeader with phase indicator + 12-week progress bar
-- RecoveryHeatmap for muscle recovery visualization
-- 16 mock exercises with formCues in Spanish, 6 education articles, PHASE_CONFIG for 4 phases
-- All navigation routes verified and working end-to-end
-- TypeScript compiles with 0 errors, Expo iOS bundle exports clean
-- Design system enforced: `['#0D0D2B', '#1A0A30']` gradient, custom fonts, lucide icons, no fontWeight
+### What works (Phases 1-9 Sprint 2)
 
-### NOT functional yet
-- Stores use mock data — not connected to Supabase queries
-- No interactive workout flow (timer, rest countdown, set logging)
-- No real agent communication (GENESIS chat uses mock keyword responder)
-- No real meal logging or food scanning
-- No A2UI widget rendering from agent responses
-- HealthKit and Vision API services are placeholders
-- No ElevenLabs voice integration
-- No FastAPI BFF deployed
-- No agents deployed on Vertex AI
-- GENESIS BRAIN app not started
+**Mobile App (Expo)**
+- 5 tab screens wired to real Supabase data: home, train, fuel, mind, track
+- 4 stack screens: library, exercise-detail, education, education-detail
+- 5 modal screens: genesis-chat, camera-scanner, voice-call, exercise-video, check-in
+- 4 auth screens wired to Supabase Auth: login, sign-up, onboarding, forgot-password
+- 7 Zustand stores connected to real data (Supabase + BFF)
+- 20 A2UI widget types rendered natively (8 priority + 12 GlassCard fallback)
+- Camera scanner sends images to BFF → Gemini multimodal → macro estimation
+- Voice call audio pipeline via ElevenLabs (WebRTC)
+- HealthKit integration (steps, sleep, heart rate)
+- Offline queue (AsyncStorage-based, auto-retry)
+- Push notifications (Expo Notifications)
+- Auth token auto-refresh on 401
+- PR detection on workout completion
+- Progress photos (Supabase Storage)
+- Jest unit tests (~45 tests across 8 stores + 1 service)
+
+**BFF (FastAPI — runs locally)**
+- ADK 1.25.0 multi-agent system: 1 root agent (genesis) + 4 sub-agents (train, fuel, mind, track)
+- 16 Supabase-backed tools across 5 tool modules, all return `suggested_widgets`
+- ADK Runner-based routing with `InMemorySessionService` (ephemeral — no persistence yet)
+- Widget extraction from ```widget JSON blocks in agent responses + heuristic fallback
+- AGENT_STUBS for graceful degradation when Gemini unavailable
+- Unified GENESIS voice: all agents present as one entity, tests enforce this
+- Vision service (Gemini 2.0 Flash multimodal) for food scanning + equipment detection
+- JWT auth validation with python-jose
+- Pytest suite (86 tests across 10 modules), Ruff clean
+
+### NOT yet implemented
+- **Sessions do not persist** — InMemorySessionService loses context on BFF restart (Sprint 3 target: DatabaseSessionService)
+- **No user memory** — GENESIS doesn't remember user preferences across conversations (Sprint 3 target)
+- **No input/output guardrails** — no injection blocking or agent leak prevention (Sprint 3 target)
+- **BFF not deployed** — runs locally only, not on Cloud Run (Sprint 4 target)
+- **Agents not on Agent Engine** — run inside BFF process, not on Vertex AI Agent Engine (Sprint 4-5 target)
+- **VISION not an ADK agent** — `vision.py` calls Gemini directly, not through ADK pipeline (Sprint 5 target)
+- **COACH_BRIDGE agent not built** — no A2A protocol, no BRAIN communication (Sprint 5 target)
+- **No RAG Engine** — agents don't have knowledge corpus per agent (Sprint 5 target)
+- **No Upstash Redis cache** — no L1/L2/L3 caching layer (Sprint 6 target)
+- **No Gemini Context Caching** — no shared philosophy cache (Sprint 5-6 target)
+- **GENESIS BRAIN app not started** — coach web app not built (Sprint 6 target)
+- **Not on TestFlight** — EAS build configured but no submission yet (Sprint 6 target)

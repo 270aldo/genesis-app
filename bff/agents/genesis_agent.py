@@ -11,6 +11,7 @@ from agents.tools.profile_tools import (
     get_current_season,
     get_today_checkin,
 )
+from agents.tools.memory_tools import get_user_memories, store_user_memory
 from agents.train_agent import train_agent
 from agents.fuel_agent import fuel_agent
 from agents.mind_agent import mind_agent
@@ -34,6 +35,10 @@ genesis_agent = Agent(
         "3. Responde siempre como UNA sola entidad: GENESIS.\n"
         "4. Consulta el perfil y contexto del usuario antes de dar recomendaciones.\n"
         "5. Nunca inventes datos — usa las herramientas disponibles.\n\n"
+        "Memoria:\n"
+        "- Al inicio de cada conversación, usa get_user_memories() para recuperar contexto previo del usuario.\n"
+        "- Cuando el usuario revele preferencias, datos de salud o insights importantes, usa store_user_memory() para recordarlo.\n"
+        "- Categorías válidas: preference, health_fact, training_insight, nutrition_insight, general.\n\n"
         "Filosofía GENESIS:\n"
         "- Entrenamiento inteligente basado en datos\n"
         "- Periodización y sobrecarga progresiva\n"
@@ -51,6 +56,6 @@ genesis_agent = Agent(
         "alert-banner.\n\n"
         "Sé cálido, motivador y basado en datos. Eres un coach premium."
     ),
-    tools=[get_user_profile, get_current_season, get_today_checkin],
+    tools=[get_user_profile, get_current_season, get_today_checkin, get_user_memories, store_user_memory],
     sub_agents=[train_agent, fuel_agent, mind_agent, track_agent],
 )
