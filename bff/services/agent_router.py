@@ -1,196 +1,86 @@
+"""Agent router — routes messages through ADK agents.
+
+Replaces the previous prompt-based routing with ADK Runner-based
+orchestration. The GENESIS root agent delegates to specialist
+sub-agents (train, fuel, mind, track) as needed.
+
+The function signature `route_to_agent(agent_id, message, user_id,
+conversation_id) -> ChatResponse` is preserved for backward compatibility.
+"""
+
 import uuid
 import logging
-from datetime import date
+
+from google.genai import types
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
 
 from models.responses import ChatResponse, WidgetPayload
-from services.gemini_client import generate_response, GeminiError, GeminiRateLimitError
-from services.supabase import get_supabase
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Fallback stubs — used when Gemini is unavailable
+# ADK singletons — created once at import (declarative, no API calls)
 # ---------------------------------------------------------------------------
 
-AGENT_STUBS: dict[str, dict[str, str]] = {
-    "genesis": {
-        "default": "Soy GENESIS, tu asistente de entrenamiento con IA. ¿En qué puedo ayudarte hoy con tu training, nutrición o recovery?",
-    },
-    "train": {
-        "default": "Soy el agente Train. Puedo ayudarte a planificar y optimizar tus entrenamientos.",
-    },
-    "fuel": {
-        "default": "Soy el agente Fuel. Puedo ayudarte con planificación nutricional y tracking de comidas.",
-    },
-    "mind": {
-        "default": "Soy el agente Mind. Puedo ayudarte con mindset, manejo de estrés y rendimiento mental.",
-    },
-    "track": {
-        "default": "Soy el agente Track. Puedo ayudarte a monitorear tu progreso y analizar tendencias.",
-    },
-    "vision": {
-        "default": "Soy el agente Vision. Puedo ayudarte con escaneo de alimentos y análisis de forma.",
-    },
-    "coach_bridge": {
-        "default": "Soy el agente Coach Bridge. Transmito tus datos e insights a tu coach.",
-    },
+_runner: Runner | None = None
+_session_service: InMemorySessionService | None = None
+_adk_available = False
+
+try:
+    from agents.genesis_agent import genesis_agent
+
+    _session_service = InMemorySessionService()
+    _runner = Runner(
+        agent=genesis_agent,
+        app_name="genesis_bff",
+        session_service=_session_service,
+    )
+    _adk_available = True
+    logger.info("ADK Runner initialized successfully")
+except Exception as exc:
+    logger.warning("ADK Runner init failed (%s) — falling back to stubs", exc)
+
+
+# ---------------------------------------------------------------------------
+# Fallback stubs — used when ADK/Gemini is unavailable
+# ---------------------------------------------------------------------------
+
+AGENT_STUBS: dict[str, str] = {
+    "genesis": "Soy GENESIS, tu asistente de entrenamiento con IA. ¿En qué puedo ayudarte hoy con tu training, nutrición o recovery?",
+    "train": "Soy el agente Train. Puedo ayudarte a planificar y optimizar tus entrenamientos.",
+    "fuel": "Soy el agente Fuel. Puedo ayudarte con planificación nutricional y tracking de comidas.",
+    "mind": "Soy el agente Mind. Puedo ayudarte con mindset, manejo de estrés y rendimiento mental.",
+    "track": "Soy el agente Track. Puedo ayudarte a monitorear tu progreso y analizar tendencias.",
+    "vision": "Soy el agente Vision. Puedo ayudarte con escaneo de alimentos y análisis de forma.",
+    "coach_bridge": "Soy el agente Coach Bridge. Transmito tus datos e insights a tu coach.",
 }
 
+
 # ---------------------------------------------------------------------------
-# Agent persona prompts
+# Session management
 # ---------------------------------------------------------------------------
 
-AGENT_PERSONAS: dict[str, str] = {
-    "genesis": (
-        "Eres GENESIS, un coach de fitness general con IA. "
-        "Eres cálido, motivador y basado en datos. "
-        "Cubres training, nutrición y recovery de forma integral."
-    ),
-    "train": (
-        "Eres el agente Train de GENESIS, un especialista en entrenamiento. "
-        "Te enfocas en forma correcta, periodización y sobrecarga progresiva. "
-        "Das indicaciones técnicas claras y prácticas."
-    ),
-    "fuel": (
-        "Eres el agente Fuel de GENESIS, un coach de nutrición. "
-        "Te enfocas en macros, timing de comidas e hidratación. "
-        "Das recomendaciones prácticas y basadas en la ciencia."
-    ),
-    "mind": (
-        "Eres el agente Mind de GENESIS, un coach de recovery y mindset. "
-        "Te enfocas en sueño, manejo de estrés y rendimiento mental. "
-        "Usas un tono empático y motivador."
-    ),
-    "track": (
-        "Eres el agente Track de GENESIS, un analista de progreso. "
-        "Te enfocas en tendencias de datos, PRs y adherencia al plan. "
-        "Presentas la información de forma clara y accionable."
-    ),
-    "vision": (
-        "Eres el agente Vision de GENESIS, especialista en análisis visual. "
-        "Puedes ayudar con escaneo de alimentos y análisis de forma. "
-        "Por ahora, reconoce las solicitudes visuales y da consejos generales."
-    ),
-    "coach_bridge": (
-        "Eres el agente Coach Bridge de GENESIS. "
-        "Tu rol es resumir datos e insights del usuario para coaches humanos. "
-        "Presenta la información de forma estructurada y profesional."
-    ),
-}
+async def _get_or_create_session(user_id: str, conversation_id: str):
+    """Get an existing session or create a new one with user_id in state."""
+    existing = await _session_service.get_session(
+        app_name="genesis_bff",
+        user_id=user_id,
+        session_id=conversation_id,
+    )
+    if existing:
+        return existing
 
-BASE_SYSTEM_INSTRUCTIONS = (
-    "IMPORTANTE: Siempre responde en español. "
-    "Sé conciso pero útil. Usa un tono profesional pero cercano. "
-    "No inventes datos que no tengas — si no tienes información suficiente, dilo. "
-    "Cuando sea relevante, sugiere acciones concretas que el usuario pueda tomar."
-)
+    return await _session_service.create_session(
+        app_name="genesis_bff",
+        user_id=user_id,
+        session_id=conversation_id,
+        state={"user_id": user_id},
+    )
 
 
 # ---------------------------------------------------------------------------
-# User context fetching
-# ---------------------------------------------------------------------------
-
-def _fetch_user_context(user_id: str) -> str:
-    """Fetch user profile, active season, and today's check-in from Supabase.
-
-    Returns a formatted context string to inject into the system prompt.
-    All queries are wrapped in try/except so a partial failure doesn't
-    prevent the chat from working.
-    """
-    context_parts: list[str] = []
-    sb = get_supabase()
-
-    # Profile
-    try:
-        profile_result = (
-            sb.table("profiles")
-            .select("full_name, experience_level")
-            .eq("id", user_id)
-            .limit(1)
-            .single()
-            .execute()
-        )
-        data = profile_result.data
-        if data:
-            name = data.get("full_name", "Usuario")
-            level = data.get("experience_level", "intermedio")
-            context_parts.append(
-                f"Nombre del usuario: {name}. Nivel de experiencia: {level}."
-            )
-    except Exception:
-        logger.debug("Could not fetch profile for user %s", user_id)
-
-    # Active season + current phase
-    try:
-        season_result = (
-            sb.table("seasons")
-            .select("name, status, start_date, end_date")
-            .eq("user_id", user_id)
-            .eq("status", "active")
-            .order("created_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-        if season_result.data:
-            s = season_result.data[0]
-            context_parts.append(
-                f"Season activo: {s.get('name', 'Sin nombre')} "
-                f"({s.get('start_date', '?')} — {s.get('end_date', '?')})."
-            )
-    except Exception:
-        logger.debug("Could not fetch season for user %s", user_id)
-
-    # Today's check-in
-    try:
-        today_str = date.today().isoformat()
-        checkin_result = (
-            sb.table("check_ins")
-            .select("mood, energy, sleep_hours")
-            .eq("user_id", user_id)
-            .eq("date", today_str)
-            .limit(1)
-            .execute()
-        )
-        if checkin_result.data:
-            ci = checkin_result.data[0]
-            mood = ci.get("mood", "?")
-            energy = ci.get("energy", "?")
-            sleep = ci.get("sleep_hours", "?")
-            context_parts.append(
-                f"Check-in de hoy: mood={mood}/10, energía={energy}/10, "
-                f"sueño={sleep}h."
-            )
-    except Exception:
-        logger.debug("Could not fetch check-in for user %s", user_id)
-
-    # Last completed workout summary
-    try:
-        session_result = (
-            sb.table("sessions")
-            .select("name, scheduled_date, completed_at")
-            .eq("user_id", user_id)
-            .filter("completed_at", "not.is", "null")
-            .order("completed_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-        if session_result.data:
-            sess = session_result.data[0]
-            context_parts.append(
-                f"Último workout completado: {sess.get('name', 'Sesión')} "
-                f"el {sess.get('scheduled_date', '?')}."
-            )
-    except Exception:
-        logger.debug("Could not fetch last session for user %s", user_id)
-
-    if not context_parts:
-        return "No hay datos de contexto disponibles para este usuario."
-
-    return "\n".join(context_parts)
-
-
-# ---------------------------------------------------------------------------
-# Widget generation heuristics
+# Widget generation heuristics (backward compat for mobile app)
 # ---------------------------------------------------------------------------
 
 def _generate_widgets(message: str, response_text: str) -> list[WidgetPayload]:
@@ -243,47 +133,52 @@ async def route_to_agent(
     user_id: str,
     conversation_id: str | None = None,
 ) -> ChatResponse:
-    """Route a user message to the appropriate GENESIS agent.
+    """Route a user message through the ADK agent system.
 
-    Attempts to generate a response via Gemini (Vertex AI) with injected
-    user context. Falls back to AGENT_STUBS if Gemini is unavailable or
-    returns an empty response.
+    Attempts to run the message through the GENESIS root agent (which
+    delegates to sub-agents as needed). Falls back to AGENT_STUBS if
+    ADK is unavailable or returns an empty response.
     """
     resolved_conversation_id = conversation_id or str(uuid.uuid4())
 
-    # --- Build system prompt ---
-    persona = AGENT_PERSONAS.get(agent_id, AGENT_PERSONAS["genesis"])
-    user_context = _fetch_user_context(user_id)
+    response_text = ""
 
-    system_prompt = (
-        f"{persona}\n\n"
-        f"{BASE_SYSTEM_INSTRUCTIONS}\n\n"
-        f"--- Contexto del usuario ---\n{user_context}"
-    )
+    if _adk_available and _runner and _session_service:
+        try:
+            session = await _get_or_create_session(user_id, resolved_conversation_id)
 
-    # --- Call Gemini ---
-    try:
-        response_text = await generate_response(
-            system_prompt=system_prompt,
-            user_message=message,
-        )
-    except GeminiRateLimitError:
-        logger.warning("Gemini rate limit hit for agent=%s, falling back to stub", agent_id)
-        response_text = ""
-    except GeminiError as exc:
-        logger.error("Gemini error for agent=%s: %s", agent_id, exc)
-        response_text = ""
+            # Add routing hint for specific sub-agents
+            routed_message = message
+            if agent_id not in ("genesis", "vision", "coach_bridge"):
+                routed_message = f"[Dirigir a agente: {agent_id}] {message}"
 
-    # --- Fallback to stubs if Gemini returned nothing ---
+            new_message = types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=routed_message)],
+            )
+
+            async for event in _runner.run_async(
+                user_id=user_id,
+                session_id=session.id,
+                new_message=new_message,
+            ):
+                if event.is_final_response() and event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if hasattr(part, "text") and part.text:
+                            response_text += part.text
+
+        except Exception as exc:
+            logger.error("ADK agent error: %s", exc, exc_info=True)
+
+    # Fallback to stubs if ADK returned nothing
     if not response_text:
         logger.info(
-            "Gemini returned empty response for agent=%s; using stub fallback",
+            "ADK returned empty response for agent=%s; using stub fallback",
             agent_id,
         )
-        agent = AGENT_STUBS.get(agent_id, AGENT_STUBS["genesis"])
-        response_text = agent["default"]
+        response_text = AGENT_STUBS.get(agent_id, AGENT_STUBS["genesis"])
 
-    # --- Generate widgets ---
+    # Widget generation (Sprint 1 backward compat)
     widgets = _generate_widgets(message, response_text)
 
     return ChatResponse(
