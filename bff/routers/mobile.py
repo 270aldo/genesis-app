@@ -69,7 +69,7 @@ async def log_exercise(req: ExerciseLogRequest, user_id: str = Depends(get_curre
     payload = {
         "session_id": req.session_id,
         "exercise_id": req.exercise_id,
-        "sets": req.sets,
+        "sets": [s.model_dump() for s in req.sets],
         "rpe": req.rpe,
         "notes": req.notes,
     }
@@ -345,8 +345,8 @@ async def log_meal(req: MealLogRequest, user_id: str = Depends(get_current_user_
         "user_id": user_id,
         "date": req.date,
         "meal_type": req.meal_type,
-        "food_items": req.food_items,
-        "total_macros": req.total_macros,
+        "food_items": [item.model_dump() for item in req.food_items],
+        "total_macros": req.total_macros.model_dump(),
     }
     result = sb.table("meals").insert(payload).execute()
     row = result.data[0] if result.data else payload

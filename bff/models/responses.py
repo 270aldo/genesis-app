@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import Any
 
+from models.requests import ExerciseSetData
+
 
 class WidgetPayload(BaseModel):
     id: str
@@ -45,7 +47,7 @@ class ExerciseLogResponse(BaseModel):
     id: str
     session_id: str
     exercise_id: str
-    sets: list[dict]
+    sets: list[ExerciseSetData]
     rpe: int
     notes: str | None = None
     created_at: str = ""
