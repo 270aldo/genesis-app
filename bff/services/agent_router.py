@@ -20,6 +20,7 @@ from google.adk.sessions import InMemorySessionService
 
 from models.responses import ChatResponse, WidgetPayload
 from services.guardrails import validate_input, validate_output
+from services.cache import cache as _cache
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +202,49 @@ async def route_to_agent(
             conversation_id=resolved_conversation_id,
         )
 
+    # -----------------------------------------------------------------------
+    # L1 cache check (exact match, in-memory)
+    # -----------------------------------------------------------------------
+    l1_hit = _cache.get_l1(message, user_id)
+    if l1_hit:
+        logger.info("L1 cache hit — returning cached response")
+        return ChatResponse(
+            id=str(uuid.uuid4()),
+            response=l1_hit.get("response", ""),
+            widgets=l1_hit.get("widgets"),
+            conversation_id=resolved_conversation_id,
+        )
+
+    # -----------------------------------------------------------------------
+    # L2 cache check (semantic similarity, pgvector)
+    # -----------------------------------------------------------------------
+    query_embedding = None
+    try:
+        from services.embeddings import generate_embedding
+
+        query_embedding = generate_embedding(message)
+        if query_embedding:
+            l2_hit = _cache.get_l2(embedding=query_embedding, user_id=user_id)
+            if l2_hit:
+                logger.info("L2 cache hit — returning semantically cached response")
+                response_text_cached = l2_hit["response_text"]
+                widgets_json = l2_hit.get("response_widgets")
+                widgets_cached = json.loads(widgets_json) if widgets_json else None
+                # Also populate L1 for faster next hit
+                _cache.set_l1(message, user_id, {
+                    "response": response_text_cached,
+                    "widgets": widgets_cached,
+                })
+                return ChatResponse(
+                    id=str(uuid.uuid4()),
+                    response=response_text_cached,
+                    widgets=widgets_cached,
+                    conversation_id=resolved_conversation_id,
+                )
+    except Exception as exc:
+        logger.debug("L2 cache check skipped: %s", exc)
+        query_embedding = None
+
     response_text = ""
 
     if _adk_available and _runner and _session_service:
@@ -252,6 +296,34 @@ async def route_to_agent(
         widgets = extracted_widgets
     else:
         widgets = _generate_widgets(message, response_text)
+
+    # -----------------------------------------------------------------------
+    # Store in L1 + L2 cache for future hits
+    # -----------------------------------------------------------------------
+    try:
+        widget_dicts = [w.dict() for w in widgets] if widgets else None
+        _cache.set_l1(message, user_id, {
+            "response": response_text,
+            "widgets": widget_dicts,
+        })
+        if query_embedding is None:
+            try:
+                from services.embeddings import generate_embedding
+
+                query_embedding = generate_embedding(message)
+            except Exception:
+                query_embedding = None
+        if query_embedding:
+            _cache.set_l2(
+                message=message,
+                user_id=user_id,
+                agent_id=agent_id,
+                embedding=query_embedding,
+                response_text=response_text,
+                response_widgets=widget_dicts,
+            )
+    except Exception as cache_exc:
+        logger.debug("Cache store failed (non-blocking): %s", cache_exc)
 
     return ChatResponse(
         id=str(uuid.uuid4()),

@@ -4,7 +4,7 @@
 
 GENESIS is a premium AI-powered fitness coaching app built with Expo (React Native) and a FastAPI BFF (Backend for Frontend). It currently runs 5 ADK agents (genesis orchestrator + train, fuel, mind, track sub-agents) powered by Gemini, with 2 more planned (vision, coach_bridge). The app features 12-week periodized training seasons and comprehensive wellness tracking. A companion coach web app (GENESIS BRAIN, Next.js) is planned for Sprint 6.
 
-## Current Status (Phase 9 Sprint 2 complete — Feb 2026)
+## Current Status (Phase 9 Sprint 4 Track A complete — Feb 2026)
 
 ### Completed Phases
 - **Phase 1-4**: Core screens, navigation, chat, UI polish
@@ -18,6 +18,8 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - **Phase 8 STEEL**: Env/BFF hardening, PR detection, progress photos, nutrition validation, offline queue, push notifications, auth refresh, Jest + Pytest testing, EAS build config, performance optimizations
 - **Phase 9 Sprint 1**: ADK multi-agent system (genesis + train/fuel/mind/track sub-agents), 16 Supabase-backed tools, ADK Runner-based routing, InMemorySessionService
 - **Phase 9 Sprint 2**: A2UI widget pipeline, unified GENESIS voice (agent identity fix), widget extraction from agent responses, 20 A2UI widget types on mobile
+- **Phase 9 Sprint 3**: Real Gemini AI intelligence, DatabaseSessionService (persistent conversations), user memory system, input/output guardrails, health check fix, 122 BFF tests
+- **Phase 9 Sprint 4 Track A**: Intelligence infrastructure — 3-level response cache (L1 in-memory + L2 pgvector semantic), Gemini text-embedding-004 embeddings, NGX Philosophy context cache, Gemini File Search API wrapper (knowledge_tools), GoogleSearch grounding for FUEL/MIND agents, refined per-agent prompts with build_system_prompt()
 
 ### What works right now
 - 5 main tabs: Home, Train, Fuel, Mind, Track
@@ -43,24 +45,35 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - Progress photos (upload to Supabase Storage with thumbnails)
 - Nutrition validation (macro sanity checks)
 - Jest unit tests (~45 test cases across 8 stores + 1 service)
-- BFF Pytest tests (~86 test cases across 10 test modules)
+- DatabaseSessionService for persistent conversations (psycopg2 + Supabase PostgreSQL, fallback to InMemory)
+- User memory system (get_user_memories + store_user_memory via user_memory table)
+- Input guardrails (injection blocking, empty/length validation)
+- Output guardrails (agent identity leak sanitization)
+- BFF Pytest tests (~122 test cases across 14 test modules)
 - EAS build configuration (development/preview/production profiles)
 - Performance optimizations (useMemo for nutrition totals, useCallback for workout handlers)
+- 3-level response cache: L1 in-memory exact-match (TTLCache, 5min TTL) + L2 pgvector semantic similarity (cosine ≥ 0.92, 1hr TTL via HNSW index)
+- Gemini text-embedding-004 embeddings (768-dim) for semantic cache
+- NGX Philosophy context cache (build_system_prompt() prepends coaching philosophy to all agents)
+- Gemini File Search API wrapper (knowledge_tools.py) with per-domain stores + graceful fallback
+- GoogleSearch grounding for FUEL and MIND agents (real-time food/research data)
+- search_knowledge tool wired into all 5 agents
+- Refined per-agent prompts with domain expertise (periodization, macros, HRV, scoring)
+- Health endpoint with cache stats and knowledge store status
+- response_cache table with pgvector HNSW index + pg_cron hourly cleanup
+- File Search store manager CLI (scripts/manage_stores.py)
 
 ### Known issues
 - `react-native-svg` version mismatch warning (15.15.2 installed, 15.12.1 expected)
 - `expo-av` deprecated warning (migrate to `expo-audio` + `expo-video` in future)
 - EAS `projectId` and Apple Team ID need to be filled after `npx eas init`
 
-### Not yet implemented (Sprint 3+ targets)
-- Sessions are ephemeral — BFF restart loses conversation context (Sprint 3: DatabaseSessionService)
-- No user memory — GENESIS doesn't remember preferences across conversations (Sprint 3: user_memory table)
-- No input/output guardrails — no injection blocking or agent-leak prevention (Sprint 3: guardrails module)
-- BFF runs locally only, not on Cloud Run (Sprint 4)
-- Agents run inside BFF process, not on Vertex AI Agent Engine (Sprint 4-5)
+### Not yet implemented (Sprint 4 Track B + Sprint 5+ targets)
+- File Search knowledge stores not populated yet (Sprint 4 Track B: upload domain documents)
+- BFF runs locally only, not on Cloud Run (Sprint 4 Track B / Sprint 5)
+- Agents run inside BFF process, not on Vertex AI Agent Engine (Sprint 5)
 - VISION is not an ADK agent — `vision.py` calls Gemini directly (Sprint 5: VISION ADK agent)
 - COACH_BRIDGE agent not built — no A2A protocol (Sprint 5)
-- No RAG Engine, no Upstash Redis cache, no Context Caching (Sprint 5-6)
 - GENESIS BRAIN coach app not started (Sprint 6)
 
 ## Tech Stack
@@ -80,13 +93,18 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - **Pydantic v2** (2.10.4)
 - **Supabase Python SDK** (2.11.0)
 - **Google ADK** (1.25.0) — Agent Development Kit for multi-agent orchestration
-- **Google GenAI** (1.1.0) — Gemini 2.0 Flash (vision service)
+- **Google GenAI** (1.1.0) — Gemini 2.0 Flash (vision service) + text-embedding-004 (embeddings)
+- **cachetools** (5.5.0) — L1 in-memory TTL cache
 - **python-jose** for JWT auth
 - **httpx** for HTTP client
 
 ### Infrastructure
-- **Database**: Supabase (PostgreSQL + Auth + RLS)
+- **Database**: Supabase (PostgreSQL + Auth + RLS + pgvector + pg_cron)
 - **AI Agents**: Google ADK multi-agent system (5 agents) → `gemini-2.5-flash` via ADK Runner
+- **Embeddings**: Gemini `text-embedding-004` (768-dim) for semantic cache
+- **Response Cache**: L1 in-memory (cachetools TTLCache) + L2 pgvector (Supabase, HNSW cosine)
+- **Knowledge**: Gemini File Search API wrapper (per-domain stores, graceful fallback)
+- **Grounding**: GoogleSearch (ADK built-in) for FUEL and MIND agents
 - **Vision**: `gemini-2.0-flash` multimodal via google-genai SDK (separate from ADK, will become ADK agent in Sprint 5)
 - **Voice**: ElevenLabs for conversational voice
 - **Health**: HealthKit (iOS) / Health Connect (Android)
@@ -137,17 +155,25 @@ genesis-app/
 │   │       ├── training_tools.py # get_today_workout, get_exercise_catalog, get_personal_records, log_exercise_set
 │   │       ├── nutrition_tools.py # get_today_meals, log_meal, get_water_intake, log_water
 │   │       ├── wellness_tools.py # get_wellness_trends, submit_check_in
-│   │       └── tracking_tools.py # get_progress_stats, get_strength_progress, compare_periods
+│   │       ├── tracking_tools.py # get_progress_stats, get_strength_progress, compare_periods
+│   │       └── knowledge_tools.py # search_knowledge (Gemini File Search API wrapper)
+│   ├── data/
+│   │   └── ngx_philosophy.md     # NGX coaching philosophy (used by context cache)
+│   ├── scripts/
+│   │   └── manage_stores.py      # CLI for Gemini File Search store management
 │   ├── routers/
 │   │   ├── mobile.py             # Mobile-specific endpoints (/mobile/chat, etc.)
 │   │   └── agents.py             # Agent management endpoints
 │   ├── services/
-│   │   ├── agent_router.py       # ADK Runner routing + widget extraction
+│   │   ├── agent_router.py       # ADK Runner routing + widget extraction + L1/L2 cache
+│   │   ├── cache.py              # CacheLayer: L1 in-memory + L2 pgvector semantic
+│   │   ├── embeddings.py         # Gemini text-embedding-004 (768-dim)
+│   │   ├── context_cache.py      # NGX Philosophy loader + build_system_prompt()
 │   │   ├── gemini_client.py      # Gemini API integration
 │   │   ├── auth.py               # JWT validation with Supabase
 │   │   ├── supabase.py           # Supabase client for BFF
 │   │   └── vision.py             # Image analysis for camera scanner
-│   └── tests/                    # Pytest test suite (86 tests)
+│   └── tests/                    # Pytest test suite
 │       ├── test_health.py        # Health endpoint tests
 │       ├── test_mobile_chat.py   # Chat endpoint tests
 │       ├── test_mobile_training.py # Training endpoint tests
@@ -155,9 +181,13 @@ genesis-app/
 │       ├── test_mobile_wellness.py  # Wellness endpoint tests
 │       ├── test_auth.py          # JWT auth tests
 │       ├── test_vision.py        # Vision endpoint tests
-│       ├── test_agents.py        # Agent structure + instruction tests
+│       ├── test_agents.py        # Agent structure + instruction + Sprint 4 tests
 │       ├── test_agent_router_adk.py # ADK routing + widget extraction tests
-│       └── test_tools.py         # Tool unit tests + widget presence tests
+│       ├── test_tools.py         # Tool unit tests + widget presence tests
+│       ├── test_cache.py         # L1/L2 cache tests (12 tests)
+│       ├── test_embeddings.py    # Embedding generation tests (3 tests)
+│       ├── test_knowledge_tools.py # File Search wrapper tests (5 tests)
+│       └── test_context_cache.py # Context cache tests (5 tests)
 ├── __tests__/                    # Jest test suite
 │   ├── stores/                   # Zustand store unit tests
 │   │   ├── useAuthStore.test.ts
@@ -237,7 +267,7 @@ npx eas submit --platform ios          # Submit to TestFlight
 - **State**: Zustand stores in `stores/` — each store handles its own data fetching. IMPORTANT: Never call store methods (getDailyTotals, etc.) inside Zustand selectors — read primitives and compute inline to avoid infinite re-render loops.
 - **API calls**: BFF endpoints via `services/genesisAgentApi.ts`, direct Supabase via `services/supabaseQueries.ts`
 - **Styling**: NativeWind (Tailwind) for simple styles, inline `style` objects for complex layouts
-- **AI chat**: User message -> BFF `/mobile/chat` -> agent_router -> ADK Runner (genesis root agent delegates to sub-agents) -> ChatResponse with extracted widgets
+- **AI chat**: User message -> BFF `/mobile/chat` -> agent_router (L1 cache check → L2 semantic check → ADK Runner) -> genesis root agent delegates to sub-agents -> ChatResponse with extracted widgets -> cache store (L1 + L2)
 - **GENESIS identity**: GENESIS is ONE unified entity. All agents (root + sub) present themselves as "GENESIS". No instruction reveals internal sub-agents, transfers, or delegation. Tests enforce this.
 - **A2UI widgets**: Tools return `suggested_widgets` in responses. Agents embed widgets as ```widget JSON blocks. `_extract_widgets()` parses them into WidgetPayload objects. Mobile renders 20 A2UI widget types. All widgets use `#6D00FF` accent. No per-chip color variations.
 - **Auth**: Supabase Auth -> JWT -> BFF validates with python-jose. Auto-refresh on 401 via interceptor in `genesisAgentApi.ts`.
@@ -246,6 +276,9 @@ npx eas submit --platform ios          # Submit to TestFlight
 - **Push notifications**: Registered via `pushNotifications.ts` using Expo Notifications. Token stored in Supabase `push_tokens` table.
 - **Progress photos**: Uploaded to Supabase Storage `progress-photos` bucket via `supabaseQueries.ts`. Displayed in `components/tracking/ProgressPhotos.tsx` with category-based filtering.
 - **PR detection**: `utils/prDetection.ts` compares workout sets against stored personal records and surfaces new PRs on workout completion.
+- **Response cache**: 3-level: L1 = cachetools TTLCache (SHA256 key, 5min), L2 = pgvector (cosine ≥ 0.92, 1hr, HNSW index), L3 = Gemini Context Caching (NGX Philosophy via `build_system_prompt()`). L2 hits are promoted to L1. All cache ops are try/except for graceful degradation.
+- **Knowledge tools**: `search_knowledge(query, domain)` wraps Gemini File Search API. 5 domains (genesis/train/fuel/mind/track) mapped to stores via env vars. Graceful fallback when stores aren't configured.
+- **Agent prompts**: All 5 agents use `build_system_prompt()` which prepends NGX Philosophy to agent instructions. FUEL/MIND also have GoogleSearch for real-time grounding.
 
 ## Important Notes
 
@@ -279,10 +312,11 @@ Currently: BFF runs locally (not yet on Cloud Run), agents run inside BFF proces
 |--------|------|-------|----------|
 | Sprint 1 ✅ | ADK Multi-Agent | 5 ADK agents, 16 Supabase tools, Runner routing | No |
 | Sprint 2 ✅ | A2UI Pipeline | 20 widget types, unified GENESIS voice, widget extraction | No |
-| **Sprint 3** | **Encender GENESIS** | **Real Gemini AI, DatabaseSessionService, user memory, guardrails** | **No** |
-| Sprint 4 | El Split | BFF → Cloud Run, genesis agent → Agent Engine, VertexAiSessionService | Yes (Cloud Run + AE) |
-| Sprint 5 | Visión + A2A | All agents to AE, VISION ADK agent, COACH_BRIDGE, A2A protocol, RAG | Yes (full AE) |
-| Sprint 6 | BRAIN + Alpha | Next.js BRAIN app, A2A bidirectional, Upstash Redis cache, TestFlight | Yes (full stack) |
+| Sprint 3 ✅ | Encender GENESIS | Real Gemini AI, DatabaseSessionService, user memory, guardrails | No |
+| Sprint 4 Track A ✅ | Cerebro (Intelligence) | 3-level cache, embeddings, File Search wrapper, GoogleSearch, prompt refinement | No |
+| **Sprint 4 Track B** | **Cerebro (Knowledge)** | **Populate File Search stores, upload domain docs, BFF → Cloud Run** | **Yes (Cloud Run)** |
+| Sprint 5 | Visión + A2A | All agents to AE, VISION ADK agent, COACH_BRIDGE, A2A protocol | Yes (full AE) |
+| Sprint 6 | BRAIN + Alpha | Next.js BRAIN app, A2A bidirectional, TestFlight | Yes (full stack) |
 
 ## 7 Target Agents (GENESIS.md)
 
