@@ -1,18 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Pause, Play, ArrowLeft } from 'lucide-react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { theme } from '../../constants/theme';
 import { useSeasonStore, useTrainingStore } from '../../stores';
 import { ExerciseForm } from '../../components/training/ExerciseForm';
 import { RestTimer } from '../../components/training/RestTimer';
 import { WorkoutComplete } from '../../components/training/WorkoutComplete';
+import { PRCelebration } from '../../components/training/PRCelebration';
 import { PHASE_CONFIG } from '../../data';
 import { detectPersonalRecords } from '../../utils/prDetection';
+import { hapticLight, hapticMedium } from '../../utils/haptics';
 import type { DetectedPR } from '../../utils/prDetection';
 import type { PhaseType } from '../../types';
 
@@ -42,6 +51,26 @@ export default function ActiveWorkoutScreen() {
 
   const [detectedPRs, setDetectedPRs] = useState<DetectedPR[]>([]);
   const [showComplete, setShowComplete] = useState(false);
+  const [showPRCelebration, setShowPRCelebration] = useState(false);
+
+  // Timer glow animation
+  const timerGlow = useSharedValue(0.3);
+  useEffect(() => {
+    if (workoutStatus === 'active') {
+      timerGlow.value = withRepeat(
+        withSequence(
+          withTiming(0.8, { duration: 1000 }),
+          withTiming(0.3, { duration: 1000 }),
+        ),
+        -1,
+        true,
+      );
+    }
+  }, [workoutStatus]);
+  const timerGlowStyle = useAnimatedStyle(() => ({
+    textShadowColor: phaseConfig.accentColor,
+    textShadowRadius: timerGlow.value * 12,
+  }));
 
   // Elapsed time ticker
   useEffect(() => {
@@ -50,10 +79,14 @@ export default function ActiveWorkoutScreen() {
     return () => clearInterval(handle);
   }, [workoutStatus, tickElapsed]);
 
-  // Show completion overlay when workout finishes
+  // Show PR celebration or completion overlay when workout finishes
   useEffect(() => {
     if (workoutStatus === 'completed') {
-      setShowComplete(true);
+      if (detectedPRs.length > 0) {
+        setShowPRCelebration(true);
+      } else {
+        setShowComplete(true);
+      }
     }
   }, [workoutStatus]);
 
@@ -77,18 +110,23 @@ export default function ActiveWorkoutScreen() {
   const totalSets = currentExercise?.exerciseSets?.length ?? currentExercise?.sets ?? 0;
   const allExercisesDone = currentSession.exercises.every((ex) => ex.completed);
 
-  const handleLogSet = (exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => {
+  const handleLogSet = useCallback((exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => {
     logSet(exerciseId, setNumber, data);
     // Auto-start rest timer
     startRestTimer(phaseConfig.restSeconds);
-  };
+  }, [logSet, startRestTimer, phaseConfig.restSeconds]);
 
-  const handleFinish = async () => {
-    // Detect PRs before finishing
-    const prs = detectPersonalRecords(currentSession.exercises, {});
+  const handleFinish = useCallback(async () => {
+    // Fetch existing PRs for comparison
+    const exerciseIds = currentSession.exercises.map((e) => e.id);
+    const { fetchExistingPRMap, getCurrentUserId } = await import('../../services/supabaseQueries');
+    const userId = getCurrentUserId();
+    const existingRecords = userId ? await fetchExistingPRMap(userId, exerciseIds) : {};
+
+    const prs = detectPersonalRecords(currentSession.exercises, existingRecords);
     setDetectedPRs(prs);
-    await finishWorkout();
-  };
+    await finishWorkout(prs);
+  }, [currentSession, finishWorkout]);
 
   const handleDismiss = () => {
     setShowComplete(false);
@@ -102,6 +140,24 @@ export default function ActiveWorkoutScreen() {
       advanceToNextExercise();
     }
   }, [currentExercise?.completed, currentExerciseIndex, currentSession.exercises.length, advanceToNextExercise]);
+
+  // PR Celebration overlay
+  if (showPRCelebration && detectedPRs.length > 0) {
+    const firstPR = detectedPRs[0];
+    return (
+      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
+        <PRCelebration
+          visible={showPRCelebration}
+          exerciseName={firstPR.exerciseName}
+          record={firstPR}
+          onDismiss={() => {
+            setShowPRCelebration(false);
+            setShowComplete(true);
+          }}
+        />
+      </LinearGradient>
+    );
+  }
 
   // Completion overlay
   if (showComplete) {
@@ -135,13 +191,16 @@ export default function ActiveWorkoutScreen() {
             <Text style={{ color: theme.colors.textPrimary, fontSize: 14, fontFamily: 'InterBold' }}>
               {currentSession.exercises[0]?.name ? 'Active Workout' : 'Workout'}
             </Text>
-            <Text style={{ color: phaseConfig.accentColor, fontSize: 22, fontFamily: 'JetBrainsMonoBold' }}>
+            <Animated.Text style={[{ color: phaseConfig.accentColor, fontSize: 22, fontFamily: 'JetBrainsMonoBold' }, timerGlowStyle]}>
               {minutes}:{secs.toString().padStart(2, '0')}
-            </Text>
+            </Animated.Text>
           </View>
 
           <Pressable
-            onPress={workoutStatus === 'paused' ? resumeWorkout : pauseWorkout}
+            onPress={() => {
+              hapticLight();
+              workoutStatus === 'paused' ? resumeWorkout() : pauseWorkout();
+            }}
             style={{
               width: 36,
               height: 36,
@@ -185,7 +244,7 @@ export default function ActiveWorkoutScreen() {
 
           {/* Rest Timer */}
           {(isRestTimerActive || restTimeRemaining > 0) && (
-            <RestTimer defaultDuration={phaseConfig.restSeconds} />
+            <RestTimer defaultDuration={phaseConfig.restSeconds} onComplete={() => hapticMedium()} />
           )}
 
           {/* Exercise Form */}

@@ -1,0 +1,14 @@
+appId: com.ngxgenesis.app
+---
+- launchApp
+- assertVisible:
+    text: "SIGN IN"
+    timeout: 10000
+- tapOn: "Email"
+- inputText: "${TEST_EMAIL}"
+- tapOn: "Password"
+- inputText: "${TEST_PASSWORD}"
+- tapOn: "SIGN IN"
+- assertVisible:
+    text: "HOME"
+    timeout: 10000

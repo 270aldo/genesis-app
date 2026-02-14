@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +14,7 @@ import {
   Pill,
   ProgressBar,
   SeasonHeader,
+  ErrorBanner,
 } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { RecoveryHeatmap } from '../../components/wellness';
@@ -20,6 +22,9 @@ import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useWellnessStore, useTrainingStore } from '../../stores';
 import { PHASE_CONFIG, IMAGES } from '../../data';
 import type { MuscleRecovery, PhaseType } from '../../types';
+import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
+import { SkeletonCard } from '../../components/loading/SkeletonCard';
+import { hapticSelection } from '../../utils/haptics';
 
 const moodLabels: Record<string, string> = {
   great: 'Excelente',
@@ -69,11 +74,15 @@ export default function MindScreen() {
   const selectedMood = todayCheckIn?.mood ? (moodToSelector[todayCheckIn.mood] ?? 'okay') : undefined;
 
   const handleMoodSelect = (_mood: string) => {
+    hapticSelection();
     if (!todayCheckIn) {
       router.push('/(modals)/check-in');
     }
     // If already checked in, mood is display-only
   };
+
+  const entrance = useStaggeredEntrance(6, 120);
+  const totalDuration = 600 + 6 * 120;
 
   // Derive sleep data from today's check-in
   const sleepHours = todayCheckIn?.sleepHours ?? 0;
@@ -164,98 +173,126 @@ export default function MindScreen() {
           <ScreenHeader title="Mind & Recovery" subtitle="¿Cómo estás hoy?" />
 
           {isWellnessLoading && (
-            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-              <ActivityIndicator size="small" color={GENESIS_COLORS.primary} />
+            <View style={{ gap: 12 }}>
+              <SkeletonCard />
+              <SkeletonCard />
             </View>
           )}
 
           {/* Mood Check-in */}
-          <SectionLabel title="CHECK-IN">
-            <GlassCard shine>
-              <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Mood de Hoy</Text>
-              <MoodSelector selected={selectedMood} onSelect={handleMoodSelect} />
-              {selectedMood && (
-                <Text style={{ color: phaseConfig.accentColor, fontSize: 13, fontFamily: 'Inter' }}>
-                  {moodLabels[selectedMood] ?? ''}
-                </Text>
-              )}
-            </GlassCard>
-          </SectionLabel>
+          <StaggeredSection index={0} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="CHECK-IN">
+              <GlassCard shine>
+                <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Mood de Hoy</Text>
+                <MoodSelector selected={selectedMood} onSelect={handleMoodSelect} disabled={!!todayCheckIn} />
+                {todayCheckIn ? (
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                    Ya hiciste tu check-in hoy · {moodLabels[selectedMood ?? ''] ?? ''}
+                  </Text>
+                ) : selectedMood ? (
+                  <Text style={{ color: phaseConfig.accentColor, fontSize: 13, fontFamily: 'Inter' }}>
+                    {moodLabels[selectedMood] ?? ''}
+                  </Text>
+                ) : null}
+              </GlassCard>
+            </SectionLabel>
+          </StaggeredSection>
 
           {/* Recovery Heatmap */}
-          <SectionLabel title="RECOVERY STATUS">
-            <RecoveryHeatmap data={recoveryData} />
-          </SectionLabel>
+          <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="RECOVERY STATUS">
+              <RecoveryHeatmap data={recoveryData} />
+            </SectionLabel>
+          </StaggeredSection>
 
           {/* Wellness Score */}
-          <SectionLabel title="WELLNESS SCORE">
-            <GlassCard shine>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Activity size={18} color={phaseConfig.accentColor} />
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Overall</Text>
-              </View>
-              <Text style={{ color: '#FFFFFF', fontSize: 36, fontFamily: 'InterBold' }}>
-                {todayCheckIn ? wellnessScore : '--'}
-              </Text>
-              <ProgressBar progress={todayCheckIn ? wellnessScore : 0} gradient />
-              {recommendations.map((rec, i) => (
-                <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 4 }}>
-                  <Sparkles size={12} color={phaseConfig.accentColor} />
-                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, fontFamily: 'Inter', flex: 1, lineHeight: 16 }}>{rec}</Text>
+          <StaggeredSection index={2} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="WELLNESS SCORE">
+              <GlassCard shine>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Activity size={18} color={phaseConfig.accentColor} />
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Overall</Text>
                 </View>
-              ))}
-            </GlassCard>
-          </SectionLabel>
+                <Text style={{ color: '#FFFFFF', fontSize: 36, fontFamily: 'InterBold' }}>
+                  {todayCheckIn ? wellnessScore : '--'}
+                </Text>
+                <ProgressBar progress={todayCheckIn ? wellnessScore : 0} gradient />
+                {recommendations.map((rec, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 4 }}>
+                    <Sparkles size={12} color={phaseConfig.accentColor} />
+                    <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, fontFamily: 'Inter', flex: 1, lineHeight: 16 }}>{rec}</Text>
+                  </View>
+                ))}
+              </GlassCard>
+            </SectionLabel>
+          </StaggeredSection>
 
           {/* Meditation with Images */}
-          <SectionLabel title="MEDITACIÓN">
-            <View style={{ gap: 12 }}>
-              {meditations.map((med) => (
-                <ImageCard
-                  key={med.id}
-                  imageUrl={med.imageUrl}
-                  height={100}
-                  overlayColors={['transparent', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.9)']}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <View style={{ gap: 2 }}>
-                      <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{med.name}</Text>
-                      <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{med.duration} · {med.type}</Text>
+          <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="MEDITACIÓN">
+              <View style={{ gap: 12 }}>
+                {meditations.map((med) => (
+                  <ImageCard
+                    key={med.id}
+                    imageUrl={med.imageUrl}
+                    height={100}
+                    overlayColors={['transparent', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.9)']}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <View style={{ gap: 2 }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{med.name}</Text>
+                        <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{med.duration} · {med.type}</Text>
+                      </View>
+                      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: med.color + '20', alignItems: 'center', justifyContent: 'center' }}>
+                        <Play size={16} color={med.color} />
+                      </View>
                     </View>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: med.color + '20', alignItems: 'center', justifyContent: 'center' }}>
-                      <Play size={16} color={med.color} />
-                    </View>
-                  </View>
-                </ImageCard>
-              ))}
-            </View>
-          </SectionLabel>
+                  </ImageCard>
+                ))}
+              </View>
+            </SectionLabel>
+          </StaggeredSection>
 
           {/* Sleep */}
-          <SectionLabel title="SLEEP">
-            <GlassCard shine>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Moon size={18} color={GENESIS_COLORS.primary} />
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Anoche</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 28, fontFamily: 'InterBold' }}>{sleepFormatted}</Text>
-                <Pill label={sleepQualityLabel} variant={sleepQualityVariant as any} />
-              </View>
-              <ProgressBar progress={sleepHours > 0 ? Math.min((sleepHours / 8) * 100, 100) : 0} gradient />
-              {sleepHours > 0 ? (
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', textAlign: 'center' }}>
-                  Meta: 8h · Calidad: {sleepQualityLabel}
-                </Text>
-              ) : (
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', textAlign: 'center' }}>
-                  Completa tu check-in para ver datos de sueño
-                </Text>
-              )}
-            </GlassCard>
-          </SectionLabel>
+          <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="SLEEP">
+              <GlassCard shine>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Moon size={18} color={GENESIS_COLORS.primary} />
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Anoche</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 28, fontFamily: 'InterBold' }}>{sleepFormatted}</Text>
+                  <Pill label={sleepQualityLabel} variant={sleepQualityVariant as any} />
+                </View>
+                <ProgressBar progress={sleepHours > 0 ? Math.min((sleepHours / 8) * 100, 100) : 0} gradient />
+                {sleepHours > 0 ? (
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', textAlign: 'center' }}>
+                    Meta: 8h · Calidad: {sleepQualityLabel}
+                  </Text>
+                ) : (
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', textAlign: 'center' }}>
+                    Completa tu check-in para ver datos de sueno
+                  </Text>
+                )}
+              </GlassCard>
+            </SectionLabel>
+          </StaggeredSection>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
+}
+
+function StaggeredSection({ index, entrance, totalDuration, children }: {
+  index: number;
+  entrance: { progress: { value: number }; delayMs: number };
+  totalDuration: number;
+  children: React.ReactNode;
+}) {
+  const style = useAnimatedStyle(() => {
+    const { opacity, translateY } = getStaggeredStyle(entrance.progress.value, index, entrance.delayMs, totalDuration);
+    return { opacity, transform: [{ translateY }] };
+  });
+  return <Animated.View style={style}>{children}</Animated.View>;
 }

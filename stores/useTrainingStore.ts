@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Exercise, ExerciseLibraryItem, ExerciseSet, WorkoutPlan, WorkoutSession } from '../types';
 import type { Json } from '../types/supabase';
+import type { DetectedPR } from '../utils/prDetection';
 import { hasSupabaseConfig } from '../services/supabaseClient';
 
 type WorkoutStatus = 'idle' | 'active' | 'paused' | 'completing' | 'completed';
@@ -48,7 +49,7 @@ type TrainingState = {
   logSet: (exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => void;
   skipSet: (exerciseId: string, setNumber: number) => void;
   advanceToNextExercise: () => void;
-  finishWorkout: () => Promise<void>;
+  finishWorkout: (detectedPRs?: DetectedPR[]) => Promise<void>;
   tickElapsed: () => void;
   resetWorkout: () => void;
 };
@@ -335,7 +336,7 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
       return { currentExerciseIndex: nextIndex, currentSetIndex: 0 };
     }),
 
-  finishWorkout: async () => {
+  finishWorkout: async (detectedPRs?: DetectedPR[]) => {
     const state = get();
     if (!state.currentSession) return;
 
@@ -358,7 +359,7 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
     // Persist to Supabase
     if (hasSupabaseConfig) {
       try {
-        const { completeSession: completeSesh, insertExerciseLogs } = await import('../services/supabaseQueries');
+        const { completeSession: completeSesh, insertExerciseLogs, insertPersonalRecord, getCurrentUserId } = await import('../services/supabaseQueries');
         await completeSesh(state.currentSession.id);
 
         const logs = state.currentSession.exercises
@@ -382,8 +383,49 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
         if (logs.length > 0) {
           await insertExerciseLogs(state.currentSession.id, logs);
         }
+
+        // Persist detected PRs
+        if (detectedPRs && detectedPRs.length > 0) {
+          const userId = getCurrentUserId();
+          if (userId) {
+            for (const pr of detectedPRs) {
+              await insertPersonalRecord(userId, {
+                exercise_id: pr.exerciseId,
+                type: pr.type,
+                value: pr.newValue,
+                session_id: state.currentSession.id,
+                previous_value: pr.previousValue,
+              });
+            }
+          }
+        }
       } catch (err: any) {
-        console.warn('finishWorkout persist failed:', err?.message);
+        console.warn('finishWorkout persist failed, queuing offline:', err?.message);
+        try {
+          const { addToQueue } = await import('../services/offlineQueue');
+          await addToQueue('workout_complete', {
+            sessionId: state.currentSession.id,
+            logs: state.currentSession.exercises
+              .filter((ex) => ex.exerciseSets?.some((s) => s.completed))
+              .map((ex) => ({
+                exercise_id: ex.id,
+                sets: (ex.exerciseSets ?? [])
+                  .filter((s) => s.completed)
+                  .map((s) => ({
+                    set_number: s.setNumber,
+                    reps: s.actualReps ?? s.targetReps,
+                    weight: s.actualWeight ?? s.targetWeight,
+                    rpe: s.rpe ?? null,
+                  })),
+                rpe: Math.round(
+                  (ex.exerciseSets ?? []).reduce((sum, s) => sum + (s.rpe ?? 0), 0) /
+                  Math.max(1, (ex.exerciseSets ?? []).filter((s) => s.rpe).length),
+                ),
+              })),
+          });
+        } catch (queueErr: any) {
+          console.warn('offlineQueue failed:', queueErr?.message);
+        }
       }
     }
   },

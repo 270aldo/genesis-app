@@ -1,63 +1,34 @@
 import type { WidgetType } from '../types';
 
 type WidgetRegistryEntry = {
-  component: string;
-  category: 'display' | 'visualization' | 'action' | 'input' | 'informational' | 'feedback' | 'interactive';
-  supportedTouchpoints: string[];
+  label: string;
+  icon: string;
+  accent: string;
+  category: 'training' | 'nutrition' | 'wellness' | 'progress' | 'general';
 };
 
-export const WIDGET_REGISTRY: Record<string, WidgetRegistryEntry> = {
-  metric_card: {
-    component: 'MetricCardWidget',
-    category: 'display',
-    supportedTouchpoints: ['chat', 'dashboard', 'home'],
-  },
-  chart_line: {
-    component: 'LineChartWidget',
-    category: 'visualization',
-    supportedTouchpoints: ['dashboard', 'tracking'],
-  },
-  chart_bar: {
-    component: 'BarChartWidget',
-    category: 'visualization',
-    supportedTouchpoints: ['dashboard', 'nutrition'],
-  },
-  recommendation: {
-    component: 'RecommendationWidget',
-    category: 'action',
-    supportedTouchpoints: ['chat', 'home', 'training', 'wellness'],
-  },
-  form_field: {
-    component: 'FormFieldWidget',
-    category: 'input',
-    supportedTouchpoints: ['chat', 'modals'],
-  },
-  insight_card: {
-    component: 'InsightCardWidget',
-    category: 'informational',
-    supportedTouchpoints: ['home', 'dashboard', 'chat'],
-  },
-  progress_indicator: {
-    component: 'ProgressIndicatorWidget',
-    category: 'feedback',
-    supportedTouchpoints: ['home', 'tracking', 'training'],
-  },
-  action_button: {
-    component: 'ActionButtonWidget',
-    category: 'interactive',
-    supportedTouchpoints: ['chat', 'dashboard'],
-  },
-} as const;
+export const WIDGET_REGISTRY: Record<WidgetType, WidgetRegistryEntry> = {
+  'metric-card': { label: 'Metric Card', icon: 'activity', accent: '#6D00FF', category: 'general' },
+  'workout-card': { label: 'Workout Card', icon: 'dumbbell', accent: '#6D00FF', category: 'training' },
+  'meal-plan': { label: 'Meal Plan', icon: 'utensils', accent: '#6D00FF', category: 'nutrition' },
+  'hydration-tracker': { label: 'Hydration Tracker', icon: 'droplet', accent: '#6D00FF', category: 'nutrition' },
+  'progress-dashboard': { label: 'Progress Dashboard', icon: 'bar-chart-2', accent: '#6D00FF', category: 'progress' },
+  'insight-card': { label: 'Insight Card', icon: 'lightbulb', accent: '#6D00FF', category: 'general' },
+  'season-timeline': { label: 'Season Timeline', icon: 'calendar', accent: '#6D00FF', category: 'progress' },
+  'today-card': { label: 'Today Card', icon: 'sun', accent: '#6D00FF', category: 'general' },
+  'exercise-row': { label: 'Exercise Row', icon: 'list', accent: '#6D00FF', category: 'training' },
+  'workout-history': { label: 'Workout History', icon: 'clock', accent: '#6D00FF', category: 'training' },
+  'body-stats': { label: 'Body Stats', icon: 'user', accent: '#6D00FF', category: 'progress' },
+  'max-rep-calculator': { label: '1RM Calculator', icon: 'calculator', accent: '#6D00FF', category: 'training' },
+  'rest-timer': { label: 'Rest Timer', icon: 'timer', accent: '#6D00FF', category: 'training' },
+  'heart-rate': { label: 'Heart Rate', icon: 'heart', accent: '#6D00FF', category: 'wellness' },
+  'supplement-stack': { label: 'Supplement Stack', icon: 'pill', accent: '#6D00FF', category: 'nutrition' },
+  'streak-counter': { label: 'Streak Counter', icon: 'flame', accent: '#6D00FF', category: 'general' },
+  'achievement': { label: 'Achievement', icon: 'trophy', accent: '#6D00FF', category: 'general' },
+  'coach-message': { label: 'Coach Message', icon: 'message-circle', accent: '#6D00FF', category: 'general' },
+  'sleep-tracker': { label: 'Sleep Tracker', icon: 'moon', accent: '#6D00FF', category: 'wellness' },
+  'alert-banner': { label: 'Alert Banner', icon: 'alert-triangle', accent: '#6D00FF', category: 'general' },
+};
 
-export const TOUCHPOINTS = [
-  'chat',
-  'dashboard',
-  'home',
-  'training',
-  'nutrition',
-  'wellness',
-  'tracking',
-  'modals',
-] as const;
-
+export const TOUCHPOINTS = ['chat', 'dashboard', 'home', 'training', 'nutrition', 'wellness', 'tracking', 'modals'] as const;
 export type Touchpoint = (typeof TOUCHPOINTS)[number];

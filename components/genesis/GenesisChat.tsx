@@ -1,12 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, Text, TextInput, View, KeyboardAvoidingView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowUp, RefreshCw } from 'lucide-react-native';
 import { GENESIS_COLORS } from '../../constants/colors';
-import { theme } from '../../constants/theme';
 import { useGenesisStore } from '../../stores';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './ChatMessage';
 import { WidgetRenderer } from './WidgetRenderer';
+import { hapticLight } from '../../utils/haptics';
 
 export function GenesisChat() {
   const [value, setValue] = useState('');
@@ -15,10 +16,18 @@ export function GenesisChat() {
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  const widgets = useMemo(() => messages.flatMap((message) => message.widgets ?? []), [messages]);
+  const lastAssistantWidgets = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant' && messages[i].widgets?.length) {
+        return messages[i].widgets!;
+      }
+    }
+    return [];
+  }, [messages]);
 
   const lastMsg = messages[messages.length - 1];
   const isOffline = lastMsg?.id?.startsWith('mock-');
+  const sendDisabled = isLoading || value.trim().length === 0;
 
   const handleSend = async (content: string) => {
     setLastError(null);
@@ -26,7 +35,7 @@ export function GenesisChat() {
     try {
       await sendMessage(content);
     } catch (err: any) {
-      setLastError(err?.message ?? 'Failed to send message');
+      setLastError(err?.message ?? 'Error al enviar');
       setFailedMessage(content);
     }
   };
@@ -41,14 +50,14 @@ export function GenesisChat() {
         {/* Offline banner */}
         {isOffline && (
           <View style={{
-            backgroundColor: `${theme.colors.warning}22`,
+            backgroundColor: `${GENESIS_COLORS.warning}22`,
             borderRadius: 8,
             padding: 8,
             borderWidth: 1,
-            borderColor: `${theme.colors.warning}44`,
+            borderColor: `${GENESIS_COLORS.warning}44`,
           }}>
-            <Text style={{ color: theme.colors.warning, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', textAlign: 'center' }}>
-              Offline mode — using local responses
+            <Text style={{ color: GENESIS_COLORS.warning, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', textAlign: 'center' }}>
+              OFFLINE — respuestas locales
             </Text>
           </View>
         )}
@@ -63,10 +72,10 @@ export function GenesisChat() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
-        {widgets.length > 0 ? (
+        {lastAssistantWidgets.length > 0 ? (
           <View style={{ gap: 8 }}>
-            {widgets.slice(-2).map((widget) => (
-              <WidgetRenderer key={widget.id} widget={widget} />
+            {lastAssistantWidgets.map((widget, index) => (
+              <WidgetRenderer key={widget.id} widget={widget} staggerIndex={index} />
             ))}
           </View>
         ) : null}
@@ -74,58 +83,70 @@ export function GenesisChat() {
         {/* Error with retry */}
         {lastError && failedMessage && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 }}>
-            <Text style={{ color: theme.colors.error, fontSize: 11, flex: 1 }}>Failed to send</Text>
+            <Text style={{ color: GENESIS_COLORS.error, fontSize: 11, flex: 1 }}>Error al enviar</Text>
             <Pressable
               onPress={() => handleSend(failedMessage)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 6, borderRadius: 8, backgroundColor: `${theme.colors.error}22` }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 6, borderRadius: 8, backgroundColor: `${GENESIS_COLORS.error}22` }}
             >
-              <RefreshCw size={12} color={theme.colors.error} />
-              <Text style={{ color: theme.colors.error, fontSize: 11, fontWeight: '600' }}>Retry</Text>
+              <RefreshCw size={12} color={GENESIS_COLORS.error} />
+              <Text style={{ color: GENESIS_COLORS.error, fontSize: 11, fontWeight: '600' }}>Reintentar</Text>
             </Pressable>
           </View>
         )}
 
         {/* Input bar */}
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
+        <View style={{
+          backgroundColor: GENESIS_COLORS.surfaceCard,
+          borderWidth: 1,
+          borderColor: GENESIS_COLORS.borderSubtle,
+          borderRadius: 24,
+          padding: 6,
+          flexDirection: 'row',
+          gap: 6,
+          alignItems: 'flex-end',
+        }}>
           <TextInput
             value={value}
             onChangeText={setValue}
-            placeholder="Ask GENESIS"
+            placeholder="Escríbele a GENESIS..."
             placeholderTextColor={GENESIS_COLORS.textMuted}
             multiline
             style={{
               flex: 1,
               color: GENESIS_COLORS.textPrimary,
-              borderRadius: 12,
-              paddingHorizontal: 14,
+              borderRadius: 20,
+              paddingHorizontal: 16,
               paddingVertical: 10,
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
               fontFamily: 'Inter',
               fontSize: 14,
               maxHeight: 100,
             }}
           />
-          <Pressable
-            disabled={isLoading || value.trim().length === 0}
-            onPress={async () => {
-              const content = value.trim();
-              if (!content) return;
-              setValue('');
-              await handleSend(content);
-            }}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: isLoading || value.trim().length === 0
-                ? `${GENESIS_COLORS.primary}66`
-                : GENESIS_COLORS.primary,
-            }}
-          >
-            <ArrowUp size={20} color="#FFFFFF" strokeWidth={2.5} />
-          </Pressable>
+          <View style={{ opacity: sendDisabled ? 0.4 : 1 }}>
+            <Pressable
+              disabled={sendDisabled}
+              onPress={async () => {
+                const content = value.trim();
+                if (!content) return;
+                hapticLight();
+                setValue('');
+                await handleSend(content);
+              }}
+            >
+              <LinearGradient
+                colors={[GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ArrowUp size={20} color="#FFFFFF" strokeWidth={2.5} />
+              </LinearGradient>
+            </Pressable>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>

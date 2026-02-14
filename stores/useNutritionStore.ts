@@ -24,6 +24,7 @@ type NutritionState = {
   getRemainingCalories: () => number;
   fetchMeals: (date?: string) => Promise<void>;
   fetchWater: (date?: string) => Promise<void>;
+  initializeTargets: () => Promise<void>;
 };
 
 export const useNutritionStore = create<NutritionState>((set, get) => ({
@@ -40,19 +41,22 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
 
     // Persist to Supabase
     if (hasSupabaseConfig) {
+      const mealPayload = {
+        date: new Date().toISOString().split('T')[0],
+        meal_type: (meal.name.toLowerCase() as 'breakfast' | 'lunch' | 'dinner' | 'snack') || 'snack',
+        food_items: [{ name: meal.name }],
+        total_macros: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
+      };
       (async () => {
         try {
           const { insertMeal, getCurrentUserId } = await import('../services/supabaseQueries');
           const userId = getCurrentUserId();
           if (!userId) return;
-          await insertMeal(userId, {
-            date: new Date().toISOString().split('T')[0],
-            meal_type: (meal.name.toLowerCase() as 'breakfast' | 'lunch' | 'dinner' | 'snack') || 'snack',
-            food_items: [{ name: meal.name }],
-            total_macros: { calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat },
-          });
+          await insertMeal(userId, mealPayload);
         } catch (err: any) {
-          console.warn('addMeal persist failed:', err?.message);
+          console.warn('addMeal persist failed, queuing offline:', err?.message);
+          const { addToQueue } = await import('../services/offlineQueue');
+          await addToQueue('meal_log', mealPayload as unknown as Record<string, unknown>);
         }
       })();
     }
@@ -65,14 +69,17 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
 
     // Persist to Supabase
     if (hasSupabaseConfig) {
+      const date = new Date().toISOString().split('T')[0];
       (async () => {
         try {
           const { upsertWaterLog, getCurrentUserId } = await import('../services/supabaseQueries');
           const userId = getCurrentUserId();
           if (!userId) return;
-          await upsertWaterLog(userId, new Date().toISOString().split('T')[0], newWater);
+          await upsertWaterLog(userId, date, newWater);
         } catch (err: any) {
-          console.warn('addWater persist failed:', err?.message);
+          console.warn('addWater persist failed, queuing offline:', err?.message);
+          const { addToQueue } = await import('../services/offlineQueue');
+          await addToQueue('water_log', { date, glasses: newWater });
         }
       })();
     }
@@ -144,6 +151,44 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
       }
     } catch (err: any) {
       console.warn('fetchWater failed:', err?.message);
+    }
+  },
+
+  initializeTargets: async () => {
+    if (!hasSupabaseConfig) return;
+    try {
+      const { supabaseClient } = await import('../services/supabaseClient');
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('weight_kg, goal')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.weight_kg) return;
+
+      const weight = profile.weight_kg as number;
+      const goal = (profile.goal as string) ?? 'maintain';
+
+      // Calculate daily calorie goal from weight and goal
+      const multipliers: Record<string, number> = {
+        build: 37,
+        bulk: 37,
+        cut: 26,
+        lose: 26,
+        maintain: 31,
+        peak: 33,
+        recomp: 30,
+      };
+      const multiplier = multipliers[goal] ?? 31;
+      const dailyGoal = Math.round(weight * multiplier);
+
+      // Water target: ~1 glass (250ml) per 10kg body weight
+      const targetWater = Math.max(6, Math.ceil(weight / 10));
+
+      set({ dailyGoal, targetWater });
+    } catch (err: any) {
+      console.warn('initializeTargets failed, using defaults:', err?.message);
     }
   },
 }));

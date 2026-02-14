@@ -50,3 +50,8 @@ __pycache__/
 
 # Claude internal
 .claude/
+
+# Sprint prompts and planning docs (internal)
+*_PROMPT.md
+*_PLAN.md
+NGX_GENESIS_Audit_Report_*.docx

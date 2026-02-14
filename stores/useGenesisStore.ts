@@ -30,7 +30,7 @@ function getMockResponse(content: string): { text: string; widgets: WidgetPayloa
       text: 'Hoy te toca Push Day: pecho, hombros y tríceps. Estás en fase de Strength, así que ve con cargas al 80-85% de tu 1RM. Recuerda respetar los descansos de 2-3 minutos entre series pesadas. Tu recovery está en 82% — verde para darle.',
       widgets: [{
         id: `w-${Date.now()}`,
-        type: 'metric_card',
+        type: 'metric-card',
         title: 'Recovery Score',
         value: '82%',
         data: { status: 'good', trend: 'stable' },
@@ -43,7 +43,7 @@ function getMockResponse(content: string): { text: string; widgets: WidgetPayloa
       text: 'Según tu log de hoy, te faltan 45g de proteína y 30g de carbs para llegar a tu target. Te sugiero: pechuga de pollo a la plancha con arroz integral y brócoli (~450 kcal, 42g proteína). Otra opción: batido de whey con avena y plátano.',
       widgets: [{
         id: `w-${Date.now()}`,
-        type: 'metric_card',
+        type: 'metric-card',
         title: 'Macros Remaining',
         value: '45g P / 30g C',
         data: { protein: 45, carbs: 30, fat: 8 },
@@ -56,7 +56,7 @@ function getMockResponse(content: string): { text: string; widgets: WidgetPayloa
       text: 'Tu recovery general está bien esta semana. Pecho y hombros están en recuperación moderada (entrenados ayer), espalda y piernas están recovered. Tips: hidratación mínima 3L hoy, intenta dormir 7.5h+, y considera 10 min de stretching antes de dormir.',
       widgets: [{
         id: `w-${Date.now()}`,
-        type: 'recommendation',
+        type: 'coach-message',
         title: 'Recovery Protocol',
         subtitle: 'Based on your training load',
         data: { priority: 'hydration', sleepTarget: 7.5 },
@@ -69,7 +69,7 @@ function getMockResponse(content: string): { text: string; widgets: WidgetPayloa
       text: 'Estás en Season 1, Semana 3 de 12 — fase de Strength. Llevas un 18% del season completado. Los primeros 2 semanas de hipertrofia fueron sólidas. Ahora enfócate en cargas pesadas con reps bajas (4-6). Tu adherencia esta semana va al 100%.',
       widgets: [{
         id: `w-${Date.now()}`,
-        type: 'progress_indicator',
+        type: 'progress-dashboard',
         title: 'Season Progress',
         value: '18%',
         data: { week: 3, totalWeeks: 12, phase: 'strength' },

@@ -20,11 +20,13 @@ type TrackingState = {
   totalPlanned: number;
   strengthProgress: StrengthProgressData;
   addMeasurement: (measurement: Measurement) => void;
-  addPhoto: (photo: ProgressPhoto) => void;
+  addPhoto: (uri: string, category: ProgressPhoto['category'], notes?: string) => Promise<void>;
+  deletePhoto: (photoId: string, storagePath: string) => Promise<void>;
   updateStrengthMetric: (exercise: string, value: number) => void;
   setStreak: (days: number) => void;
   calculateProgressPercent: () => number;
   fetchMeasurements: () => Promise<void>;
+  fetchPhotos: () => Promise<void>;
   fetchPersonalRecords: () => Promise<void>;
   fetchStreak: () => Promise<void>;
   fetchTrackStats: () => Promise<void>;
@@ -68,7 +70,55 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
     }
   },
 
-  addPhoto: (photo) => set((state) => ({ photos: [...state.photos, photo] })),
+  addPhoto: async (uri, category, notes) => {
+    const date = new Date().toISOString().split('T')[0];
+    // Optimistic local update
+    const tempPhoto: ProgressPhoto = { date, category, storagePath: '', uri, notes };
+    set((state) => ({ photos: [tempPhoto, ...state.photos] }));
+
+    if (hasSupabaseConfig) {
+      try {
+        const { uploadProgressPhoto, insertProgressPhoto, getCurrentUserId } = await import('../services/supabaseQueries');
+        const userId = getCurrentUserId();
+        if (!userId) return;
+        const result = await uploadProgressPhoto(userId, uri, date, category);
+        if (result) {
+          const row = await insertProgressPhoto(userId, {
+            date,
+            category,
+            storage_path: result.storagePath,
+            notes: notes ?? null,
+          });
+          if (row) {
+            // Replace temp photo with persisted version
+            set((state) => ({
+              photos: state.photos.map((p) =>
+                p === tempPhoto
+                  ? { id: (row as any).id, date, category, storagePath: result.storagePath, uri, notes }
+                  : p
+              ),
+            }));
+          }
+        }
+      } catch (err: any) {
+        console.warn('addPhoto persist failed:', err?.message);
+      }
+    }
+  },
+
+  deletePhoto: async (photoId, storagePath) => {
+    // Optimistic local removal
+    set((state) => ({ photos: state.photos.filter((p) => p.id !== photoId) }));
+    if (hasSupabaseConfig) {
+      try {
+        const { deleteProgressPhoto } = await import('../services/supabaseQueries');
+        await deleteProgressPhoto(photoId, storagePath);
+      } catch (err: any) {
+        console.warn('deletePhoto failed:', err?.message);
+      }
+    }
+  },
+
   updateStrengthMetric: (exercise, value) =>
     set((state) => ({ strengthMetrics: { ...state.strengthMetrics, [exercise]: value } })),
   setStreak: (streak) => set({ streak }),
@@ -79,6 +129,30 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
     const photos = state.photos.length > 0 ? 30 : 0;
     const strength = Object.keys(state.strengthMetrics).length > 0 ? 30 : 0;
     return measured + photos + strength;
+  },
+
+  fetchPhotos: async () => {
+    if (!hasSupabaseConfig) return;
+    try {
+      const { fetchProgressPhotos, getCurrentUserId } = await import('../services/supabaseQueries');
+      const userId = getCurrentUserId();
+      if (!userId) return;
+      const data = await fetchProgressPhotos(userId);
+      if (data) {
+        const photos: ProgressPhoto[] = (data as any[]).map((row) => ({
+          id: row.id,
+          date: row.date,
+          category: row.category,
+          storagePath: row.storage_path,
+          thumbnailPath: row.thumbnail_path ?? null,
+          notes: row.notes ?? null,
+          uri: row.uri ?? null,
+        }));
+        set({ photos });
+      }
+    } catch (err: any) {
+      console.warn('fetchPhotos failed:', err?.message);
+    }
   },
 
   fetchMeasurements: async () => {

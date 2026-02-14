@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 from routers import mobile, agents  # noqa: E402
 from services.supabase import check_supabase_health  # noqa: E402
+from services.agent_router import _adk_available, _session_type  # noqa: E402
+from services.cache import cache as _cache  # noqa: E402
+from agents.tools.knowledge_tools import DOMAIN_STORES  # noqa: E402
 
 app = FastAPI(title="GENESIS BFF", version="1.0.0")
 
@@ -54,9 +57,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.get("/health")
 async def health():
+    knowledge_stores = {
+        domain: bool(store_id) for domain, store_id in DOMAIN_STORES.items()
+    }
     checks = {
         "supabase": check_supabase_health(),
-        "gemini_configured": bool(os.getenv("GCP_PROJECT_ID")),
+        "gemini_configured": bool(os.getenv("GOOGLE_API_KEY")),
+        "adk_available": _adk_available,
+        "session_type": _session_type,
+        "cache_stats": _cache.get_stats(),
+        "knowledge_stores": knowledge_stores,
     }
-    status = "ok" if all(checks.values()) else "degraded"
+    status = "ok" if checks["supabase"] and checks["gemini_configured"] else "degraded"
     return {"status": status, "service": "genesis-bff", "checks": checks}

@@ -13,24 +13,81 @@ import type {
   User,
 } from '../types';
 import { useAuthStore } from '../stores/useAuthStore';
+import { supabaseClient, hasSupabaseConfig } from './supabaseClient';
 
 const bffUrl = process.env.EXPO_PUBLIC_BFF_URL ?? 'http://localhost:8000';
 
-function getAuthHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().session?.access_token;
-  if (token) return { Authorization: `Bearer ${token}` };
-  return {};
+function getAccessToken(): string | undefined {
+  return useAuthStore.getState().session?.access_token;
+}
+
+async function refreshSession(): Promise<string | null> {
+  if (!hasSupabaseConfig) return null;
+  try {
+    const { data, error } = await supabaseClient.auth.refreshSession();
+    if (error || !data.session) {
+      console.warn('Session refresh failed:', error?.message);
+      return null;
+    }
+    // Update auth store with fresh session
+    useAuthStore.getState().setSession(data.session);
+    return data.session.access_token;
+  } catch (err: any) {
+    console.warn('Session refresh error:', err?.message);
+    return null;
+  }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(init?.headers as Record<string, string> ?? {}),
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const response = await fetch(`${bffUrl}${path}`, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
+
+  // Handle 401 — attempt token refresh and retry once
+  if (response.status === 401) {
+    let reason: string | undefined;
+    try {
+      const body = await response.clone().json();
+      reason = body?.detail?.reason;
+    } catch {
+      // body wasn't JSON
+    }
+
+    if (reason === 'expired' || reason === 'missing_token') {
+      const newToken = await refreshSession();
+      if (newToken) {
+        // Retry with fresh token
+        headers.Authorization = `Bearer ${newToken}`;
+        const retryResponse = await fetch(`${bffUrl}${path}`, {
+          ...init,
+          headers,
+        });
+        if (retryResponse.ok) {
+          return (await retryResponse.json()) as T;
+        }
+        // Retry also failed
+        const retryBody = await retryResponse.text();
+        throw new Error(`BFF ${retryResponse.status}: ${retryBody}`);
+      }
+
+      // Refresh failed — redirect to login
+      useAuthStore.getState().logout();
+      throw new Error('Session expired — please log in again');
+    }
+
+    // Invalid token (not expired) — force logout
+    useAuthStore.getState().logout();
+    const body = await response.text();
+    throw new Error(`BFF 401: ${body}`);
+  }
 
   if (!response.ok) {
     const body = await response.text();

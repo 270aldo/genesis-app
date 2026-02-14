@@ -295,6 +295,27 @@ export async function insertBiomarker(
 
 // ── Personal Records ──
 
+export async function fetchExistingPRMap(
+  userId: string,
+  exerciseIds: string[]
+): Promise<Record<string, { weight?: number; reps?: number }>> {
+  if (!hasSupabaseConfig || exerciseIds.length === 0) return {};
+  const { data, error } = await supabaseClient
+    .from('personal_records')
+    .select('exercise_id, type, value')
+    .eq('user_id', userId)
+    .in('exercise_id', exerciseIds);
+  if (error || !data) return {};
+
+  const map: Record<string, { weight?: number; reps?: number }> = {};
+  for (const row of data as Array<{ exercise_id: string; type: string; value: number }>) {
+    if (!map[row.exercise_id]) map[row.exercise_id] = {};
+    if (row.type === 'weight') map[row.exercise_id].weight = row.value;
+    if (row.type === 'reps') map[row.exercise_id].reps = row.value;
+  }
+  return map;
+}
+
 export async function fetchPersonalRecords(userId: string) {
   if (!hasSupabaseConfig) return null;
   const { data, error } = await supabaseClient
@@ -403,6 +424,106 @@ export async function fetchExercisesByMuscleGroups(groups: string[]) {
     return [];
   }
   return data ?? [];
+}
+
+// ── Progress Photos ──
+// NOTE: Requires a Supabase Storage bucket named 'progress-photos' (public or with RLS).
+// Create via Supabase Dashboard > Storage > New bucket.
+
+export async function uploadProgressPhoto(
+  userId: string,
+  uri: string,
+  date: string,
+  category: 'front' | 'side' | 'back' | 'other'
+): Promise<{ storagePath: string } | null> {
+  if (!hasSupabaseConfig) return null;
+  try {
+    const { readAsStringAsync } = await import('expo-file-system');
+    const base64 = await readAsStringAsync(uri, { encoding: 'base64' });
+    const timestamp = Date.now();
+    const storagePath = `${userId}/${date}_${category}_${timestamp}.jpg`;
+    const { error } = await supabaseClient.storage
+      .from('progress-photos')
+      .upload(storagePath, decode(base64), { contentType: 'image/jpeg', upsert: false });
+    if (error) {
+      console.warn('uploadProgressPhoto:', error.message);
+      return null;
+    }
+    return { storagePath };
+  } catch (err: any) {
+    console.warn('uploadProgressPhoto failed:', err?.message);
+    return null;
+  }
+}
+
+export async function insertProgressPhoto(
+  userId: string,
+  photo: {
+    date: string;
+    category: 'front' | 'side' | 'back' | 'other';
+    storage_path: string;
+    thumbnail_path?: string | null;
+    notes?: string | null;
+  }
+) {
+  if (!hasSupabaseConfig) return null;
+  const { data, error } = await supabaseClient
+    .from('progress_photos')
+    .insert({ user_id: userId, ...photo })
+    .select()
+    .single();
+  if (error) {
+    console.warn('insertProgressPhoto:', error.message);
+    return null;
+  }
+  return data;
+}
+
+export async function fetchProgressPhotos(userId: string) {
+  if (!hasSupabaseConfig) return null;
+  const { data, error } = await supabaseClient
+    .from('progress_photos')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(50);
+  if (error) {
+    console.warn('fetchProgressPhotos:', error.message);
+    return null;
+  }
+  // Generate public URLs for each photo
+  return (data ?? []).map((row: any) => {
+    const { data: urlData } = supabaseClient.storage
+      .from('progress-photos')
+      .getPublicUrl(row.storage_path);
+    return { ...row, uri: urlData?.publicUrl ?? null };
+  });
+}
+
+export async function deleteProgressPhoto(photoId: string, storagePath: string) {
+  if (!hasSupabaseConfig) return null;
+  // Delete from storage
+  await supabaseClient.storage.from('progress-photos').remove([storagePath]);
+  // Delete metadata row
+  const { error } = await supabaseClient
+    .from('progress_photos')
+    .delete()
+    .eq('id', photoId);
+  if (error) {
+    console.warn('deleteProgressPhoto:', error.message);
+    return null;
+  }
+  return true;
+}
+
+// Helper: decode base64 string to Uint8Array for Supabase Storage upload
+function decode(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
 }
 
 // ── Conversations ──

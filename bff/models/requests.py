@@ -20,19 +20,44 @@ class CheckInRequest(BaseModel):
     notes: str | None = None
 
 
+class ExerciseSetData(BaseModel):
+    set_number: int
+    reps: int
+    weight: float = 0
+    rpe: int | None = None
+
+
 class ExerciseLogRequest(BaseModel):
     session_id: str
     exercise_id: str
-    sets: list[dict]
+    sets: list[ExerciseSetData]
     rpe: int = 0
     notes: str | None = None
+
+
+class FoodItem(BaseModel):
+    name: str
+    quantity: float = 1.0
+    unit: str = "g"
+    calories: float = 0
+    protein: float = 0
+    carbs: float = 0
+    fat: float = 0
+
+
+class TotalMacros(BaseModel):
+    calories: float = 0
+    protein: float = 0
+    carbs: float = 0
+    fat: float = 0
+    fiber: float = 0
 
 
 class MealLogRequest(BaseModel):
     date: str
     meal_type: str
-    food_items: list[dict] = []
-    total_macros: dict = {}
+    food_items: list[FoodItem] = []
+    total_macros: TotalMacros = TotalMacros()
 
 
 class WaterLogRequest(BaseModel):
