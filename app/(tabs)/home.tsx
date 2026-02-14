@@ -1,10 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints } from 'lucide-react-native';
+import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
@@ -114,6 +114,25 @@ export default function HomeScreen() {
   const waterDisplay = useCountUpDisplay(water);
   const stepsDisplay = useCountUpDisplay(healthSnapshot?.steps ?? 0);
 
+  // Proactive insight
+  const [insightDismissed, setInsightDismissed] = useState(false);
+  const insightMessage = useMemo(() => {
+    if (insightDismissed) return null;
+    const sleepHours = todayCheckIn?.sleepHours ?? (healthSnapshot?.sleepHours ?? null);
+    if (sleepHours !== null && sleepHours < 6) return 'Tu sueño fue corto anoche. Prioriza descanso hoy.';
+    if (streak > 0 && streak < 3) return 'Tu adherencia va bajando. ¿Necesitas ajustar tu plan?';
+    if (water > 0 && water < 4) return 'Llevas poca agua hoy. Hidrátate antes de entrenar.';
+    return null;
+  }, [todayCheckIn, healthSnapshot, streak, water, insightDismissed]);
+
+  const insightOpacity = useSharedValue(0);
+  useEffect(() => {
+    if (insightMessage) {
+      insightOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
+    }
+  }, [insightMessage]);
+  const insightStyle = useAnimatedStyle(() => ({ opacity: insightOpacity.value }));
+
   const entrance = useStaggeredEntrance(6, 120);
   const totalDuration = 600 + 6 * 120;
 
@@ -196,6 +215,52 @@ export default function HomeScreen() {
               </View>
             </Pressable>
           </StaggeredSection>
+
+          {/* GENESIS Proactive Insight */}
+          {insightMessage && (
+            <Animated.View style={insightStyle}>
+              <View style={{
+                backgroundColor: GENESIS_COLORS.surfaceCard,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: GENESIS_COLORS.borderSubtle,
+                padding: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                overflow: 'hidden',
+              }}>
+                {/* Purple accent bar */}
+                <View style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 3,
+                  backgroundColor: '#a866ff',
+                  borderRadius: 2,
+                }} />
+                <Cpu size={14} color="#a866ff" />
+                <Text style={{
+                  flex: 1,
+                  color: GENESIS_COLORS.textSecondary,
+                  fontSize: 12,
+                  fontFamily: 'Inter',
+                  lineHeight: 17,
+                  marginLeft: 2,
+                }}>
+                  {insightMessage}
+                </Text>
+                <Pressable
+                  onPress={() => setInsightDismissed(true)}
+                  hitSlop={8}
+                  style={{ padding: 2 }}
+                >
+                  <X size={14} color={GENESIS_COLORS.textMuted} />
+                </Pressable>
+              </View>
+            </Animated.View>
+          )}
 
           {/* Quick Metrics Row */}
           <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>

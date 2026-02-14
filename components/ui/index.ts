@@ -24,3 +24,4 @@ export * from './WaterDots';
 export * from './SeasonHeader';
 export * from './AnimatedProgressRing';
 export * from './EmptyStateIllustration';
+export * from './AnimatedWaterTracker';

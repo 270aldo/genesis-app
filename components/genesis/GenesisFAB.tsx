@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Cpu } from 'lucide-react-native';
 import Animated, {
@@ -15,6 +15,8 @@ import { hapticMedium, hapticHeavy } from '../../utils/haptics';
 
 export function GenesisFAB() {
   const router = useRouter();
+  const pathname = usePathname();
+  const source = pathname.split('/').pop() || 'home';
   const pulseScale = useSharedValue(1);
   const pressScale = useSharedValue(1);
 
@@ -43,7 +45,7 @@ export function GenesisFAB() {
 
   const handlePress = () => {
     hapticMedium();
-    router.push('/(modals)/genesis-chat');
+    router.push({ pathname: '/(modals)/genesis-chat', params: { source } });
   };
 
   const handleLongPress = () => {

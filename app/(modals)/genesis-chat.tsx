@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Cpu, X } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
@@ -14,13 +14,56 @@ import Animated, {
 import { GenesisChat } from '../../components/genesis';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useGenesisStore } from '../../stores';
-import { QUICK_ACTIONS } from '../../data';
 import { hapticLight, hapticSelection } from '../../utils/haptics';
+
+type ContextPill = { id: string; label: string; prompt: string };
+
+const CONTEXTUAL_PILLS: Record<string, ContextPill[]> = {
+  home: [
+    { id: 'h1', label: '¿Qué entreno hoy?', prompt: '¿Qué entreno hoy según mi plan?' },
+    { id: 'h2', label: 'Resumen del día', prompt: 'Dame un resumen de cómo va mi día: entrenamiento, nutrición y bienestar.' },
+    { id: 'h3', label: '¿Cómo va mi season?', prompt: '¿Cómo va mi progreso en este season?' },
+    { id: 'h4', label: 'Explícame mi fase', prompt: 'Explícame qué significa la fase actual y cómo debo entrenar.' },
+  ],
+  train: [
+    { id: 't1', label: 'Técnica del ejercicio', prompt: '¿Cuál es la técnica correcta para los ejercicios de hoy?' },
+    { id: 't2', label: 'Alternativas', prompt: 'Dame alternativas para los ejercicios de hoy si no tengo equipo.' },
+    { id: 't3', label: 'Calentamiento ideal', prompt: '¿Cuál es el calentamiento ideal para mi entrenamiento de hoy?' },
+    { id: 't4', label: 'Peso correcto', prompt: '¿Cómo sé si estoy usando el peso correcto en mis ejercicios?' },
+  ],
+  fuel: [
+    { id: 'f1', label: 'Sugiéreme comida', prompt: 'Sugiéreme opciones de comida para cubrir mis macros restantes.' },
+    { id: 'f2', label: 'Snack saludable', prompt: 'Recomiéndame un snack saludable según mis macros pendientes.' },
+    { id: 'f3', label: 'Pre-entreno ideal', prompt: '¿Qué debería comer antes de entrenar hoy?' },
+    { id: 'f4', label: 'Post-entreno ideal', prompt: '¿Qué debería comer después de entrenar para optimizar mi recuperación?' },
+  ],
+  mind: [
+    { id: 'm1', label: 'Tips de recovery', prompt: 'Dame tips de recovery basados en mi estado actual.' },
+    { id: 'm2', label: 'Mejorar sueño', prompt: '¿Qué puedo hacer para mejorar mi calidad de sueño?' },
+    { id: 'm3', label: 'Manejar estrés', prompt: 'Dame técnicas para manejar el estrés que afecta mi entrenamiento.' },
+    { id: 'm4', label: 'Motivación', prompt: 'Necesito motivación. Ayúdame a reconectar con mis metas.' },
+  ],
+  track: [
+    { id: 'tr1', label: 'Analiza mi progreso', prompt: 'Analiza mi progreso de las últimas semanas.' },
+    { id: 'tr2', label: 'Mis récords', prompt: '¿Cuáles son mis récords personales más recientes?' },
+    { id: 'tr3', label: 'Proyección', prompt: 'Basándote en mi progreso, ¿qué puedo esperar este mes?' },
+    { id: 'tr4', label: '¿Voy bien?', prompt: '¿Estoy progresando adecuadamente con mi plan actual?' },
+  ],
+  default: [
+    { id: 'd1', label: '¿Qué entreno hoy?', prompt: '¿Qué entreno hoy según mi plan?' },
+    { id: 'd2', label: 'Analiza mi semana', prompt: 'Analiza cómo va mi semana de entrenamiento y nutrición.' },
+    { id: 'd3', label: 'Sugiéreme comida', prompt: 'Sugiéreme opciones de comida para cubrir mis macros restantes.' },
+    { id: 'd4', label: 'Tips de recovery', prompt: 'Dame tips de recovery basados en mi estado actual.' },
+  ],
+};
 
 export default function GenesisChatModal() {
   const router = useRouter();
+  const { source } = useLocalSearchParams<{ source?: string }>();
   const sendMessage = useGenesisStore((state) => state.sendMessage);
   const messages = useGenesisStore((state) => state.messages);
+
+  const pills = CONTEXTUAL_PILLS[source || 'default'] ?? CONTEXTUAL_PILLS.default;
 
   const pulseScale = useSharedValue(1);
 
@@ -164,10 +207,10 @@ export default function GenesisChatModal() {
                 justifyContent: 'center',
                 paddingHorizontal: 8,
               }}>
-                {QUICK_ACTIONS.map((action) => (
+                {pills.map((pill) => (
                   <Pressable
-                    key={action.id}
-                    onPress={() => handleQuickAction(action.prompt)}
+                    key={pill.id}
+                    onPress={() => handleQuickAction(pill.prompt)}
                     style={{
                       backgroundColor: GENESIS_COLORS.surfaceElevated,
                       borderWidth: 1,
@@ -183,7 +226,7 @@ export default function GenesisChatModal() {
                       fontFamily: 'JetBrainsMonoMedium',
                       textTransform: 'uppercase',
                     }}>
-                      {action.label}
+                      {pill.label}
                     </Text>
                   </Pressable>
                 ))}

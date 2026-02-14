@@ -11,7 +11,7 @@ import {
   MacroCard,
   ScreenHeader,
   SectionLabel,
-  WaterDots,
+  AnimatedWaterTracker,
   AnimatedProgressRing,
   SeasonHeader,
   ErrorBanner,
@@ -184,8 +184,7 @@ export default function FuelScreen() {
                   <Droplets size={18} color={GENESIS_COLORS.cyan} />
                   <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Water Intake</Text>
                 </View>
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{water}/{targetWater} vasos</Text>
-                <WaterDots filled={water} total={targetWater} />
+                <AnimatedWaterTracker current={water} target={targetWater} onAdd={addWater} />
               </GlassCard>
             </SectionLabel>
           </StaggeredSection>
