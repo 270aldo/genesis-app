@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +14,9 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useHealthKit } from '../../hooks/useHealthKit';
 import { MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
+import { useCountUpDisplay } from '../../hooks/useCountUpDisplay';
+import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
+import { SkeletonCard } from '../../components/loading/SkeletonCard';
 
 const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -106,6 +110,13 @@ export default function HomeScreen() {
   // Loading flag
   const isDataLoading = isTodayPlanLoading || isTrainingLoading;
 
+  const kcalDisplay = useCountUpDisplay(nutritionTotals.calories);
+  const waterDisplay = useCountUpDisplay(water);
+  const stepsDisplay = useCountUpDisplay(healthSnapshot?.steps ?? 0);
+
+  const entrance = useStaggeredEntrance(6, 120);
+  const totalDuration = 600 + 6 * 120;
+
   // Filter education by current phase
   const phaseEducation = MOCK_EDUCATION.filter((e) => e.relevantPhases.includes(phase));
   const todayLesson = phaseEducation[0];
@@ -129,89 +140,81 @@ export default function HomeScreen() {
             <ErrorBanner message={trainingError || nutritionError || 'Error al cargar datos'} />
           )}
 
-          {isDataLoading && (
-            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-              <ActivityIndicator size="small" color={GENESIS_COLORS.primary} />
-            </View>
-          )}
-
           {/* GENESIS Daily Briefing — Glass Card */}
-          <Pressable onPress={() => router.push('/(modals)/genesis-chat')}>
-            <View style={{
-              backgroundColor: GENESIS_COLORS.surfaceCard,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: GENESIS_COLORS.borderSubtle,
-              padding: 20,
-              gap: 12,
-              shadowColor: '#6D00FF',
-              shadowOpacity: 0.25,
-              shadowRadius: 15,
-              shadowOffset: { width: 0, height: 0 },
-              elevation: 8,
-            }}>
-              {/* Phase Badge */}
+          <StaggeredSection index={0} entrance={entrance} totalDuration={totalDuration}>
+            <Pressable onPress={() => router.push('/(modals)/genesis-chat')}>
               <View style={{
-                alignSelf: 'flex-start',
-                backgroundColor: GENESIS_COLORS.primaryDim,
-                borderRadius: 9999,
+                backgroundColor: GENESIS_COLORS.surfaceCard,
+                borderRadius: 20,
                 borderWidth: 1,
-                borderColor: GENESIS_COLORS.borderActive,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
+                borderColor: GENESIS_COLORS.borderSubtle,
+                padding: 20,
+                gap: 12,
+                shadowColor: '#6D00FF',
+                shadowOpacity: 0.25,
+                shadowRadius: 15,
+                shadowOffset: { width: 0, height: 0 },
+                elevation: 8,
               }}>
-                <Text style={{
-                  color: GENESIS_COLORS.primary,
-                  fontSize: 10,
-                  fontFamily: 'JetBrainsMonoSemiBold',
-                  letterSpacing: 1,
-                  textTransform: 'uppercase',
-                }}>{phaseConfig.label}</Text>
-              </View>
+                <LinearGradient
+                  colors={['rgba(109,0,255,0.06)', 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 20 }}
+                />
+                {/* Phase Badge */}
+                <View style={{
+                  alignSelf: 'flex-start',
+                  backgroundColor: GENESIS_COLORS.primaryDim,
+                  borderRadius: 9999,
+                  borderWidth: 1,
+                  borderColor: GENESIS_COLORS.borderActive,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                }}>
+                  <Text style={{
+                    color: GENESIS_COLORS.primary,
+                    fontSize: 10,
+                    fontFamily: 'JetBrainsMonoSemiBold',
+                    letterSpacing: 1,
+                    textTransform: 'uppercase',
+                  }}>{phaseConfig.label}</Text>
+                </View>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Sparkles size={16} color={phaseConfig.accentColor} />
-                <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
-                  GENESIS
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Sparkles size={16} color={phaseConfig.accentColor} />
+                  <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
+                    GENESIS
+                  </Text>
+                </View>
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold', lineHeight: 20 }}>
+                  {greeting}
+                </Text>
+                <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', lineHeight: 19 }}>
+                  {briefingMessage}
                 </Text>
               </View>
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold', lineHeight: 20 }}>
-                {greeting}
-              </Text>
-              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', lineHeight: 19 }}>
-                {briefingMessage}
-              </Text>
-            </View>
-          </Pressable>
+            </Pressable>
+          </StaggeredSection>
 
           {/* Quick Metrics Row */}
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <MetricMini icon={<Flame size={14} color="#FF6B6B" />} value={kcalValue} label="kcal" />
-            <MetricMini icon={<Moon size={14} color={GENESIS_COLORS.info} />} value={sleepValue} label="sleep" />
-            <MetricMini icon={<Droplets size={14} color={GENESIS_COLORS.cyan} />} value={waterValue} label="cups" />
-            <MetricMini icon={<Footprints size={14} color={GENESIS_COLORS.warning} />} value={stepsValue} label="steps" />
-          </View>
+          <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <MetricMini icon={<Flame size={14} color="#FF6B6B" />} value={nutritionTotals.calories > 0 ? kcalDisplay : '--'} label="kcal" />
+              <MetricMini icon={<Moon size={14} color={GENESIS_COLORS.info} />} value={sleepValue} label="sleep" />
+              <MetricMini icon={<Droplets size={14} color={GENESIS_COLORS.cyan} />} value={water > 0 ? waterDisplay : '--'} label="cups" />
+              <MetricMini icon={<Footprints size={14} color={GENESIS_COLORS.warning} />} value={healthSnapshot?.steps ? stepsDisplay : '--'} label="steps" />
+            </View>
+          </StaggeredSection>
 
           {/* Daily Missions */}
+          <StaggeredSection index={2} entrance={entrance} totalDuration={totalDuration}>
           <SectionLabel title="HOY">
             {isDataLoading ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
                 {[1, 2, 3].map((i) => (
-                  <View
-                    key={i}
-                    style={{
-                      width: 140,
-                      height: 150,
-                      borderRadius: 16,
-                      backgroundColor: 'rgba(255,255,255,0.04)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255,255,255,0.06)',
-                      padding: 16,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <ActivityIndicator size="small" color={GENESIS_COLORS.textTertiary} />
+                  <View key={i} style={{ width: 140, height: 150 }}>
+                    <SkeletonCard />
                   </View>
                 ))}
               </ScrollView>
@@ -224,6 +227,7 @@ export default function HomeScreen() {
                   subtitle={todayPlan ? todayPlan.name : 'Día de descanso'}
                   detail={todayPlan ? `${todayPlan.exercises.length} ejercicios · ${todayPlan.estimatedDuration} min` : 'Recovery activo'}
                   onPress={() => router.push('/(tabs)/train')}
+                  gradientColors={[phaseConfig.color + '15', 'rgba(20,18,26,0.85)']}
                 />
                 <MissionCard
                   icon={<Utensils size={18} color={GENESIS_COLORS.success} />}
@@ -232,6 +236,7 @@ export default function HomeScreen() {
                   subtitle={`${kcalValue} / ${dailyGoal.toLocaleString()}`}
                   detail={remaining > 0 ? `Faltan ${remaining.toLocaleString()} kcal` : 'Meta alcanzada'}
                   onPress={() => router.push('/(tabs)/fuel')}
+                  gradientColors={[GENESIS_COLORS.success + '15', 'rgba(20,18,26,0.85)']}
                 />
                 <MissionCard
                   icon={<Brain size={18} color={GENESIS_COLORS.info} />}
@@ -240,12 +245,15 @@ export default function HomeScreen() {
                   subtitle={todayCheckIn ? 'Completado' : 'Pendiente'}
                   detail={todayCheckIn ? todayCheckIn.mood : 'Registra tu día'}
                   onPress={() => router.push('/(modals)/check-in')}
+                  gradientColors={[GENESIS_COLORS.info + '15', 'rgba(20,18,26,0.85)']}
                 />
               </ScrollView>
             )}
           </SectionLabel>
+          </StaggeredSection>
 
           {/* Micro-Lesson */}
+          <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
           {todayLesson && (
             <SectionLabel title="APRENDE HOY">
               <ImageCard
@@ -266,8 +274,10 @@ export default function HomeScreen() {
               </ImageCard>
             </SectionLabel>
           )}
+          </StaggeredSection>
 
           {/* Week Progress */}
+          <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
           <SectionLabel title="ESTA SEMANA">
             <GlassCard shine>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -307,8 +317,10 @@ export default function HomeScreen() {
               </View>
             </GlassCard>
           </SectionLabel>
+          </StaggeredSection>
 
           {/* Streak */}
+          <StaggeredSection index={5} entrance={entrance} totalDuration={totalDuration}>
           <GlassCard>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Flame size={22} color="#F97316" />
@@ -318,6 +330,7 @@ export default function HomeScreen() {
               </View>
             </View>
           </GlassCard>
+          </StaggeredSection>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -344,29 +357,54 @@ function MetricMini({ icon, value, label }: { icon: React.ReactNode; value: stri
 }
 
 function MissionCard({
-  icon, iconBg, title, subtitle, detail, onPress,
+  icon, iconBg, title, subtitle, detail, onPress, gradientColors,
 }: {
   icon: React.ReactNode; iconBg: string; title: string; subtitle: string; detail: string; onPress?: () => void;
+  gradientColors?: [string, string];
 }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        width: 140,
-        gap: 8,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-        backgroundColor: 'rgba(20,18,26,0.7)',
-        padding: 16,
-      }}
-    >
+  const content = (
+    <>
       <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: iconBg }}>
         {icon}
       </View>
       <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoBold' }}>{title}</Text>
       <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'Inter' }}>{subtitle}</Text>
       <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'Inter' }}>{detail}</Text>
+    </>
+  );
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        width: 140,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+      }}
+    >
+      <LinearGradient
+        colors={gradientColors ?? ['rgba(20,18,26,0.7)', 'rgba(20,18,26,0.7)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ gap: 8, padding: 16 }}
+      >
+        {content}
+      </LinearGradient>
     </Pressable>
   );
+}
+
+function StaggeredSection({ index, entrance, totalDuration, children }: {
+  index: number;
+  entrance: { progress: { value: number }; delayMs: number };
+  totalDuration: number;
+  children: React.ReactNode;
+}) {
+  const style = useAnimatedStyle(() => {
+    const { opacity, translateY } = getStaggeredStyle(entrance.progress.value, index, entrance.delayMs, totalDuration);
+    return { opacity, transform: [{ translateY }] };
+  });
+  return <Animated.View style={style}>{children}</Animated.View>;
 }

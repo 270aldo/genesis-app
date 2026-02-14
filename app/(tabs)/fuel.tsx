@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,14 +12,17 @@ import {
   ScreenHeader,
   SectionLabel,
   WaterDots,
-  CircularProgress,
+  AnimatedProgressRing,
   SeasonHeader,
   ErrorBanner,
+  EmptyStateIllustration,
 } from '../../components/ui';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useNutritionStore } from '../../stores';
 import { PHASE_CONFIG, getPhaseNutritionTargets } from '../../data';
 import type { PhaseType } from '../../types';
+import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
+import { SkeletonCard } from '../../components/loading/SkeletonCard';
 
 export default function FuelScreen() {
   const router = useRouter();
@@ -53,6 +57,9 @@ export default function FuelScreen() {
     };
   }, [meals, targets.calories]);
 
+  const entrance = useStaggeredEntrance(5, 120);
+  const totalDuration = 600 + 5 * 120;
+
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -73,101 +80,115 @@ export default function FuelScreen() {
           {nutritionError && <ErrorBanner message={nutritionError} />}
 
           {isLoading && (
-            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-              <ActivityIndicator size="small" color={GENESIS_COLORS.primary} />
+            <View style={{ gap: 12 }}>
+              <SkeletonCard />
+              <SkeletonCard />
             </View>
           )}
 
           {/* Phase Nutrition Banner */}
-          <GlassCard>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Info size={16} color={phaseConfig.accentColor} />
-              <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
-                {phaseConfig.label.toUpperCase()} · NUTRICIÓN
-              </Text>
-            </View>
-            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
-              {phaseConfig.nutritionNote}
-            </Text>
-            {targets.surplus !== 0 && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: targets.surplus > 0 ? GENESIS_COLORS.success : GENESIS_COLORS.warning }} />
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
-                  {targets.surplus > 0 ? '+' : ''}{targets.surplus} kcal ajuste de fase
-                </Text>
-              </View>
-            )}
-          </GlassCard>
-
-          {/* Calories — Circular Display */}
-          <SectionLabel title="CALORÍAS">
-            <GlassCard shine>
-              <View style={{ alignItems: 'center', gap: 12 }}>
-                <CircularProgress progress={progress} size={120} strokeWidth={10} color={phaseConfig.color}>
-                  <Text style={{ color: '#FFFFFF', fontSize: 28, fontFamily: 'InterBold' }}>
-                    {consumed.toLocaleString()}
-                  </Text>
-                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
-                    / {targets.calories.toLocaleString()}
-                  </Text>
-                </CircularProgress>
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{remaining} restantes</Text>
-              </View>
-            </GlassCard>
-          </SectionLabel>
-
-          {/* Macros */}
-          <SectionLabel title="MACROS">
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <MacroCard label="PROTEIN" value={proteinConsumed} unit="g" progress={Math.min(100, (proteinConsumed / targets.protein) * 100)} color={GENESIS_COLORS.info} />
-              <MacroCard label="CARBS" value={carbsConsumed} unit="g" progress={Math.min(100, (carbsConsumed / targets.carbs) * 100)} color={GENESIS_COLORS.success} />
-              <MacroCard label="FAT" value={fatConsumed} unit="g" progress={Math.min(100, (fatConsumed / targets.fat) * 100)} color={GENESIS_COLORS.warning} />
-            </View>
-          </SectionLabel>
-
-          {/* Meals */}
-          <SectionLabel title="COMIDAS">
-            <View style={{ gap: 12 }}>
-              {meals.length === 0 ? (
-                <GlassCard>
-                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', textAlign: 'center' }}>
-                    {isLoading ? 'Cargando comidas...' : 'Registra tu primera comida del día.'}
-                  </Text>
-                </GlassCard>
-              ) : (
-                meals.map((meal) => (
-                  <GlassCard key={meal.id}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <View style={{ gap: 2 }}>
-                        <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
-                          {meal.name.charAt(0).toUpperCase() + meal.name.slice(1)}
-                        </Text>
-                        <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{meal.time}</Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                        <Text style={{ color: GENESIS_COLORS.success, fontSize: 14, fontFamily: 'InterBold' }}>{meal.calories} cal</Text>
-                        <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
-                          P:{meal.protein}g · C:{meal.carbs}g · F:{meal.fat}g
-                        </Text>
-                      </View>
-                    </View>
-                  </GlassCard>
-                ))
-              )}
-            </View>
-          </SectionLabel>
-
-          {/* Hydration */}
-          <SectionLabel title="HIDRATACIÓN">
+          <StaggeredSection index={0} entrance={entrance} totalDuration={totalDuration}>
             <GlassCard>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Droplets size={18} color={GENESIS_COLORS.cyan} />
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Water Intake</Text>
+                <Info size={16} color={phaseConfig.accentColor} />
+                <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
+                  {phaseConfig.label.toUpperCase()} · NUTRICIÓN
+                </Text>
               </View>
-              <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{water}/{targetWater} vasos</Text>
-              <WaterDots filled={water} total={targetWater} />
+              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+                {phaseConfig.nutritionNote}
+              </Text>
+              {targets.surplus !== 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: targets.surplus > 0 ? GENESIS_COLORS.success : GENESIS_COLORS.warning }} />
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
+                    {targets.surplus > 0 ? '+' : ''}{targets.surplus} kcal ajuste de fase
+                  </Text>
+                </View>
+              )}
             </GlassCard>
-          </SectionLabel>
+          </StaggeredSection>
+
+          {/* Calories — Circular Display */}
+          <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="CALORÍAS">
+              <GlassCard shine>
+                <View style={{ alignItems: 'center', gap: 12 }}>
+                  <View style={{ alignItems: 'center', justifyContent: 'center', width: 120, height: 120 }}>
+                    <AnimatedProgressRing progress={progress / 100} size={120} strokeWidth={10} color={phaseConfig.color} />
+                    <View style={{ position: 'absolute', alignItems: 'center' }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 28, fontFamily: 'InterBold' }}>
+                        {consumed.toLocaleString()}
+                      </Text>
+                      <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
+                        / {targets.calories.toLocaleString()}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{remaining} restantes</Text>
+                </View>
+              </GlassCard>
+            </SectionLabel>
+          </StaggeredSection>
+
+          {/* Macros */}
+          <StaggeredSection index={2} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="MACROS">
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <MacroCard label="PROTEIN" value={proteinConsumed} unit="g" progress={Math.min(100, (proteinConsumed / targets.protein) * 100)} color={GENESIS_COLORS.info} gradientColors={['#38bdf8', '#0ea5e9']} />
+                <MacroCard label="CARBS" value={carbsConsumed} unit="g" progress={Math.min(100, (carbsConsumed / targets.carbs) * 100)} color={GENESIS_COLORS.success} gradientColors={['#00F5AA', '#00D4FF']} />
+                <MacroCard label="FAT" value={fatConsumed} unit="g" progress={Math.min(100, (fatConsumed / targets.fat) * 100)} color={GENESIS_COLORS.warning} gradientColors={['#F97316', '#EF4444']} />
+              </View>
+            </SectionLabel>
+          </StaggeredSection>
+
+          {/* Meals */}
+          <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="COMIDAS">
+              <View style={{ gap: 12 }}>
+                {meals.length === 0 ? (
+                  isLoading ? (
+                    <SkeletonCard />
+                  ) : (
+                    <EmptyStateIllustration variant="fuel" title="Sin comidas registradas" subtitle="Registra tu primera comida del dia." />
+                  )
+                ) : (
+                  meals.map((meal) => (
+                    <GlassCard key={meal.id}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ gap: 2 }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
+                            {meal.name.charAt(0).toUpperCase() + meal.name.slice(1)}
+                          </Text>
+                          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{meal.time}</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                          <Text style={{ color: GENESIS_COLORS.success, fontSize: 14, fontFamily: 'InterBold' }}>{meal.calories} cal</Text>
+                          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
+                            P:{meal.protein}g · C:{meal.carbs}g · F:{meal.fat}g
+                          </Text>
+                        </View>
+                      </View>
+                    </GlassCard>
+                  ))
+                )}
+              </View>
+            </SectionLabel>
+          </StaggeredSection>
+
+          {/* Hydration */}
+          <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="HIDRATACIÓN">
+              <GlassCard>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Droplets size={18} color={GENESIS_COLORS.cyan} />
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Water Intake</Text>
+                </View>
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{water}/{targetWater} vasos</Text>
+                <WaterDots filled={water} total={targetWater} />
+              </GlassCard>
+            </SectionLabel>
+          </StaggeredSection>
         </ScrollView>
       </SafeAreaView>
 
@@ -196,4 +217,17 @@ export default function FuelScreen() {
       </Pressable>
     </LinearGradient>
   );
+}
+
+function StaggeredSection({ index, entrance, totalDuration, children }: {
+  index: number;
+  entrance: { progress: { value: number }; delayMs: number };
+  totalDuration: number;
+  children: React.ReactNode;
+}) {
+  const style = useAnimatedStyle(() => {
+    const { opacity, translateY } = getStaggeredStyle(entrance.progress.value, index, entrance.delayMs, totalDuration);
+    return { opacity, transform: [{ translateY }] };
+  });
+  return <Animated.View style={style}>{children}</Animated.View>;
 }

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +13,9 @@ import { useSeasonStore, useTrainingStore } from '../../stores';
 import { hasSupabaseConfig } from '../../services/supabaseClient';
 import { MOCK_WORKOUT_PLANS, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
+import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
+import { SkeletonCard } from '../../components/loading/SkeletonCard';
+import { GenesisGuide } from '../../components/onboarding';
 
 export default function TrainScreen() {
   const router = useRouter();
@@ -28,15 +32,22 @@ export default function TrainScreen() {
   const phase = ((todayPlan?.phase || currentPhase || 'hypertrophy') as PhaseType);
   const phaseConfig = PHASE_CONFIG[phase];
 
+  const entrance = useStaggeredEntrance(5, 120);
+  const totalDuration = 600 + 5 * 120;
+
   // Loading state
   if (isTodayPlanLoading) {
     return (
       <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} edges={['top']}>
-          <ActivityIndicator size="large" color={GENESIS_COLORS.primary} />
-          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 12, fontFamily: 'JetBrainsMonoMedium', marginTop: 12 }}>
-            Cargando tu plan...
-          </Text>
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+          <View style={{ paddingHorizontal: 20, paddingTop: 16, gap: 16 }}>
+            <SeasonHeader seasonNumber={seasonNumber} currentWeek={currentWeek} currentPhase={phase} weeks={weeks} />
+            <View style={{ height: 200 }}><SkeletonCard /></View>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </View>
         </SafeAreaView>
       </LinearGradient>
     );
@@ -108,15 +119,7 @@ export default function TrainScreen() {
                 </Text>
               </View>
             </GlassCard>
-            <GlassCard shine>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Sparkles size={14} color={GENESIS_COLORS.success} />
-                <Text style={{ color: GENESIS_COLORS.success, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
-              </View>
-              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
-                Los días de descanso son tan importantes como los de entrenamiento. La hipertrofia ocurre durante la recuperación, no durante el entrenamiento.
-              </Text>
-            </GlassCard>
+            <GenesisGuide message="Los dias de descanso son tan importantes como los de entrenamiento. La hipertrofia ocurre durante la recuperacion, no durante el entrenamiento." />
           </ScrollView>
         </SafeAreaView>
       </LinearGradient>
@@ -139,117 +142,142 @@ export default function TrainScreen() {
           />
 
           {/* Workout Hero Card */}
-          {workout && <ImageCard
-            imageUrl={workout.imageUrl}
-            height={200}
-            overlayColors={['transparent', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.95)']}
-          >
-            <View style={{ gap: 8 }}>
-              <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
-                {workout.dayLabel.toUpperCase()} · {phaseConfig.label.toUpperCase()}
-              </Text>
-              <Text style={{ color: '#FFFFFF', fontSize: 22, fontFamily: 'InterBold' }}>
-                {workout.name}
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                {workout.muscleGroups.map((mg) => (
-                  <View key={mg} style={{ backgroundColor: phaseConfig.color + '20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                    <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{mg}</Text>
+          <StaggeredSection index={0} entrance={entrance} totalDuration={totalDuration}>
+            {workout && <ImageCard
+              imageUrl={workout.imageUrl}
+              height={200}
+              overlayColors={['transparent', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.95)']}
+            >
+              <View style={{ gap: 8 }}>
+                <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
+                  {workout.dayLabel.toUpperCase()} · {phaseConfig.label.toUpperCase()}
+                </Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 22, fontFamily: 'InterBold' }}>
+                  {workout.name}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                  {workout.muscleGroups.map((mg) => (
+                    <View key={mg} style={{ backgroundColor: phaseConfig.color + '20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{mg}</Text>
+                    </View>
+                  ))}
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                    <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{workout.estimatedDuration} min</Text>
                   </View>
-                ))}
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{workout.estimatedDuration} min</Text>
                 </View>
               </View>
-            </View>
-          </ImageCard>}
+            </ImageCard>}
+          </StaggeredSection>
 
           {/* Phase Info */}
-          <GlassCard>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Info size={16} color={phaseConfig.accentColor} />
-              <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
-                {phaseConfig.label.toUpperCase()} PHASE
+          <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>
+            <GlassCard>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Info size={16} color={phaseConfig.accentColor} />
+                <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
+                  {phaseConfig.label.toUpperCase()} PHASE
+                </Text>
+              </View>
+              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+                Reps: {phaseConfig.repRange} · Sets: {phaseConfig.setsRange} · Descanso: {phaseConfig.restSeconds}s
               </Text>
-            </View>
-            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
-              Reps: {phaseConfig.repRange} · Sets: {phaseConfig.setsRange} · Descanso: {phaseConfig.restSeconds}s
-            </Text>
-          </GlassCard>
+            </GlassCard>
+          </StaggeredSection>
 
           {/* Exercises */}
-          <View style={{ gap: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
-                EJERCICIOS
-              </Text>
-              <Pressable onPress={() => router.push('/(screens)/library')}>
-                <Text style={{ color: GENESIS_COLORS.primary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
-                  Ver librería →
-                </Text>
-              </Pressable>
-            </View>
+          <StaggeredSection index={2} entrance={entrance} totalDuration={totalDuration}>
             <View style={{ gap: 12 }}>
-              {exercises.map((ex) => (
-                <ListItemCard
-                  key={ex.id}
-                  icon={<Dumbbell size={18} color={phaseConfig.accentColor} />}
-                  title={ex.name}
-                  subtitle={`${ex.sets} × ${ex.reps} reps${ex.weight ? ` · ${ex.weight} ${ex.unit}` : ''}`}
-                  variant="purple"
-                  onPress={() => {
-                    router.push(`/(screens)/exercise-detail?id=${ex.id}`);
-                  }}
-                  right={<ChevronRight size={16} color={GENESIS_COLORS.textTertiary} />}
-                />
-              ))}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
+                  EJERCICIOS
+                </Text>
+                <Pressable onPress={() => router.push('/(screens)/library')}>
+                  <Text style={{ color: GENESIS_COLORS.primary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                    Ver librería →
+                  </Text>
+                </Pressable>
+              </View>
+              <View style={{ gap: 12 }}>
+                {exercises.map((ex) => (
+                  <ListItemCard
+                    key={ex.id}
+                    icon={<Dumbbell size={18} color={phaseConfig.accentColor} />}
+                    title={ex.name}
+                    subtitle={`${ex.sets} × ${ex.reps} reps${ex.weight ? ` · ${ex.weight} ${ex.unit}` : ''}`}
+                    variant="purple"
+                    onPress={() => {
+                      router.push(`/(screens)/exercise-detail?id=${ex.id}`);
+                    }}
+                    right={<ChevronRight size={16} color={GENESIS_COLORS.textTertiary} />}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
-
-          <Divider />
-
-          {/* Summary */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>{exercises.length} ejercicios</Text>
-            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>~{workout?.estimatedDuration ?? 0} min</Text>
-          </View>
+          </StaggeredSection>
 
           {/* GENESIS Tip */}
-          <GlassCard shine>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Sparkles size={14} color={phaseConfig.accentColor} />
-              <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
-            </View>
-            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
-              {phase === 'hypertrophy' && 'Controla el tempo: 3 segundos bajando, 1 segundo arriba. El tiempo bajo tensión es clave para hipertrofia.'}
-              {phase === 'strength' && 'Respeta los descansos largos entre series pesadas. Tu sistema nervioso necesita recuperar para dar el máximo.'}
-              {phase === 'power' && 'Velocidad es la clave. Mueve el peso con intención explosiva en cada rep.'}
-              {phase === 'deload' && 'Semana de recuperación. Baja el peso un 40% y enfócate en técnica perfecta.'}
-            </Text>
-          </GlassCard>
+          <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
+            <GlassCard shine>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={14} color={phaseConfig.accentColor} />
+                <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
+              </View>
+              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+                {phase === 'hypertrophy' && 'Controla el tempo: 3 segundos bajando, 1 segundo arriba. El tiempo bajo tensión es clave para hipertrofia.'}
+                {phase === 'strength' && 'Respeta los descansos largos entre series pesadas. Tu sistema nervioso necesita recuperar para dar el máximo.'}
+                {phase === 'power' && 'Velocidad es la clave. Mueve el peso con intención explosiva en cada rep.'}
+                {phase === 'deload' && 'Semana de recuperación. Baja el peso un 40% y enfócate en técnica perfecta.'}
+              </Text>
+            </GlassCard>
+          </StaggeredSection>
 
-          {/* Start Button */}
-          <Pressable
-            disabled={!workout}
-            onPress={() => {
-              if (!workout) return;
-              const session = {
-                id: `session-${Date.now()}`,
-                date: new Date().toISOString(),
-                exercises: workout.exercises.map((ex) => ({ ...ex, completed: false })),
-                duration: 0,
-                completed: false,
-              };
-              useTrainingStore.getState().startWorkout(session);
-              router.push('/(screens)/active-workout');
-            }}
-          >
-            <GradientCard className="items-center py-4">
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>START WORKOUT</Text>
-            </GradientCard>
-          </Pressable>
+          {/* Divider + Summary + Start Button */}
+          <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
+            <Divider />
+
+            {/* Summary */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 }}>
+              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>{exercises.length} ejercicios</Text>
+              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>~{workout?.estimatedDuration ?? 0} min</Text>
+            </View>
+
+            {/* Start Button */}
+            <Pressable
+              disabled={!workout}
+              style={{ marginTop: 24 }}
+              onPress={() => {
+                if (!workout) return;
+                const session = {
+                  id: `session-${Date.now()}`,
+                  date: new Date().toISOString(),
+                  exercises: workout.exercises.map((ex) => ({ ...ex, completed: false })),
+                  duration: 0,
+                  completed: false,
+                };
+                useTrainingStore.getState().startWorkout(session);
+                router.push('/(screens)/active-workout');
+              }}
+            >
+              <GradientCard className="items-center py-4">
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>START WORKOUT</Text>
+              </GradientCard>
+            </Pressable>
+          </StaggeredSection>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
+}
+
+function StaggeredSection({ index, entrance, totalDuration, children }: {
+  index: number;
+  entrance: { progress: { value: number }; delayMs: number };
+  totalDuration: number;
+  children: React.ReactNode;
+}) {
+  const style = useAnimatedStyle(() => {
+    const { opacity, translateY } = getStaggeredStyle(entrance.progress.value, index, entrance.delayMs, totalDuration);
+    return { opacity, transform: [{ translateY }] };
+  });
+  return <Animated.View style={style}>{children}</Animated.View>;
 }

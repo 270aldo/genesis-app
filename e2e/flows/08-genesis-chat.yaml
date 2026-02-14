@@ -1,0 +1,11 @@
+appId: com.ngxgenesis.app
+tags:
+  - chat
+  - ai
+---
+- runFlow: helpers/login.yaml
+- tapOn: "GENESIS"
+- assertVisible:
+    text: "AI Coach"
+    timeout: 5000
+- takeScreenshot: "08-genesis-chat"

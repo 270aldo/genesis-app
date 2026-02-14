@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GENESIS App — UI/UX Redesign Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+<style>
+:root {
+  --ngx: #6D00FF;
+  --ngx-light: #a866ff;
+  --bg: #050505;
+  --surface: #0a0a0b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: #050505; color: #fff; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Phone Frame */
+.phone {
+  width: 280px; min-height: 580px;
+  border-radius: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  background: linear-gradient(180deg, #0d0d1a 0%, #050507 50%, #000 100%);
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 60px -10px rgba(109,0,255,0.15), 0 0 0 1px rgba(255,255,255,0.05);
+}
+.phone-inner { padding: 48px 16px 32px; overflow-y: auto; max-height: 580px; }
+.phone::before {
+  content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: 100px; height: 28px; background: #000; border-radius: 20px; z-index: 50;
+}
+
+/* Glass */
+.glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
+.glass-sm { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }
+.glass-active { background: rgba(109,0,255,0.12); border: 1px solid rgba(109,0,255,0.3); border-radius: 16px; }
+
+/* Gradient border */
+.grad-border {
+  position: relative;
+}
+.grad-border::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  background: linear-gradient(225deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.25) 50%, rgba(109,0,255,0.3) 100%);
+  pointer-events: none;
+}
+
+/* Glow */
+.violet-glow { box-shadow: 0 0 40px -5px rgba(109,0,255,0.25); }
+.violet-glow-sm { box-shadow: 0 0 20px -3px rgba(109,0,255,0.2); }
+
+/* Section nav */
+.nav-pill { transition: all 0.3s; cursor: pointer; }
+.nav-pill:hover, .nav-pill.active { background: rgba(109,0,255,0.15); border-color: rgba(109,0,255,0.4); }
+
+/* Scroll */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(109,0,255,0.3); border-radius: 4px; }
+
+/* Comparison */
+.comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+@media (max-width: 900px) { .comparison { grid-template-columns: 1fr; } }
+
+/* Badge */
+.issue-badge { background: rgba(255,68,68,0.15); color: #FF6B6B; border: 1px solid rgba(255,68,68,0.2); }
+.fix-badge { background: rgba(0,245,170,0.1); color: #00F5AA; border: 1px solid rgba(0,245,170,0.2); }
+
+/* Animated progress */
+@keyframes progressFill { from { width: 0; } }
+.animate-progress { animation: progressFill 1.5s ease-out forwards; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeInUp 0.6s ease-out forwards; }
+@keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.4); opacity: 0; } }
+.pulse-ring::after { content:''; position:absolute; inset:-4px; border-radius:50%; border:2px solid #6D00FF; animation: pulse-ring 2s ease-out infinite; }
+
+/* Image placeholder */
+.img-placeholder {
+  background: linear-gradient(135deg, rgba(109,0,255,0.15) 0%, rgba(109,0,255,0.05) 50%, rgba(0,229,255,0.08) 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Step indicator */
+.step-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: all 0.3s; }
+.step-dot.active { background: #6D00FF; width: 24px; border-radius: 4px; box-shadow: 0 0 12px rgba(109,0,255,0.5); }
+.step-dot.done { background: #00F5AA; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HERO ═══════════ -->
+<div class="relative overflow-hidden">
+  <div class="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full blur-[150px] bg-[#6D00FF] opacity-15"></div>
+  <div class="absolute -bottom-20 -right-20 w-[400px] h-[400px] rounded-full blur-[120px] bg-[#00E5FF] opacity-10"></div>
+
+  <div class="max-w-[1200px] mx-auto px-8 py-20 relative">
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-2 h-2 rounded-full bg-[#6D00FF] animate-pulse"></div>
+      <span class="font-mono text-xs text-[#a866ff] tracking-widest uppercase">NGX GENESIS</span>
+    </div>
+    <h1 class="text-5xl font-bold tracking-tight leading-tight mb-4" style="font-family:'JetBrains Mono',monospace;">
+      UI/UX Redesign<br>
+      <span class="bg-gradient-to-r from-[#6D00FF] to-[#00E5FF] bg-clip-text text-transparent">Proposal v1.0</span>
+    </h1>
+    <p class="text-lg text-white/50 max-w-xl leading-relaxed">
+      Análisis completo + propuestas de mejora para transformar GENESIS de una app funcional a una experiencia premium de Performance & Longevity.
+    </p>
+
+    <div class="flex gap-4 mt-8 flex-wrap">
+      <div class="glass-sm px-4 py-2 text-xs font-mono text-white/70">
+        <span class="text-[#6D00FF]">15</span> pantallas analizadas
+      </div>
+      <div class="glass-sm px-4 py-2 text-xs font-mono text-white/70">
+        <span class="text-[#00F5AA]">7</span> áreas de mejora
+      </div>
+      <div class="glass-sm px-4 py-2 text-xs font-mono text-white/70">
+        <span class="text-[#00E5FF]">3</span> prioridades
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ NAV ═══════════ -->
+<div class="sticky top-0 z-50 backdrop-blur-xl bg-black/70 border-b border-white/5">
+  <div class="max-w-[1200px] mx-auto px-8 py-3 flex gap-2 overflow-x-auto">
+    <a href="#diagnostico" class="nav-pill glass-sm px-4 py-2 text-xs font-medium text-white/70 whitespace-nowrap rounded-lg border border-transparent">Diagnóstico</a>
+    <a href="#onboarding" class="nav-pill glass-sm px-4 py-2 text-xs font-medium text-white/70 whitespace-nowrap rounded-lg border border-transparent">Onboarding</a>
+    <a href="#home" class="nav-pill glass-sm px-4 py-2 text-xs font-medium text-white/70 whitespace-nowrap rounded-lg border border-transparent">Home</a>
+    <a href="#tabs" class="nav-pill glass-sm px-4 py-2 text-xs font-medium text-white/70 whitespace-nowrap rounded-lg border border-transparent">Tabs</a>
+    <a href="#chat" class="nav-pill glass-sm px-4 py-2 text-xs font-medium text-white/70 whitespace-nowrap rounded-lg border border-transparent">GENESIS Chat</a>
+    <a href="#sistema" class="nav-pill glass-sm px-4 py-2 text-xs font-medium text-white/70 whitespace-nowrap rounded-lg border border-transparent">Sistema Visual</a>
+    <a href="#roadmap" class="nav-pill glass-sm px-4 py-2 text-xs font-medium text-white/70 whitespace-nowrap rounded-lg border border-transparent">Roadmap</a>
+  </div>
+</div>
+
+<!-- ═══════════ DIAGNÓSTICO ═══════════ -->
+<section id="diagnostico" class="max-w-[1200px] mx-auto px-8 py-16">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="iconify text-[#FF6B6B]" data-icon="lucide:search" data-width="20"></span>
+    <span class="font-mono text-xs text-[#FF6B6B] tracking-widest uppercase">Diagnóstico</span>
+  </div>
+  <h2 class="text-3xl font-bold tracking-tight mb-2" style="font-family:'JetBrains Mono',monospace;">Estado actual</h2>
+  <p class="text-sm text-white/40 mb-10 max-w-2xl">Lo que funciona, lo que falta, y dónde está el mayor impacto.</p>
+
+  <!-- Issues Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+    <div class="glass p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">CRÍTICO</span>
+        <span class="iconify text-white/20" data-icon="lucide:image" data-width="18"></span>
+      </div>
+      <h3 class="text-sm font-semibold mb-2">Onboarding sin alma</h3>
+      <p class="text-xs text-white/40 leading-relaxed">5 pantallas con cards oscuras y texto. Sin imágenes, sin ilustraciones, sin GENESIS guiándote. Parece un formulario, no una experiencia.</p>
+    </div>
+
+    <div class="glass p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">CRÍTICO</span>
+        <span class="iconify text-white/20" data-icon="lucide:message-circle" data-width="18"></span>
+      </div>
+      <h3 class="text-sm font-semibold mb-2">GENESIS chat escondido</h3>
+      <p class="text-xs text-white/40 leading-relaxed">El chat con GENESIS es un modal. No hay acceso prominente. GENESIS debería ser omnipresente como el core de la app.</p>
+    </div>
+
+    <div class="glass p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">ALTO</span>
+        <span class="iconify text-white/20" data-icon="lucide:image-off" data-width="18"></span>
+      </div>
+      <h3 class="text-sm font-semibold mb-2">Zero assets visuales</h3>
+      <p class="text-xs text-white/40 leading-relaxed">Carpeta assets/ solo tiene iconos de app. No hay imágenes de ejercicios, fondos de cards, ilustraciones, ni animaciones Lottie.</p>
+    </div>
+
+    <div class="glass p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">ALTO</span>
+        <span class="iconify text-white/20" data-icon="lucide:sparkles" data-width="18"></span>
+      </div>
+      <h3 class="text-sm font-semibold mb-2">Empty states genéricos</h3>
+      <p class="text-xs text-white/40 leading-relaxed">Track muestra "0, 0, —" sin contexto. Sin ilustraciones ni motivación. Los estados vacíos son la primera impresión del usuario nuevo.</p>
+    </div>
+
+    <div class="glass p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">MEDIO</span>
+        <span class="iconify text-white/20" data-icon="lucide:move" data-width="18"></span>
+      </div>
+      <h3 class="text-sm font-semibold mb-2">Sin micro-interactions</h3>
+      <p class="text-xs text-white/40 leading-relaxed">No hay animaciones de entrada, transiciones entre pantallas, ni feedback háptico. Se siente estático.</p>
+    </div>
+
+    <div class="glass p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">MEDIO</span>
+        <span class="iconify text-white/20" data-icon="lucide:layout" data-width="18"></span>
+      </div>
+      <h3 class="text-sm font-semibold mb-2">Densidad visual inconsistente</h3>
+      <p class="text-xs text-white/40 leading-relaxed">Home es denso y rico. Mind y Track se sienten vacíos. Fuel está bien pero le falta carácter visual.</p>
+    </div>
+  </div>
+
+  <!-- What works -->
+  <div class="mt-12 glass p-6 violet-glow-sm">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="iconify text-[#00F5AA]" data-icon="lucide:check-circle" data-width="18"></span>
+      <h3 class="text-sm font-semibold text-[#00F5AA]">Lo que ya funciona bien</h3>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="glass-sm p-3 text-center"><span class="text-xs text-white/60">Tipografía</span><div class="text-sm font-semibold mt-1 font-mono">JetBrains + Inter</div></div>
+      <div class="glass-sm p-3 text-center"><span class="text-xs text-white/60">Paleta de color</span><div class="text-sm font-semibold mt-1">#6D00FF core</div></div>
+      <div class="glass-sm p-3 text-center"><span class="text-xs text-white/60">Glass morphism</span><div class="text-sm font-semibold mt-1">Cards base</div></div>
+      <div class="glass-sm p-3 text-center"><span class="text-xs text-white/60">Tab bar</span><div class="text-sm font-semibold mt-1">Blur + glow</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ ONBOARDING ═══════════ -->
+<section id="onboarding" class="max-w-[1200px] mx-auto px-8 py-16 border-t border-white/5">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="iconify text-[#6D00FF]" data-icon="lucide:rocket" data-width="20"></span>
+    <span class="font-mono text-xs text-[#a866ff] tracking-widest uppercase">Prioridad 1</span>
+  </div>
+  <h2 class="text-3xl font-bold tracking-tight mb-2" style="font-family:'JetBrains Mono',monospace;">Onboarding reinventado</h2>
+  <p class="text-sm text-white/40 mb-10 max-w-2xl">De formulario genérico a experiencia guiada por GENESIS. El primer contacto define la percepción de toda la app.</p>
+
+  <!-- Before/After: Step 1 - Goal -->
+  <div class="comparison mb-16">
+    <!-- BEFORE -->
+    <div>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">ANTES</span>
+        <span class="text-xs text-white/40">Your Goal — actual</span>
+      </div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="text-[10px] text-white/30 font-mono mb-1">STEP 1 OF 5</div>
+          <div class="h-1 w-full bg-white/5 rounded-full mb-4"><div class="h-full w-[20%] bg-[#6D00FF] rounded-full"></div></div>
+          <h3 class="text-lg font-bold mb-6">Your Goal</h3>
+
+          <div class="space-y-3">
+            <div class="glass-sm p-4 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-[#6D00FF]/15 flex items-center justify-center">
+                <span class="iconify text-[#6D00FF]" data-icon="lucide:dumbbell" data-width="16"></span>
+              </div>
+              <span class="text-sm font-medium">Build Strength</span>
+            </div>
+            <div class="glass-sm p-4 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-[#00E5FF]/15 flex items-center justify-center">
+                <span class="iconify text-[#00E5FF]" data-icon="lucide:timer" data-width="16"></span>
+              </div>
+              <span class="text-sm font-medium">Improve Endurance</span>
+            </div>
+            <div class="glass-sm p-4 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-[#00F5AA]/15 flex items-center justify-center">
+                <span class="iconify text-[#00F5AA]" data-icon="lucide:ruler" data-width="16"></span>
+              </div>
+              <span class="text-sm font-medium">Aesthetics</span>
+            </div>
+            <div class="glass-sm p-4 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-[#FFD700]/15 flex items-center justify-center">
+                <span class="iconify text-[#FFD700]" data-icon="lucide:target" data-width="16"></span>
+              </div>
+              <span class="text-sm font-medium">Longevity</span>
+            </div>
+          </div>
+
+          <div class="mt-8 w-full py-3 rounded-xl bg-[#6D00FF] text-center text-sm font-semibold">CONTINUE</div>
+        </div>
+      </div>
+      <div class="mt-4 space-y-2">
+        <p class="text-xs text-[#FF6B6B]/80">✗ Sin indicador de progreso visual (solo texto)</p>
+        <p class="text-xs text-[#FF6B6B]/80">✗ Cards planas sin imagery</p>
+        <p class="text-xs text-[#FF6B6B]/80">✗ GENESIS no participa en la experiencia</p>
+        <p class="text-xs text-[#FF6B6B]/80">✗ Sin contexto de por qué cada objetivo importa</p>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="fix-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">PROPUESTA</span>
+        <span class="text-xs text-white/40">Tu Objetivo — reimaginado</span>
+      </div>
+      <div class="phone violet-glow">
+        <div class="phone-inner">
+          <!-- Step dots -->
+          <div class="flex justify-center gap-2 mb-6">
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+          </div>
+
+          <!-- GENESIS speaks -->
+          <div class="glass-sm p-3 mb-5 flex gap-3 items-start" style="background: rgba(109,0,255,0.08); border-color: rgba(109,0,255,0.2);">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#6D00FF] to-[#a866ff] flex items-center justify-center flex-shrink-0 relative pulse-ring">
+              <span class="iconify text-white" data-icon="lucide:cpu" data-width="14"></span>
+            </div>
+            <div>
+              <div class="text-[10px] font-mono text-[#a866ff] mb-1">GENESIS</div>
+              <p class="text-xs text-white/70 leading-relaxed">¿Cuál es tu norte? Esto define cómo diseño tu temporada de 12 semanas.</p>
+            </div>
+          </div>
+
+          <h3 class="text-lg font-bold mb-1">Tu Objetivo</h3>
+          <p class="text-[11px] text-white/40 mb-5">Selecciona uno. GENESIS adaptará todo a este enfoque.</p>
+
+          <div class="space-y-3">
+            <!-- Selected state -->
+            <div class="glass-active p-4 flex items-center gap-3 relative overflow-hidden violet-glow-sm">
+              <div class="absolute inset-0 opacity-10" style="background: radial-gradient(circle at 20% 50%, #6D00FF 0%, transparent 70%);"></div>
+              <div class="w-12 h-12 rounded-xl img-placeholder flex-shrink-0 relative">
+                <span class="iconify text-white/60" data-icon="lucide:dumbbell" data-width="24"></span>
+              </div>
+              <div class="flex-1 relative">
+                <span class="text-sm font-semibold">Fuerza</span>
+                <p class="text-[10px] text-white/50 mt-0.5">Máximos, potencia, sistema nervioso</p>
+              </div>
+              <div class="w-6 h-6 rounded-full bg-[#6D00FF] flex items-center justify-center relative">
+                <span class="iconify text-white" data-icon="lucide:check" data-width="14"></span>
+              </div>
+            </div>
+
+            <div class="glass-sm p-4 flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl img-placeholder flex-shrink-0">
+                <span class="iconify text-white/40" data-icon="lucide:timer" data-width="24"></span>
+              </div>
+              <div class="flex-1">
+                <span class="text-sm font-medium text-white/80">Resistencia</span>
+                <p class="text-[10px] text-white/40 mt-0.5">Cardio, capacidad aeróbica</p>
+              </div>
+            </div>
+
+            <div class="glass-sm p-4 flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl img-placeholder flex-shrink-0">
+                <span class="iconify text-white/40" data-icon="lucide:sparkles" data-width="24"></span>
+              </div>
+              <div class="flex-1">
+                <span class="text-sm font-medium text-white/80">Estética</span>
+                <p class="text-[10px] text-white/40 mt-0.5">Hipertrofia, composición corporal</p>
+              </div>
+            </div>
+
+            <div class="glass-sm p-4 flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl img-placeholder flex-shrink-0">
+                <span class="iconify text-white/40" data-icon="lucide:heart-pulse" data-width="24"></span>
+              </div>
+              <div class="flex-1">
+                <span class="text-sm font-medium text-white/80">Longevidad</span>
+                <p class="text-[10px] text-white/40 mt-0.5">Salud muscular, función a largo plazo</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 w-full py-3.5 rounded-xl bg-gradient-to-r from-[#6D00FF] to-[#8B5CF6] text-center text-sm font-semibold shadow-[0_0_30px_rgba(109,0,255,0.3)]">
+            SIGUIENTE →
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 space-y-2">
+        <p class="text-xs text-[#00F5AA]/80">✓ GENESIS habla y guía cada paso</p>
+        <p class="text-xs text-[#00F5AA]/80">✓ Step dots animados con progreso visual</p>
+        <p class="text-xs text-[#00F5AA]/80">✓ Cards con thumbnails + descripciones cortas</p>
+        <p class="text-xs text-[#00F5AA]/80">✓ Estado seleccionado con glow + check</p>
+        <p class="text-xs text-[#00F5AA]/80">✓ Textos en español, consistentes con la app</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Before/After: Review Step -->
+  <div class="comparison mb-16">
+    <div>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">ANTES</span>
+        <span class="text-xs text-white/40">Review — simple tabla</span>
+      </div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="text-[10px] text-white/30 font-mono mb-1">STEP 5 OF 5</div>
+          <div class="h-1 w-full bg-white/5 rounded-full mb-4"><div class="h-full w-full bg-[#6D00FF] rounded-full"></div></div>
+          <h3 class="text-lg font-bold mb-6">Review</h3>
+
+          <div class="space-y-0 divide-y divide-white/5">
+            <div class="flex justify-between py-3 text-xs"><span class="text-white/40 font-mono uppercase text-[10px]">GOAL</span><span>Longevity</span></div>
+            <div class="flex justify-between py-3 text-xs"><span class="text-white/40 font-mono uppercase text-[10px]">EXPERIENCE</span><span>Advanced</span></div>
+            <div class="flex justify-between py-3 text-xs"><span class="text-white/40 font-mono uppercase text-[10px]">SCHEDULE</span><span>5 days/week</span></div>
+            <div class="flex justify-between py-3 text-xs"><span class="text-white/40 font-mono uppercase text-[10px]">WEIGHT</span><span>85 kg</span></div>
+            <div class="flex justify-between py-3 text-xs"><span class="text-white/40 font-mono uppercase text-[10px]">HEIGHT</span><span>185 cm</span></div>
+            <div class="flex justify-between py-3 text-xs"><span class="text-white/40 font-mono uppercase text-[10px]">AGE</span><span>34 years</span></div>
+          </div>
+
+          <div class="mt-8 w-full py-3 rounded-xl bg-[#6D00FF] text-center text-sm font-semibold">START YOUR JOURNEY →</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="fix-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">PROPUESTA</span>
+        <span class="text-xs text-white/40">Tu Plan — momento "wow"</span>
+      </div>
+      <div class="phone violet-glow">
+        <div class="phone-inner">
+          <div class="flex justify-center gap-2 mb-6">
+            <div class="step-dot done"></div>
+            <div class="step-dot done"></div>
+            <div class="step-dot done"></div>
+            <div class="step-dot done"></div>
+            <div class="step-dot active"></div>
+          </div>
+
+          <!-- GENESIS celebration -->
+          <div class="text-center mb-5">
+            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[#6D00FF] to-[#00E5FF] flex items-center justify-center mb-3 violet-glow">
+              <span class="iconify text-white" data-icon="lucide:cpu" data-width="28"></span>
+            </div>
+            <h3 class="text-lg font-bold">Tu plan está listo</h3>
+            <p class="text-[11px] text-white/40 mt-1">GENESIS diseñó tu temporada personalizada</p>
+          </div>
+
+          <!-- Season Preview Card -->
+          <div class="glass p-4 mb-4 grad-border rounded-2xl violet-glow-sm">
+            <div class="text-[10px] font-mono text-[#a866ff] mb-2 tracking-wider">SEASON 1 · 12 SEMANAS</div>
+            <h4 class="text-sm font-bold mb-3">Longevidad Funcional</h4>
+
+            <!-- 4 phases visual -->
+            <div class="flex gap-1 mb-3">
+              <div class="flex-1 h-2 rounded-full bg-[#6D00FF]"></div>
+              <div class="flex-1 h-2 rounded-full bg-[#00E5FF]"></div>
+              <div class="flex-1 h-2 rounded-full bg-[#00F5AA]"></div>
+              <div class="flex-1 h-2 rounded-full bg-white/10"></div>
+            </div>
+            <div class="flex justify-between text-[9px] text-white/40 font-mono">
+              <span>FUNCIONALIDAD</span>
+              <span>FUERZA</span>
+              <span>MOVILIDAD</span>
+              <span>DELOAD</span>
+            </div>
+          </div>
+
+          <!-- Quick stats -->
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="glass-sm p-3 text-center">
+              <div class="text-lg font-bold">5</div>
+              <div class="text-[9px] text-white/40 font-mono">DÍAS/SEM</div>
+            </div>
+            <div class="glass-sm p-3 text-center">
+              <div class="text-lg font-bold">4</div>
+              <div class="text-[9px] text-white/40 font-mono">FASES</div>
+            </div>
+            <div class="glass-sm p-3 text-center">
+              <div class="text-lg font-bold">60+</div>
+              <div class="text-[9px] text-white/40 font-mono">EJERCICIOS</div>
+            </div>
+          </div>
+
+          <!-- Profile summary mini -->
+          <div class="glass-sm p-3 flex items-center gap-3 mb-5">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#6D00FF]/30 to-[#00E5FF]/30 flex items-center justify-center">
+              <span class="iconify text-white/60" data-icon="lucide:user" data-width="18"></span>
+            </div>
+            <div class="flex-1">
+              <div class="text-xs font-medium">Avanzado · 34 años</div>
+              <div class="text-[10px] text-white/40">85 kg · 185 cm</div>
+            </div>
+            <span class="iconify text-white/20" data-icon="lucide:pencil" data-width="14"></span>
+          </div>
+
+          <div class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#6D00FF] to-[#8B5CF6] text-center text-sm font-bold shadow-[0_0_30px_rgba(109,0,255,0.4)]">
+            COMENZAR MI JOURNEY →
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ HOME ═══════════ -->
+<section id="home" class="max-w-[1200px] mx-auto px-8 py-16 border-t border-white/5">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="iconify text-[#6D00FF]" data-icon="lucide:home" data-width="20"></span>
+    <span class="font-mono text-xs text-[#a866ff] tracking-widest uppercase">Prioridad 2</span>
+  </div>
+  <h2 class="text-3xl font-bold tracking-tight mb-2" style="font-family:'JetBrains Mono',monospace;">Home Dashboard</h2>
+  <p class="text-sm text-white/40 mb-10 max-w-2xl">El Home es la mejor pantalla actual. Propuestas para llevarlo al siguiente nivel.</p>
+
+  <div class="comparison">
+    <div>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="issue-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">MEJORAS</span>
+      </div>
+      <div class="glass p-6 space-y-4">
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-[#6D00FF]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-[10px] font-bold text-[#6D00FF]">1</span>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold mb-1">GENESIS card → Hero visual</h4>
+            <p class="text-xs text-white/40 leading-relaxed">El briefing de GENESIS debería tener un fondo subtle con gradiente + avatar animado. Convertirlo en el centerpiece visual del Home.</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-[#6D00FF]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-[10px] font-bold text-[#6D00FF]">2</span>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold mb-1">Daily Missions → Cards con background images</h4>
+            <p class="text-xs text-white/40 leading-relaxed">Train, Fuel, Check-in cards deberían usar ImageCard con fondos temáticos (gym, food, meditation) + overlay gradients.</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-[#6D00FF]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-[10px] font-bold text-[#6D00FF]">3</span>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold mb-1">Quick Metrics → Animated counters</h4>
+            <p class="text-xs text-white/40 leading-relaxed">Los 4 metrics (kcal, sleep, water, steps) deberían tener counters animados al entrar y micro-charts de tendencia.</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-[#6D00FF]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-[10px] font-bold text-[#6D00FF]">4</span>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold mb-1">Floating GENESIS button</h4>
+            <p class="text-xs text-white/40 leading-relaxed">FAB permanente con el icono de GENESIS (cpu) + pulse animation. Acceso instantáneo al chat desde cualquier tab.</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-[#6D00FF]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-[10px] font-bold text-[#6D00FF]">5</span>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold mb-1">Week grid → Rings de actividad</h4>
+            <p class="text-xs text-white/40 leading-relaxed">El grid de 7 días podría convertirse en mini activity rings (estilo Apple Watch) mostrando train/fuel/mind completion.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Home Mockup -->
+    <div>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="fix-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-medium">PROPUESTA</span>
+      </div>
+      <div class="phone violet-glow">
+        <div class="phone-inner">
+          <!-- Season bar -->
+          <div class="flex items-center gap-2 mb-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-[#00F5AA]"></div>
+            <span class="font-mono text-[9px] text-white/40 tracking-wider">SEASON 1 · SEMANA 3 · FUERZA</span>
+          </div>
+          <div class="h-1 w-full bg-white/5 rounded-full mb-5"><div class="h-full w-[25%] bg-gradient-to-r from-[#6D00FF] to-[#00E5FF] rounded-full animate-progress"></div></div>
+
+          <!-- GENESIS Hero Card -->
+          <div class="glass p-4 mb-4 grad-border rounded-2xl relative overflow-hidden">
+            <div class="absolute inset-0 opacity-20" style="background: radial-gradient(ellipse at 80% 20%, #6D00FF 0%, transparent 60%);"></div>
+            <div class="flex items-start gap-3 relative">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#6D00FF] to-[#a866ff] flex items-center justify-center flex-shrink-0 relative pulse-ring">
+                <span class="iconify text-white" data-icon="lucide:cpu" data-width="16"></span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-mono text-[10px] text-[#a866ff]">GENESIS</span>
+                  <span class="text-[9px] text-white/20">·</span>
+                  <span class="text-[9px] text-white/30 font-mono">FUERZA</span>
+                </div>
+                <h3 class="text-sm font-bold mb-1">Buenos días, Aldo</h3>
+                <p class="text-[11px] text-white/50 leading-relaxed">Semana 3 de Fuerza. Hoy: Upper Body Push. Tu adherencia va al 92% — mantén el ritmo.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Metrics -->
+          <div class="grid grid-cols-4 gap-2 mb-4">
+            <div class="glass-sm p-2 text-center">
+              <span class="iconify text-[#F97316] block mx-auto mb-1" data-icon="lucide:flame" data-width="14"></span>
+              <div class="text-xs font-bold">1,842</div>
+              <div class="text-[8px] text-white/30 font-mono">KCAL</div>
+            </div>
+            <div class="glass-sm p-2 text-center">
+              <span class="iconify text-[#8B5CF6] block mx-auto mb-1" data-icon="lucide:moon" data-width="14"></span>
+              <div class="text-xs font-bold">7.2h</div>
+              <div class="text-[8px] text-white/30 font-mono">SUEÑO</div>
+            </div>
+            <div class="glass-sm p-2 text-center">
+              <span class="iconify text-[#38bdf8] block mx-auto mb-1" data-icon="lucide:droplets" data-width="14"></span>
+              <div class="text-xs font-bold">2.1L</div>
+              <div class="text-[8px] text-white/30 font-mono">AGUA</div>
+            </div>
+            <div class="glass-sm p-2 text-center">
+              <span class="iconify text-[#00F5AA] block mx-auto mb-1" data-icon="lucide:footprints" data-width="14"></span>
+              <div class="text-xs font-bold">8,241</div>
+              <div class="text-[8px] text-white/30 font-mono">PASOS</div>
+            </div>
+          </div>
+
+          <!-- Daily Missions with images -->
+          <div class="font-mono text-[10px] text-white/30 tracking-wider mb-2 uppercase">Hoy</div>
+          <div class="flex gap-2 overflow-x-auto pb-2 mb-4" style="margin: 0 -16px; padding: 0 16px;">
+            <div class="w-[130px] flex-shrink-0 rounded-xl overflow-hidden relative" style="height: 150px;">
+              <div class="absolute inset-0 img-placeholder"></div>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 right-0 p-3">
+                <span class="iconify text-[#6D00FF] mb-1" data-icon="lucide:dumbbell" data-width="16"></span>
+                <div class="text-xs font-bold">Train</div>
+                <div class="text-[9px] text-white/50">Upper Push · 45min</div>
+              </div>
+            </div>
+            <div class="w-[130px] flex-shrink-0 rounded-xl overflow-hidden relative" style="height: 150px;">
+              <div class="absolute inset-0 img-placeholder" style="background: linear-gradient(135deg, rgba(0,245,170,0.1), rgba(0,229,255,0.05));"></div>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 right-0 p-3">
+                <span class="iconify text-[#00F5AA] mb-1" data-icon="lucide:utensils" data-width="16"></span>
+                <div class="text-xs font-bold">Fuel</div>
+                <div class="text-[9px] text-white/50">1,842 / 2,635 kcal</div>
+              </div>
+            </div>
+            <div class="w-[130px] flex-shrink-0 rounded-xl overflow-hidden relative" style="height: 150px;">
+              <div class="absolute inset-0 img-placeholder" style="background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(109,0,255,0.05));"></div>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 right-0 p-3">
+                <span class="iconify text-[#8B5CF6] mb-1" data-icon="lucide:heart" data-width="16"></span>
+                <div class="text-xs font-bold">Check-in</div>
+                <div class="text-[9px] text-white/50">Registra tu estado</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Rings -->
+          <div class="font-mono text-[10px] text-white/30 tracking-wider mb-2 uppercase">Esta semana</div>
+          <div class="flex justify-between px-2">
+            <div class="text-center"><div class="w-8 h-8 rounded-full border-2 border-[#6D00FF] flex items-center justify-center"><span class="text-[8px] font-bold">L</span></div><div class="w-1 h-1 rounded-full bg-[#00F5AA] mx-auto mt-1"></div></div>
+            <div class="text-center"><div class="w-8 h-8 rounded-full border-2 border-[#6D00FF] flex items-center justify-center"><span class="text-[8px] font-bold">M</span></div><div class="w-1 h-1 rounded-full bg-[#00F5AA] mx-auto mt-1"></div></div>
+            <div class="text-center"><div class="w-8 h-8 rounded-full border-2 border-[#6D00FF]/30 flex items-center justify-center"><span class="text-[8px] font-bold text-white/50">X</span></div></div>
+            <div class="text-center"><div class="w-8 h-8 rounded-full border-2 border-white/10 flex items-center justify-center"><span class="text-[8px] font-bold text-white/30">J</span></div></div>
+            <div class="text-center"><div class="w-8 h-8 rounded-full border-2 border-white/10 flex items-center justify-center"><span class="text-[8px] font-bold text-white/30">V</span></div></div>
+            <div class="text-center"><div class="w-8 h-8 rounded-full border-2 border-white/10 flex items-center justify-center"><span class="text-[8px] font-bold text-white/30">S</span></div></div>
+            <div class="text-center"><div class="w-8 h-8 rounded-full border-2 border-white/10 flex items-center justify-center"><span class="text-[8px] font-bold text-white/30">D</span></div></div>
+          </div>
+
+          <!-- Floating GENESIS button -->
+          <div class="absolute bottom-20 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-[#6D00FF] to-[#8B5CF6] flex items-center justify-center shadow-[0_0_30px_rgba(109,0,255,0.4)] z-40">
+            <span class="iconify text-white" data-icon="lucide:cpu" data-width="22"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TABS ═══════════ -->
+<section id="tabs" class="max-w-[1200px] mx-auto px-8 py-16 border-t border-white/5">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="iconify text-[#6D00FF]" data-icon="lucide:layers" data-width="20"></span>
+    <span class="font-mono text-xs text-[#a866ff] tracking-widest uppercase">Prioridad 3</span>
+  </div>
+  <h2 class="text-3xl font-bold tracking-tight mb-2" style="font-family:'JetBrains Mono',monospace;">Tab Screens</h2>
+  <p class="text-sm text-white/40 mb-10 max-w-2xl">Mejoras específicas para cada tab — Train, Fuel, Mind, Track.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- TRAIN -->
+    <div class="glass p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="iconify text-[#6D00FF]" data-icon="lucide:dumbbell" data-width="18"></span>
+        <h3 class="text-sm font-bold">Train</h3>
+        <span class="fix-badge px-2 py-0.5 rounded-full text-[9px] font-mono">5 MEJORAS</span>
+      </div>
+      <div class="space-y-3 text-xs text-white/60">
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Hero image card con foto real del tipo de entrenamiento (push/pull/legs)</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Exercise rows con thumbnails de video (preview frames)</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Animated muscle group indicator (heatmap visual del workout)</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Rest day: ilustración motivacional + GENESIS tip</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Swipeable exercise cards con gesture feedback</div>
+      </div>
+    </div>
+
+    <!-- FUEL -->
+    <div class="glass p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="iconify text-[#00F5AA]" data-icon="lucide:utensils" data-width="18"></span>
+        <h3 class="text-sm font-bold">Fuel</h3>
+        <span class="fix-badge px-2 py-0.5 rounded-full text-[9px] font-mono">4 MEJORAS</span>
+      </div>
+      <div class="space-y-3 text-xs text-white/60">
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Circular progress → animated ring con gradient (no solo outline)</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Meal cards con food icons temáticos o fotos del scanner</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Water tracker → animated fill effect (no solo dots)</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Macro bars → gradient fills con labels más visibles</div>
+      </div>
+    </div>
+
+    <!-- MIND -->
+    <div class="glass p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="iconify text-[#8B5CF6]" data-icon="lucide:brain" data-width="18"></span>
+        <h3 class="text-sm font-bold">Mind</h3>
+        <span class="fix-badge px-2 py-0.5 rounded-full text-[9px] font-mono">5 MEJORAS</span>
+      </div>
+      <div class="space-y-3 text-xs text-white/60">
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Recovery heatmap → body silhouette visual (no solo grid de texto)</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Mood selector → emojis más grandes + animated selection</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Meditation cards ya lucen bien → añadir duration badge + play button más prominente</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Sleep tracker → visual timeline (no solo número)</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Wellness score → radar chart o gauge animated</div>
+      </div>
+    </div>
+
+    <!-- TRACK -->
+    <div class="glass p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="iconify text-[#00E5FF]" data-icon="lucide:bar-chart-3" data-width="18"></span>
+        <h3 class="text-sm font-bold">Track</h3>
+        <span class="fix-badge px-2 py-0.5 rounded-full text-[9px] font-mono">6 MEJORAS</span>
+      </div>
+      <div class="space-y-3 text-xs text-white/60">
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Empty state → ilustración motivacional + "Completa tu primer workout para ver stats"</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Stats (0, 0, —) → animated counters que suben al cargar</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Strength chart → line chart interactivo (touch to see value)</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> PRs → trophy cards con confetti animation al lograr uno nuevo</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> Progress photos → before/after slider comparison</div>
+        <div class="flex gap-2"><span class="text-[#00F5AA]">→</span> GENESIS Insight → expandable card con AI analysis</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CHAT ═══════════ -->
+<section id="chat" class="max-w-[1200px] mx-auto px-8 py-16 border-t border-white/5">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="iconify text-[#6D00FF]" data-icon="lucide:cpu" data-width="20"></span>
+    <span class="font-mono text-xs text-[#a866ff] tracking-widest uppercase">Core Feature</span>
+  </div>
+  <h2 class="text-3xl font-bold tracking-tight mb-2" style="font-family:'JetBrains Mono',monospace;">GENESIS Chat</h2>
+  <p class="text-sm text-white/40 mb-10 max-w-2xl">GENESIS debe ser omnipresente. No escondido en un modal — presente en toda la experiencia.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="glass p-5 violet-glow-sm">
+      <div class="w-12 h-12 rounded-xl bg-[#6D00FF]/15 flex items-center justify-center mb-3">
+        <span class="iconify text-[#6D00FF]" data-icon="lucide:circle-dot" data-width="24"></span>
+      </div>
+      <h3 class="text-sm font-bold mb-2">Floating Action Button</h3>
+      <p class="text-xs text-white/40 leading-relaxed">GENESIS FAB persistente en TODAS las pantallas (bottom-right, encima del tab bar). Tap → abre chat sheet. Long press → voice mode.</p>
+    </div>
+
+    <div class="glass p-5">
+      <div class="w-12 h-12 rounded-xl bg-[#00E5FF]/15 flex items-center justify-center mb-3">
+        <span class="iconify text-[#00E5FF]" data-icon="lucide:message-square" data-width="24"></span>
+      </div>
+      <h3 class="text-sm font-bold mb-2">Contextual Suggestions</h3>
+      <p class="text-xs text-white/40 leading-relaxed">Quick action pills adaptados al contexto. En Train → "¿Sustituyo este ejercicio?". En Fuel → "¿Qué comí hoy es suficiente?". En Mind → "¿Cómo mejorar mi sueño?"</p>
+    </div>
+
+    <div class="glass p-5">
+      <div class="w-12 h-12 rounded-xl bg-[#00F5AA]/15 flex items-center justify-center mb-3">
+        <span class="iconify text-[#00F5AA]" data-icon="lucide:sparkles" data-width="24"></span>
+      </div>
+      <h3 class="text-sm font-bold mb-2">Proactive Insights</h3>
+      <p class="text-xs text-white/40 leading-relaxed">GENESIS manda "nudges" en Home: "Tu sueño bajó 2 noches seguidas. ¿Revisamos tu rutina nocturna?" — como un coach real.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SISTEMA VISUAL ═══════════ -->
+<section id="sistema" class="max-w-[1200px] mx-auto px-8 py-16 border-t border-white/5">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="iconify text-[#6D00FF]" data-icon="lucide:palette" data-width="20"></span>
+    <span class="font-mono text-xs text-[#a866ff] tracking-widest uppercase">Sistema</span>
+  </div>
+  <h2 class="text-3xl font-bold tracking-tight mb-2" style="font-family:'JetBrains Mono',monospace;">Sistema Visual</h2>
+  <p class="text-sm text-white/40 mb-10 max-w-2xl">Assets, animaciones e imágenes que necesitamos crear/integrar.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="glass p-6">
+      <h3 class="text-sm font-bold mb-4 flex items-center gap-2">
+        <span class="iconify text-[#6D00FF]" data-icon="lucide:image" data-width="16"></span>
+        Image Assets Necesarios
+      </h3>
+      <div class="space-y-3">
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Exercise thumbnails</div>
+          <p class="text-[10px] text-white/40">~50 imágenes de ejercicios con overlay oscuro. Fuente: Unsplash fitness + AI generation.</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Onboarding illustrations</div>
+          <p class="text-[10px] text-white/40">5 ilustraciones (goal/level/schedule/body/review) estilo minimal dark. SVG preferred.</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Mission card backgrounds</div>
+          <p class="text-[10px] text-white/40">Train/Fuel/Mind/Track hero images. Lifestyle photography + gradient overlays.</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Meditation scene backgrounds</div>
+          <p class="text-[10px] text-white/40">3-5 ambient scenes (montaña, océano, bosque). Ya hay en Mind pero expandir.</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Empty state illustrations</div>
+          <p class="text-[10px] text-white/40">4 ilustraciones SVG para estados vacíos de cada tab.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass p-6">
+      <h3 class="text-sm font-bold mb-4 flex items-center gap-2">
+        <span class="iconify text-[#00E5FF]" data-icon="lucide:play" data-width="16"></span>
+        Animaciones a Implementar
+      </h3>
+      <div class="space-y-3">
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Screen transitions (Reanimated 4)</div>
+          <p class="text-[10px] text-white/40">Fade + slide para tab switches. SharedElement para card → detail transitions.</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Animated counters</div>
+          <p class="text-[10px] text-white/40">Números que "cuentan" al entrar en pantalla. Para metrics, stats, progress %.</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Progress ring animation</div>
+          <p class="text-[10px] text-white/40">Circular progress con fill animation (Fuel calories, Season progress).</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Card entrance stagger</div>
+          <p class="text-[10px] text-white/40">Cards que entran escalonadas (200ms delay entre cada una) con fadeInUp.</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Haptic feedback</div>
+          <p class="text-[10px] text-white/40">expo-haptics: light para selección, medium para completar set, heavy para PR.</p>
+        </div>
+        <div class="glass-sm p-3">
+          <div class="text-xs font-medium mb-1">Skeleton loaders</div>
+          <p class="text-[10px] text-white/40">Ya existe ShimmerEffect.tsx — asegurar que se usa en TODAS las pantallas durante carga.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ ROADMAP ═══════════ -->
+<section id="roadmap" class="max-w-[1200px] mx-auto px-8 py-16 border-t border-white/5">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="iconify text-[#6D00FF]" data-icon="lucide:map" data-width="20"></span>
+    <span class="font-mono text-xs text-[#a866ff] tracking-widest uppercase">Roadmap</span>
+  </div>
+  <h2 class="text-3xl font-bold tracking-tight mb-2" style="font-family:'JetBrains Mono',monospace;">Plan de ejecución</h2>
+  <p class="text-sm text-white/40 mb-10 max-w-2xl">Priorizado por impacto visual y complejidad técnica.</p>
+
+  <div class="space-y-4">
+    <!-- Sprint A -->
+    <div class="glass p-6 grad-border rounded-2xl violet-glow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-[#6D00FF] flex items-center justify-center text-sm font-bold">A</div>
+          <div>
+            <h3 class="text-sm font-bold">Foundation & Onboarding</h3>
+            <p class="text-[10px] text-white/30 font-mono">MAYOR IMPACTO · PRIMERO</p>
+          </div>
+        </div>
+        <span class="font-mono text-xs text-[#6D00FF]">~3-4 días</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-[#6D00FF] font-bold">01</span> Onboarding redesign completo (5 screens + GENESIS guía)
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-[#6D00FF] font-bold">02</span> Step progress dots animados + transiciones entre steps
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-[#6D00FF] font-bold">03</span> Review → "Tu Plan Está Listo" con season preview
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-[#6D00FF] font-bold">04</span> GENESIS FAB component (global, todas las pantallas)
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-[#6D00FF] font-bold">05</span> Animated counter utility + card entrance animations
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-[#6D00FF] font-bold">06</span> Placeholder image system (gradients hasta tener assets reales)
+        </div>
+      </div>
+    </div>
+
+    <!-- Sprint B -->
+    <div class="glass p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold">B</div>
+          <div>
+            <h3 class="text-sm font-bold">Home & Tab Polish</h3>
+            <p class="text-[10px] text-white/30 font-mono">ALTO IMPACTO</p>
+          </div>
+        </div>
+        <span class="font-mono text-xs text-white/30">~2-3 días</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">07</span> Home: GENESIS hero card visual upgrade
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">08</span> Home: Daily mission ImageCards con fondos
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">09</span> Track: Empty states con ilustraciones SVG
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">10</span> Mind: Mood selector visual upgrade
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">11</span> Fuel: Animated calorie ring + water fill
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">12</span> Skeleton loaders en todas las pantallas
+        </div>
+      </div>
+    </div>
+
+    <!-- Sprint C -->
+    <div class="glass p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold">C</div>
+          <div>
+            <h3 class="text-sm font-bold">Premium Details & Assets</h3>
+            <p class="text-[10px] text-white/30 font-mono">DIFERENCIADOR</p>
+          </div>
+        </div>
+        <span class="font-mono text-xs text-white/30">~2-3 días</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">13</span> Exercise library con thumbnails reales
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">14</span> Haptic feedback en toda la app
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">15</span> PR celebration animation (confetti + haptic)
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">16</span> GENESIS contextual suggestions per-tab
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">17</span> Active workout screen polish + timer animations
+        </div>
+        <div class="glass-sm p-3 flex gap-2 items-start text-xs text-white/60">
+          <span class="text-white/30 font-bold">18</span> Progress photos before/after slider
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<div class="max-w-[1200px] mx-auto px-8 py-16 border-t border-white/5 text-center">
+  <div class="font-mono text-xs text-white/20 tracking-widest uppercase mb-4">NGX GENESIS · UI/UX REDESIGN</div>
+  <p class="text-sm text-white/30">Propuesta generada por Claude para Aldo — Feb 2026</p>
+  <p class="text-xs text-white/15 mt-2">Basado en análisis de 15 screenshots, codebase completo, y benchmarking de Hevy, MyFitnessPal, Duolingo</p>
+</div>
+
+<script>
+// Nav active state
+document.querySelectorAll('.nav-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+  });
+});
+
+// Intersection observer for animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.fade-in').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'all 0.6s ease-out';
+  observer.observe(el);
+});
+</script>
+
+</body>
+</html>

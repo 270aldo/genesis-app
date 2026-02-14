@@ -1,0 +1,13 @@
+appId: com.ngxgenesis.app
+tags:
+  - train
+  - core
+---
+- runFlow: helpers/login.yaml
+- tapOn: "TRAIN"
+- assertVisible:
+    text: "TRAIN"
+    timeout: 5000
+- takeScreenshot: "04-train-tab"
+- scrollDown
+- takeScreenshot: "04-train-scrolled"

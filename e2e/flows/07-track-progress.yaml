@@ -1,0 +1,13 @@
+appId: com.ngxgenesis.app
+tags:
+  - track
+  - core
+---
+- runFlow: helpers/login.yaml
+- tapOn: "TRACK"
+- assertVisible:
+    text: "TRACK"
+    timeout: 5000
+- takeScreenshot: "07-track-tab"
+- scrollDown
+- takeScreenshot: "07-track-scrolled"

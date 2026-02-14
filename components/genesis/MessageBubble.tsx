@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { GENESIS_COLORS } from '../../constants/colors';
 import type { ChatMessage } from '../../types';
 
 type MessageBubbleProps = {
@@ -34,6 +35,16 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'Inter', lineHeight: 20 }}>
           {message.content}
         </Text>
+        {message.timestamp ? (
+          <Text style={{
+            color: GENESIS_COLORS.textMuted,
+            fontSize: 10,
+            fontFamily: 'Inter',
+            marginTop: 4,
+          }}>
+            {new Date(message.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

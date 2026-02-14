@@ -4,6 +4,7 @@ import { CustomTabBar } from '../../components/navigation';
 import { theme } from '../../constants/theme';
 import { useOfflineSupport } from '../../hooks/useOfflineSupport';
 import { GENESIS_COLORS } from '../../constants/colors';
+import { GenesisFAB } from '../../components/genesis/GenesisFAB';
 
 export default function TabsLayout() {
   const { isOnline, pendingCount, syncStatus } = useOfflineSupport();
@@ -40,6 +41,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="mind" options={{ title: 'MIND' }} />
         <Tabs.Screen name="track" options={{ title: 'TRACK' }} />
       </Tabs>
+      <GenesisFAB />
     </View>
   );
 }
