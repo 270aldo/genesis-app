@@ -24,6 +24,7 @@ type NutritionState = {
   getRemainingCalories: () => number;
   fetchMeals: (date?: string) => Promise<void>;
   fetchWater: (date?: string) => Promise<void>;
+  initializeTargets: () => Promise<void>;
 };
 
 export const useNutritionStore = create<NutritionState>((set, get) => ({
@@ -150,6 +151,44 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
       }
     } catch (err: any) {
       console.warn('fetchWater failed:', err?.message);
+    }
+  },
+
+  initializeTargets: async () => {
+    if (!hasSupabaseConfig) return;
+    try {
+      const { supabaseClient } = await import('../services/supabaseClient');
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('weight_kg, goal')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.weight_kg) return;
+
+      const weight = profile.weight_kg as number;
+      const goal = (profile.goal as string) ?? 'maintain';
+
+      // Calculate daily calorie goal from weight and goal
+      const multipliers: Record<string, number> = {
+        build: 37,
+        bulk: 37,
+        cut: 26,
+        lose: 26,
+        maintain: 31,
+        peak: 33,
+        recomp: 30,
+      };
+      const multiplier = multipliers[goal] ?? 31;
+      const dailyGoal = Math.round(weight * multiplier);
+
+      // Water target: ~1 glass (250ml) per 10kg body weight
+      const targetWater = Math.max(6, Math.ceil(weight / 10));
+
+      set({ dailyGoal, targetWater });
+    } catch (err: any) {
+      console.warn('initializeTargets failed, using defaults:', err?.message);
     }
   },
 }));

@@ -2,6 +2,7 @@ export * from './Button';
 export * from './CircularProgress';
 export * from './Divider';
 export * from './EmptyState';
+export * from './ErrorBanner';
 export * from './ErrorState';
 export * from './GlassCard';
 export * from './GradientCard';

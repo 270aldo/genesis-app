@@ -1,10 +1,10 @@
 import '../global.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts } from 'expo-font';
+import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   Inter_400Regular,
@@ -23,14 +23,23 @@ import { registerForPushNotifications, scheduleDailyReminders } from '../service
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    Inter: Inter_400Regular,
-    InterBold: Inter_700Bold,
-    JetBrainsMono: JetBrainsMono_400Regular,
-    JetBrainsMonoMedium: JetBrainsMono_500Medium,
-    JetBrainsMonoSemiBold: JetBrainsMono_600SemiBold,
-    JetBrainsMonoBold: JetBrainsMono_700Bold,
-  });
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  useEffect(() => {
+    Font.loadAsync({
+      Inter: Inter_400Regular,
+      InterBold: Inter_700Bold,
+      JetBrainsMono: JetBrainsMono_400Regular,
+      JetBrainsMonoMedium: JetBrainsMono_500Medium,
+      JetBrainsMonoSemiBold: JetBrainsMono_600SemiBold,
+      JetBrainsMonoBold: JetBrainsMono_700Bold,
+    })
+      .then(() => setFontsLoaded(true))
+      .catch((err) => {
+        console.warn('Font loading failed, continuing with system fonts:', err);
+        setFontsLoaded(true);
+      });
+  }, []);
 
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const initialize = useAuthStore((s) => s.initialize);

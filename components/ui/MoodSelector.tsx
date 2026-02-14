@@ -12,16 +12,17 @@ const moods = [
 type MoodSelectorProps = {
   selected?: string;
   onSelect?: (mood: string) => void;
+  disabled?: boolean;
 };
 
-export function MoodSelector({ selected, onSelect }: MoodSelectorProps) {
+export function MoodSelector({ selected, onSelect, disabled }: MoodSelectorProps) {
   return (
-    <View className="flex-row justify-between">
+    <View className="flex-row justify-between" style={disabled ? { opacity: 0.5 } : undefined}>
       {moods.map((mood) => {
         const isSelected = selected === mood.key;
         const IconComponent = mood.icon;
         return (
-          <Pressable key={mood.key} className="items-center gap-1" onPress={() => onSelect?.(mood.key)}>
+          <Pressable key={mood.key} className="items-center gap-1" onPress={() => !disabled && onSelect?.(mood.key)} disabled={disabled}>
             <View
               className="h-12 w-12 items-center justify-center rounded-full border bg-[#0A0A0AD9]"
               style={[

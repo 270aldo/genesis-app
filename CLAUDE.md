@@ -4,7 +4,7 @@
 
 GENESIS is a premium AI-powered fitness coaching app built with Expo (React Native) and a FastAPI BFF (Backend for Frontend). It currently runs 5 ADK agents (genesis orchestrator + train, fuel, mind, track sub-agents) powered by Gemini, with 2 more planned (vision, coach_bridge). The app features 12-week periodized training seasons and comprehensive wellness tracking. A companion coach web app (GENESIS BRAIN, Next.js) is planned for Sprint 6.
 
-## Current Status (Phase 9 Sprint 4 Track A complete — Feb 2026)
+## Current Status (Phase 9 Sprint 4 Track B complete — Feb 2026)
 
 ### Completed Phases
 - **Phase 1-4**: Core screens, navigation, chat, UI polish
@@ -20,6 +20,7 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - **Phase 9 Sprint 2**: A2UI widget pipeline, unified GENESIS voice (agent identity fix), widget extraction from agent responses, 20 A2UI widget types on mobile
 - **Phase 9 Sprint 3**: Real Gemini AI intelligence, DatabaseSessionService (persistent conversations), user memory system, input/output guardrails, health check fix, 122 BFF tests
 - **Phase 9 Sprint 4 Track A**: Intelligence infrastructure — 3-level response cache (L1 in-memory + L2 pgvector semantic), Gemini text-embedding-004 embeddings, NGX Philosophy context cache, Gemini File Search API wrapper (knowledge_tools), GoogleSearch grounding for FUEL/MIND agents, refined per-agent prompts with build_system_prompt()
+- **Phase 9 Sprint 4 Track B**: Knowledge deployment + Cloud Run — 15 knowledge docs (51K tokens, 147 evidence blocks) across 5 File Search stores, batch upload automation (upload_knowledge_stores.py), production Dockerfile (non-root user, PORT env), Cloud Run deploy script, smoke test suite, .env.example for BFF + mobile
 
 ### What works right now
 - 5 main tabs: Home, Train, Fuel, Mind, Track
@@ -62,15 +63,24 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - Health endpoint with cache stats and knowledge store status
 - response_cache table with pgvector HNSW index + pg_cron hourly cleanup
 - File Search store manager CLI (scripts/manage_stores.py)
+- 15 knowledge documents (51K tokens, 147 evidence blocks) across 5 domains — ready for File Search upload
+- Batch upload automation (scripts/upload_knowledge_stores.py) — creates stores, uploads docs, verifies with test queries
+- Production Dockerfile (non-root user, PORT env var, selective COPY, .dockerignore)
+- Cloud Run deploy script (scripts/deploy_cloud_run.sh) — Artifact Registry + gcloud run deploy
+- End-to-end smoke test script (scripts/smoke_test.py) — health, chat, knowledge retrieval validation
+- .env.example for BFF (all env vars documented) + root .env.example for mobile
 
 ### Known issues
 - `react-native-svg` version mismatch warning (15.15.2 installed, 15.12.1 expected)
 - `expo-av` deprecated warning (migrate to `expo-audio` + `expo-video` in future)
 - EAS `projectId` and Apple Team ID need to be filled after `npx eas init`
 
-### Not yet implemented (Sprint 4 Track B + Sprint 5+ targets)
-- File Search knowledge stores not populated yet (Sprint 4 Track B: upload domain documents)
-- BFF runs locally only, not on Cloud Run (Sprint 4 Track B / Sprint 5)
+### Not yet deployed (requires GCP credentials — Sprint 4 Track B execution)
+- File Search stores need `GOOGLE_API_KEY` + `python scripts/upload_knowledge_stores.py --step all` to populate
+- BFF Cloud Run deploy needs `./scripts/deploy_cloud_run.sh <PROJECT_ID>` with GCP access
+- Mobile `EXPO_PUBLIC_BFF_URL` needs update to Cloud Run URL after deploy
+
+### Not yet implemented (Sprint 5+ targets)
 - Agents run inside BFF process, not on Vertex AI Agent Engine (Sprint 5)
 - VISION is not an ADK agent — `vision.py` calls Gemini directly (Sprint 5: VISION ADK agent)
 - COACH_BRIDGE agent not built — no A2A protocol (Sprint 5)
@@ -159,8 +169,21 @@ genesis-app/
 │   │       └── knowledge_tools.py # search_knowledge (Gemini File Search API wrapper)
 │   ├── data/
 │   │   └── ngx_philosophy.md     # NGX coaching philosophy (used by context cache)
+│   ├── knowledge/                # 15 knowledge docs for File Search stores
+│   │   ├── genesis/              # 3 docs: identity, philosophy, muscle endocrine
+│   │   ├── train/                # 4 docs: splits, exercises, periodization, corrective
+│   │   ├── fuel/                 # 3 docs: nutrition, protein, supplementation
+│   │   ├── mind/                 # 3 docs: sleep, stress, brain fitness
+│   │   ├── track/                # 2 docs: assessment, tracking system
+│   │   └── MANIFEST.md           # Complete inventory (15 docs, 51K tokens, 147 evidence)
 │   ├── scripts/
-│   │   └── manage_stores.py      # CLI for Gemini File Search store management
+│   │   ├── manage_stores.py      # CLI for Gemini File Search store management
+│   │   ├── upload_knowledge_stores.py # Batch upload: create stores + upload 15 docs + verify
+│   │   ├── deploy_cloud_run.sh   # Cloud Run deployment script
+│   │   └── smoke_test.py         # E2E smoke test (health, chat, knowledge retrieval)
+│   ├── Dockerfile                # Production Docker (non-root, PORT env, selective COPY)
+│   ├── .dockerignore             # Excludes tests, scripts, knowledge from image
+│   ├── .env.example              # All env vars documented
 │   ├── routers/
 │   │   ├── mobile.py             # Mobile-specific endpoints (/mobile/chat, etc.)
 │   │   └── agents.py             # Agent management endpoints
@@ -234,6 +257,7 @@ genesis-app/
 ├── types/                        # TypeScript type definitions
 ├── data/                         # Static/mock data
 ├── constants/                    # Theme colors, config values
+├── .env.example                  # Mobile env vars (EXPO_PUBLIC_BFF_URL, Supabase, ElevenLabs)
 ├── eas.json                      # EAS Build configuration
 ├── jest.config.js                # Jest configuration
 └── jest.setup.js                 # Jest mock setup
@@ -253,6 +277,15 @@ npm run test:coverage     # Jest with coverage report
 cd bff && uvicorn main:app --reload    # Start BFF server (port 8000)
 cd bff && python -m pytest tests/ -v   # Run BFF tests
 cd bff && ruff check .                 # Lint BFF
+
+# Knowledge Stores
+cd bff && python scripts/upload_knowledge_stores.py --step all   # Create 5 stores + upload 15 docs + verify
+cd bff && python scripts/manage_stores.py list                   # List all File Search stores
+cd bff && python scripts/manage_stores.py query --domain train --query "periodization"  # Test query
+
+# Cloud Run Deployment
+cd bff && ./scripts/deploy_cloud_run.sh <PROJECT_ID>   # Build + push + deploy to Cloud Run
+cd bff && python scripts/smoke_test.py --url <CLOUD_RUN_URL>  # E2E smoke test
 
 # EAS Build
 npx eas init                           # Initialize EAS project (fills projectId)
@@ -304,7 +337,7 @@ npx eas submit --platform ios          # Submit to TestFlight
 [ElevenLabs] ← direct WebRTC from GENESIS App (bypasses BFF)
 ```
 
-Currently: BFF runs locally (not yet on Cloud Run), agents run inside BFF process via ADK Runner (not yet on Agent Engine). Sprint 3-6 progressively moves toward the target architecture.
+Currently: BFF has Dockerfile + deploy script ready for Cloud Run (pending GCP credentials). Agents run inside BFF process via ADK Runner (not yet on Agent Engine). Sprint 4B-6 progressively moves toward the target architecture.
 
 ## Roadmap — Phase 9 Sprints
 
@@ -314,7 +347,7 @@ Currently: BFF runs locally (not yet on Cloud Run), agents run inside BFF proces
 | Sprint 2 ✅ | A2UI Pipeline | 20 widget types, unified GENESIS voice, widget extraction | No |
 | Sprint 3 ✅ | Encender GENESIS | Real Gemini AI, DatabaseSessionService, user memory, guardrails | No |
 | Sprint 4 Track A ✅ | Cerebro (Intelligence) | 3-level cache, embeddings, File Search wrapper, GoogleSearch, prompt refinement | No |
-| **Sprint 4 Track B** | **Cerebro (Knowledge)** | **Populate File Search stores, upload domain docs, BFF → Cloud Run** | **Yes (Cloud Run)** |
+| Sprint 4 Track B ✅ | Cerebro (Knowledge) | 15 docs uploaded, batch automation, Dockerfile + deploy script, smoke tests | Yes (Cloud Run) |
 | Sprint 5 | Visión + A2A | All agents to AE, VISION ADK agent, COACH_BRIDGE, A2A protocol | Yes (full AE) |
 | Sprint 6 | BRAIN + Alpha | Next.js BRAIN app, A2A bidirectional, TestFlight | Yes (full stack) |
 

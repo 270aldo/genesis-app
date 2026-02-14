@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader } from '../../components/ui';
+import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useWellnessStore, useTrainingStore, useNutritionStore, useTrackStore } from '../../stores';
@@ -40,6 +40,8 @@ export default function HomeScreen() {
   // Nutrition data
   const meals = useNutritionStore((s) => s.meals);
   const dailyGoal = useNutritionStore((s) => s.dailyGoal);
+  const nutritionError = useNutritionStore((s) => s.error);
+  const trainingError = useTrainingStore((s) => s.error);
   const water = useNutritionStore((s) => s.water);
   const { nutritionTotals, kcalValue, remaining, waterValue } = useMemo(() => {
     const totals = {
@@ -85,6 +87,7 @@ export default function HomeScreen() {
   useEffect(() => {
     if (weeks.length === 0) fetchSeasonPlan();
     useTrainingStore.getState().fetchTodayPlan();
+    useNutritionStore.getState().initializeTargets();
     useNutritionStore.getState().fetchMeals();
     useTrainingStore.getState().fetchPreviousSessions();
     useTrackStore.getState().fetchStreak();
@@ -121,6 +124,10 @@ export default function HomeScreen() {
             currentPhase={phase}
             weeks={weeks}
           />
+
+          {(trainingError || nutritionError) && (
+            <ErrorBanner message={trainingError || nutritionError || 'Error al cargar datos'} />
+          )}
 
           {isDataLoading && (
             <View style={{ alignItems: 'center', paddingVertical: 8 }}>
@@ -187,32 +194,55 @@ export default function HomeScreen() {
 
           {/* Daily Missions */}
           <SectionLabel title="HOY">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-              <MissionCard
-                icon={<Dumbbell size={18} color={phaseConfig.color} />}
-                iconBg={phaseConfig.color + '20'}
-                title="Train"
-                subtitle={todayPlan ? todayPlan.name : 'Día de descanso'}
-                detail={todayPlan ? `${todayPlan.exercises.length} ejercicios · ${todayPlan.estimatedDuration} min` : 'Recovery activo'}
-                onPress={() => router.push('/(tabs)/train')}
-              />
-              <MissionCard
-                icon={<Utensils size={18} color={GENESIS_COLORS.success} />}
-                iconBg={GENESIS_COLORS.success + '20'}
-                title="Fuel"
-                subtitle={`${kcalValue} / ${dailyGoal.toLocaleString()}`}
-                detail={remaining > 0 ? `Faltan ${remaining.toLocaleString()} kcal` : 'Meta alcanzada'}
-                onPress={() => router.push('/(tabs)/fuel')}
-              />
-              <MissionCard
-                icon={<Brain size={18} color={GENESIS_COLORS.info} />}
-                iconBg={GENESIS_COLORS.info + '20'}
-                title="Check-in"
-                subtitle={todayCheckIn ? 'Completado' : 'Pendiente'}
-                detail={todayCheckIn ? todayCheckIn.mood : 'Registra tu día'}
-                onPress={() => router.push('/(modals)/check-in')}
-              />
-            </ScrollView>
+            {isDataLoading ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                {[1, 2, 3].map((i) => (
+                  <View
+                    key={i}
+                    style={{
+                      width: 140,
+                      height: 150,
+                      borderRadius: 16,
+                      backgroundColor: 'rgba(255,255,255,0.04)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.06)',
+                      padding: 16,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <ActivityIndicator size="small" color={GENESIS_COLORS.textTertiary} />
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                <MissionCard
+                  icon={<Dumbbell size={18} color={phaseConfig.color} />}
+                  iconBg={phaseConfig.color + '20'}
+                  title="Train"
+                  subtitle={todayPlan ? todayPlan.name : 'Día de descanso'}
+                  detail={todayPlan ? `${todayPlan.exercises.length} ejercicios · ${todayPlan.estimatedDuration} min` : 'Recovery activo'}
+                  onPress={() => router.push('/(tabs)/train')}
+                />
+                <MissionCard
+                  icon={<Utensils size={18} color={GENESIS_COLORS.success} />}
+                  iconBg={GENESIS_COLORS.success + '20'}
+                  title="Fuel"
+                  subtitle={`${kcalValue} / ${dailyGoal.toLocaleString()}`}
+                  detail={remaining > 0 ? `Faltan ${remaining.toLocaleString()} kcal` : 'Meta alcanzada'}
+                  onPress={() => router.push('/(tabs)/fuel')}
+                />
+                <MissionCard
+                  icon={<Brain size={18} color={GENESIS_COLORS.info} />}
+                  iconBg={GENESIS_COLORS.info + '20'}
+                  title="Check-in"
+                  subtitle={todayCheckIn ? 'Completado' : 'Pendiente'}
+                  detail={todayCheckIn ? todayCheckIn.mood : 'Registra tu día'}
+                  onPress={() => router.push('/(modals)/check-in')}
+                />
+              </ScrollView>
+            )}
           </SectionLabel>
 
           {/* Micro-Lesson */}

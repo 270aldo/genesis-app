@@ -13,6 +13,7 @@ import {
   SimpleBarChart,
   SeasonHeader,
   ProgressBar,
+  ErrorBanner,
 } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
@@ -37,6 +38,7 @@ export default function TrackScreen() {
     fetchTrackStats,
     fetchStrengthProgress,
     fetchStreak,
+    error: trackError,
   } = useTrackStore();
   const { fetchPreviousSessions } = useTrainingStore();
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
@@ -77,11 +79,12 @@ export default function TrackScreen() {
   }, [addPhoto]);
 
   // Real stats
-  const adherence = totalPlanned > 0 ? Math.round((completedWorkouts / totalPlanned) * 100) : 0;
+  const adherence = totalPlanned > 0 ? Math.round((completedWorkouts / totalPlanned) * 100) : null;
   const totalPRs = personalRecords.length;
 
-  // Strength chart data from store
-  const chartData = strengthProgress.dataPoints;
+  // Strength chart data from store (guard against undefined from API)
+  const chartData = strengthProgress?.dataPoints ?? [];
+  const changePercent = strengthProgress?.changePercent ?? 0;
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
@@ -99,6 +102,8 @@ export default function TrackScreen() {
           />
 
           <ScreenHeader title="Progress" subtitle="Tu temporada a detalle" />
+
+          {trackError && <ErrorBanner message={trackError} />}
 
           {isTrackLoading && (
             <View style={{ alignItems: 'center', paddingVertical: 8 }}>
@@ -140,15 +145,15 @@ export default function TrackScreen() {
               />
               <ScoreCard
                 icon={<Target size={20} color={GENESIS_COLORS.success} />}
-                value={`${adherence}%`}
-                label="ADHERENCE"
+                value={adherence !== null ? `${adherence}%` : '—'}
+                label={adherence !== null ? 'ADHERENCE' : 'SIN PLAN'}
                 iconBgColor={GENESIS_COLORS.success + '20'}
               />
             </View>
           </SectionLabel>
 
           {/* Strength Chart */}
-          <SectionLabel title={strengthProgress.exerciseName ? `${strengthProgress.exerciseName.toUpperCase()} TREND` : 'STRENGTH TREND'}>
+          <SectionLabel title={strengthProgress?.exerciseName ? `${strengthProgress.exerciseName.toUpperCase()} TREND` : 'STRENGTH TREND'}>
             <GlassCard shine>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -156,7 +161,7 @@ export default function TrackScreen() {
                   <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Progresion</Text>
                 </View>
                 <Text style={{ color: GENESIS_COLORS.success, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
-                  {strengthProgress.changePercent > 0 ? `+${strengthProgress.changePercent}% este season` : 'Sin datos aun'}
+                  {changePercent > 0 ? `+${changePercent}% este season` : 'Sin datos aun'}
                 </Text>
               </View>
               {chartData.length > 0 ? (
@@ -293,7 +298,7 @@ export default function TrackScreen() {
               <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS INSIGHT</Text>
             </View>
             <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
-              {completedWorkouts > 0
+              {completedWorkouts > 0 && adherence !== null
                 ? `Tu adherencia del ${adherence}% ${adherence >= 70 ? 'esta por encima del promedio' : 'tiene margen de mejora'}. En fase de ${phaseConfig.label.toLowerCase()}, la consistencia es clave para maximizar adaptaciones.`
                 : 'Empieza tu primera sesion para que GENESIS analice tu progreso y te de insights personalizados.'
               }

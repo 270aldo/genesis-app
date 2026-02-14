@@ -6,14 +6,18 @@ Usage:
     python scripts/manage_stores.py upload --domain train --file docs/training_principles.pdf
     python scripts/manage_stores.py list
     python scripts/manage_stores.py query --domain train --query "periodization"
+    python scripts/manage_stores.py batch-upload --step all
+    python scripts/manage_stores.py batch-upload --step create
 
 Requires: GOOGLE_API_KEY env var
 """
 
 import argparse
 import os
+import subprocess
 import sys
 import time
+from pathlib import Path
 
 from google import genai
 
@@ -106,6 +110,26 @@ def cmd_query(args):
     print(f"Response:\n{response.text}")
 
 
+def cmd_batch_upload(args):
+    """Execute batch upload using the specialized script."""
+    script_path = Path(__file__).parent / "upload_knowledge_stores.py"
+    if not script_path.exists():
+        print(f"ERROR: Script not found: {script_path}")
+        sys.exit(1)
+
+    cmd = [sys.executable, str(script_path), "--step", args.step]
+
+    if args.api_key:
+        cmd.extend(["--api-key", args.api_key])
+
+    try:
+        result = subprocess.run(cmd, check=True)
+        sys.exit(result.returncode)
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: Batch upload failed with code {e.returncode}")
+        sys.exit(e.returncode)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Manage GENESIS File Search Stores")
     sub = parser.add_subparsers(dest="command")
@@ -124,6 +148,22 @@ def main():
     p_query.add_argument("--domain", required=True, choices=DOMAINS)
     p_query.add_argument("--query", required=True)
 
+    p_batch = sub.add_parser(
+        "batch-upload",
+        help="Batch upload all knowledge documents (calls upload_knowledge_stores.py)",
+    )
+    p_batch.add_argument(
+        "--step",
+        choices=["create", "upload", "verify", "all"],
+        default="all",
+        help="Which step to execute (default: all)",
+    )
+    p_batch.add_argument(
+        "--api-key",
+        help="Google API key (or use GOOGLE_API_KEY env var)",
+        default=None,
+    )
+
     args = parser.parse_args()
     if args.command == "create":
         cmd_create(args)
@@ -133,6 +173,8 @@ def main():
         cmd_list(args)
     elif args.command == "query":
         cmd_query(args)
+    elif args.command == "batch-upload":
+        cmd_batch_upload(args)
     else:
         parser.print_help()
 

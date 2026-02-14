@@ -13,6 +13,7 @@ import {
   Pill,
   ProgressBar,
   SeasonHeader,
+  ErrorBanner,
 } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { RecoveryHeatmap } from '../../components/wellness';
@@ -173,12 +174,16 @@ export default function MindScreen() {
           <SectionLabel title="CHECK-IN">
             <GlassCard shine>
               <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Mood de Hoy</Text>
-              <MoodSelector selected={selectedMood} onSelect={handleMoodSelect} />
-              {selectedMood && (
+              <MoodSelector selected={selectedMood} onSelect={handleMoodSelect} disabled={!!todayCheckIn} />
+              {todayCheckIn ? (
+                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                  Ya hiciste tu check-in hoy · {moodLabels[selectedMood ?? ''] ?? ''}
+                </Text>
+              ) : selectedMood ? (
                 <Text style={{ color: phaseConfig.accentColor, fontSize: 13, fontFamily: 'Inter' }}>
                   {moodLabels[selectedMood] ?? ''}
                 </Text>
-              )}
+              ) : null}
             </GlassCard>
           </SectionLabel>
 

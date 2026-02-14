@@ -13,6 +13,7 @@ import {
   WaterDots,
   CircularProgress,
   SeasonHeader,
+  ErrorBanner,
 } from '../../components/ui';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useNutritionStore } from '../../stores';
@@ -22,12 +23,13 @@ import type { PhaseType } from '../../types';
 export default function FuelScreen() {
   const router = useRouter();
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
-  const { meals, water, targetWater, addWater, isLoading } = useNutritionStore();
+  const { meals, water, targetWater, addWater, isLoading, error: nutritionError } = useNutritionStore();
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
   const phaseConfig = PHASE_CONFIG[phase];
 
   // Fetch real data on mount
   useEffect(() => {
+    useNutritionStore.getState().initializeTargets();
     useNutritionStore.getState().fetchMeals();
     useNutritionStore.getState().fetchWater();
   }, []);
@@ -67,6 +69,8 @@ export default function FuelScreen() {
           />
 
           <ScreenHeader title="Nutrition" subtitle={new Date().toLocaleDateString('es-MX', { weekday: 'long', month: 'short', day: 'numeric' })} />
+
+          {nutritionError && <ErrorBanner message={nutritionError} />}
 
           {isLoading && (
             <View style={{ alignItems: 'center', paddingVertical: 8 }}>

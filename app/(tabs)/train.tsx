@@ -5,25 +5,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dumbbell, Sparkles, ChevronRight, Info, Moon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { GlassCard, GradientCard, ListItemCard, Divider, SeasonHeader } from '../../components/ui';
+import { GlassCard, GradientCard, ListItemCard, Divider, SeasonHeader, ErrorBanner } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useTrainingStore } from '../../stores';
+import { hasSupabaseConfig } from '../../services/supabaseClient';
 import { MOCK_WORKOUT_PLANS, PHASE_CONFIG } from '../../data';
 import type { PhaseType } from '../../types';
 
 export default function TrainScreen() {
   const router = useRouter();
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
-  const { todayPlan, isTodayPlanLoading, fetchTodayPlan } = useTrainingStore();
+  const { todayPlan, isTodayPlanLoading, error: trainError, fetchTodayPlan } = useTrainingStore();
 
   useEffect(() => {
     fetchTodayPlan();
   }, []);
 
-  // Use real plan from BFF, fall back to mock for demo mode
-  const workout = todayPlan ?? MOCK_WORKOUT_PLANS.push_hyp;
-  const exercises = workout.exercises;
+  // Use real plan from BFF, fall back to mock only in demo mode (no Supabase config)
+  const workout = todayPlan ?? (!hasSupabaseConfig ? MOCK_WORKOUT_PLANS.push_hyp : null);
+  const exercises = workout?.exercises ?? [];
   const phase = ((todayPlan?.phase || currentPhase || 'hypertrophy') as PhaseType);
   const phaseConfig = PHASE_CONFIG[phase];
 
@@ -41,8 +42,46 @@ export default function TrainScreen() {
     );
   }
 
+  // Error state — BFF failed, show error instead of silent mock fallback
+  if (trainError && !workout) {
+    return (
+      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <SeasonHeader
+              seasonNumber={seasonNumber}
+              currentWeek={currentWeek}
+              currentPhase={phase}
+              weeks={weeks}
+            />
+            <ErrorBanner message={trainError} />
+            <GlassCard>
+              <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
+                <Dumbbell size={40} color={GENESIS_COLORS.textTertiary} />
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>
+                  No se pudo cargar tu plan
+                </Text>
+                <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', textAlign: 'center', lineHeight: 20 }}>
+                  Verifica tu conexión e intenta de nuevo.
+                </Text>
+                <Pressable onPress={() => fetchTodayPlan()}>
+                  <GradientCard className="px-6 py-3">
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>REINTENTAR</Text>
+                  </GradientCard>
+                </Pressable>
+              </View>
+            </GlassCard>
+          </ScrollView>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
   // Rest day state (BFF returned plan: null and we have a real season)
-  if (todayPlan === null && !isTodayPlanLoading && seasonNumber > 0) {
+  if (todayPlan === null && !isTodayPlanLoading && !trainError && seasonNumber > 0) {
     // Check if fetchTodayPlan has been called (todayPlan starts as null before fetch too)
     // We use a simple heuristic: if the store has attempted the fetch, show rest day
     return (
@@ -100,7 +139,7 @@ export default function TrainScreen() {
           />
 
           {/* Workout Hero Card */}
-          <ImageCard
+          {workout && <ImageCard
             imageUrl={workout.imageUrl}
             height={200}
             overlayColors={['transparent', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.95)']}
@@ -123,7 +162,7 @@ export default function TrainScreen() {
                 </View>
               </View>
             </View>
-          </ImageCard>
+          </ImageCard>}
 
           {/* Phase Info */}
           <GlassCard>
@@ -172,7 +211,7 @@ export default function TrainScreen() {
           {/* Summary */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>{exercises.length} ejercicios</Text>
-            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>~{workout.estimatedDuration} min</Text>
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>~{workout?.estimatedDuration ?? 0} min</Text>
           </View>
 
           {/* GENESIS Tip */}
@@ -191,7 +230,9 @@ export default function TrainScreen() {
 
           {/* Start Button */}
           <Pressable
+            disabled={!workout}
             onPress={() => {
+              if (!workout) return;
               const session = {
                 id: `session-${Date.now()}`,
                 date: new Date().toISOString(),
