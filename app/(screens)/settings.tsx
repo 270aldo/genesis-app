@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Bell, BellOff, Moon, User, Info, LogOut } from 'lucide-react-native';
+import { ArrowLeft, Bell, BellOff, Mail, Moon, User, Info, LogOut } from 'lucide-react-native';
 import { GlassCard } from '../../components/ui';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -38,10 +38,43 @@ export default function SettingsScreen() {
 
   const [editingQuietHours, setEditingQuietHours] = useState(false);
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.replace('/');
+  // Gap 1: Editable profile name
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [hasChanges, setHasChanges] = useState(false);
+  useEffect(() => { setHasChanges(fullName !== (user?.name || '')); }, [fullName, user?.name]);
+
+  const handleSaveProfile = async () => {
+    if (!user?.id) return;
+    try {
+      const { upsertProfile } = useAuthStore.getState();
+      await upsertProfile(user.id, { full_name: fullName });
+      setHasChanges(false);
+    } catch (err) {
+      console.warn('Failed to save profile:', err);
+    }
   };
+
+  // Gap 2: Logout confirmation alert
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de que quieres salir?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Salir',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            router.replace('/(auth)/login');
+          },
+        },
+      ],
+    );
+  };
+
+  // Gap 3: Master notification toggle
+  const isNotificationEnabled = notifications.some((n) => n.enabled);
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
@@ -87,21 +120,69 @@ export default function SettingsScreen() {
               }}>
                 <User size={22} color={phaseColor} />
               </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: 'InterBold' }}>
-                  {user?.name || 'Atleta'}
-                </Text>
-                <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter' }}>
-                  {user?.email || '—'}
-                </Text>
+              <View style={{ flex: 1, gap: 8 }}>
+                <TextInput
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Tu nombre"
+                  placeholderTextColor={GENESIS_COLORS.textMuted}
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 15,
+                    fontFamily: 'InterBold',
+                    borderBottomWidth: 1,
+                    borderBottomColor: GENESIS_COLORS.borderSubtle,
+                    paddingVertical: 4,
+                  }}
+                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter' }}>
+                    {user?.email || '—'}
+                  </Text>
+                </View>
               </View>
             </View>
+            {hasChanges && (
+              <Pressable
+                onPress={handleSaveProfile}
+                style={{
+                  marginTop: 12,
+                  alignSelf: 'flex-end',
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  borderRadius: 10,
+                  backgroundColor: GENESIS_COLORS.primary,
+                }}
+              >
+                <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'InterBold' }}>
+                  Guardar
+                </Text>
+              </Pressable>
+            )}
           </GlassCard>
 
           {/* Notifications Section */}
           <SectionTitle label="NOTIFICACIONES" />
           <GlassCard shine>
             <View style={{ gap: 16 }}>
+              {/* Master toggle */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Bell size={16} color={GENESIS_COLORS.primary} />
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'InterBold' }}>
+                    Notificaciones habilitadas
+                  </Text>
+                </View>
+                <Switch
+                  value={isNotificationEnabled}
+                  onValueChange={(val) => {
+                    notifications.forEach((n) => updateNotificationPreference(n.category as any, val));
+                  }}
+                  trackColor={{ false: 'rgba(255,255,255,0.1)', true: GENESIS_COLORS.primary + '60' }}
+                  thumbColor={isNotificationEnabled ? GENESIS_COLORS.primary : '#808080'}
+                />
+              </View>
+              <View style={{ height: 1, backgroundColor: GENESIS_COLORS.borderSubtle }} />
               {notifications.map((pref) => (
                 <View
                   key={pref.category}
@@ -192,13 +273,23 @@ export default function SettingsScreen() {
               <InfoRow label="Versión" value="1.0.0" />
               <InfoRow label="Build" value="Phase 5" />
               <InfoRow label="Motor IA" value="GENESIS ADK" />
+              <View style={{ height: 1, backgroundColor: GENESIS_COLORS.borderSubtle, marginVertical: 4 }} />
+              <Pressable
+                onPress={() => Linking.openURL('mailto:soporte@ngx.com')}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              >
+                <Mail size={14} color={GENESIS_COLORS.primary} />
+                <Text style={{ color: GENESIS_COLORS.primary, fontSize: 12, fontFamily: 'Inter' }}>
+                  soporte@ngx.com
+                </Text>
+              </Pressable>
             </View>
           </GlassCard>
 
           {/* Account */}
           <SectionTitle label="CUENTA" />
           <Pressable
-            onPress={handleSignOut}
+            onPress={handleLogout}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
