@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { X, Sun, CloudRain, Zap, Moon, AlertTriangle, CheckCircle } from 'lucide-react-native';
 import { GlassCard } from '../../components/ui';
 import { GENESIS_COLORS } from '../../constants/colors';
@@ -48,6 +49,9 @@ export default function CheckInScreen() {
       soreness: sorenessMap[soreness] ?? 0,
       notes: notes || undefined,
     });
+
+    const today = new Date().toISOString().split('T')[0];
+    await AsyncStorage.setItem(`genesis_checkin_${today}`, 'true');
 
     setSubmitted(true);
   };
