@@ -8,6 +8,8 @@ export default function ModalLayout() {
       <Stack.Screen name="voice-call" />
       <Stack.Screen name="exercise-video" />
       <Stack.Screen name="check-in" />
+      <Stack.Screen name="coach-notes-history" />
+      <Stack.Screen name="phase-briefing" />
     </Stack>
   );
 }

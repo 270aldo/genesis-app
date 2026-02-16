@@ -33,12 +33,13 @@ export default function EducationScreen() {
   const phase = (currentPhase || 'hypertrophy') as PhaseType;
   const phaseConfig = PHASE_CONFIG[phase];
 
-  const { articles, isLoading, fetchArticles } = useEducationStore();
+  const { articles, isLoading, fetchArticles, readArticleIds, loadReadArticles } = useEducationStore();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetchArticles();
+    loadReadArticles();
   }, []);
 
   const filtered = useMemo(() => {
@@ -144,15 +145,28 @@ export default function EducationScreen() {
 
           {/* Featured */}
           {featured && (
-            <ImageCard
-              imageUrl={featured.imageUrl}
-              title={featured.title}
-              subtitle={featured.subtitle}
-              badge={featured.duration}
-              badgeColor={phaseConfig.color}
-              height={200}
-              onPress={() => router.push(`/(screens)/education-detail?id=${featured.id}`)}
-            >
+            <View>
+              {!readArticleIds.includes(featured.id) && (
+                <View style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: GENESIS_COLORS.primary,
+                  zIndex: 10,
+                }} />
+              )}
+              <ImageCard
+                imageUrl={featured.imageUrl}
+                title={featured.title}
+                subtitle={featured.subtitle}
+                badge={featured.duration}
+                badgeColor={phaseConfig.color}
+                height={200}
+                onPress={() => router.push(`/(screens)/education-detail?id=${featured.id}`)}
+              >
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <View style={{ backgroundColor: phaseConfig.color + '30', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
@@ -172,35 +186,49 @@ export default function EducationScreen() {
                 </Text>
               </View>
             </ImageCard>
+            </View>
           )}
 
           {/* Rest of content */}
           {rest.map((item) => (
-            <ImageCard
-              key={item.id}
-              imageUrl={item.imageUrl}
-              title={item.title}
-              badge={item.duration}
-              badgeColor={phaseConfig.color}
-              height={120}
-              onPress={() => router.push(`/(screens)/education-detail?id=${item.id}`)}
-            >
-              <View style={{ gap: 4 }}>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  <View style={{ backgroundColor: phaseConfig.color + '30', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ color: phaseConfig.accentColor, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
-                      {TYPE_LABELS[item.type] ?? item.type}
-                    </Text>
+            <View key={item.id}>
+              {!readArticleIds.includes(item.id) && (
+                <View style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: GENESIS_COLORS.primary,
+                  zIndex: 10,
+                }} />
+              )}
+              <ImageCard
+                imageUrl={item.imageUrl}
+                title={item.title}
+                badge={item.duration}
+                badgeColor={phaseConfig.color}
+                height={120}
+                onPress={() => router.push(`/(screens)/education-detail?id=${item.id}`)}
+              >
+                <View style={{ gap: 4 }}>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <View style={{ backgroundColor: phaseConfig.color + '30', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ color: phaseConfig.accentColor, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
+                        {TYPE_LABELS[item.type] ?? item.type}
+                      </Text>
+                    </View>
                   </View>
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }} numberOfLines={1}>
+                    {item.subtitle}
+                  </Text>
                 </View>
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }} numberOfLines={1}>
-                  {item.subtitle}
-                </Text>
-              </View>
-            </ImageCard>
+              </ImageCard>
+            </View>
           ))}
         </ScrollView>
       </SafeAreaView>
