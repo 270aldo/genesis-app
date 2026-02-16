@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -6,13 +6,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner } from '../../components/ui';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner, CollapsibleSection, WellnessIndicator } from '../../components/ui';
+import { CoachNotes, CoachReviewBadge } from '../../components/coach';
+import { WeeklyWrap } from '../../components/season';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useWellnessStore, useTrainingStore, useNutritionStore, useTrackStore } from '../../stores';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useHealthKit } from '../../hooks/useHealthKit';
 import { MOCK_EDUCATION, PHASE_CONFIG } from '../../data';
+import { getPhaseRankedArticles, useEducationStore } from '../../stores/useEducationStore';
 import type { PhaseType } from '../../types';
 import { useCountUpDisplay } from '../../hooks/useCountUpDisplay';
 import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
@@ -88,6 +92,18 @@ export default function HomeScreen() {
   // Streak from track store
   const streak = useTrackStore((s) => s.streak);
 
+  // Wellness score — computed inline to avoid calling store methods in selectors
+  const wellnessScore = useMemo(() => {
+    if (!todayCheckIn) return 0;
+    let score = 0;
+    score += todayCheckIn.sleepHours >= 7 ? 25 : (todayCheckIn.sleepHours / 7) * 25;
+    score += todayCheckIn.stressLevel <= 4 ? 25 : ((10 - todayCheckIn.stressLevel) / 6) * 25;
+    score += todayCheckIn.energyLevel >= 7 ? 25 : (todayCheckIn.energyLevel / 7) * 25;
+    const moodScores: Record<string, number> = { excellent: 25, good: 20, neutral: 15, poor: 5, terrible: 0 };
+    score += moodScores[todayCheckIn.mood] ?? 15;
+    return Math.round(Math.max(0, Math.min(score, 100)));
+  }, [todayCheckIn]);
+
   useEffect(() => {
     if (weeks.length === 0) fetchSeasonPlan();
     useTrainingStore.getState().fetchTodayPlan();
@@ -114,6 +130,46 @@ export default function HomeScreen() {
   const waterDisplay = useCountUpDisplay(water);
   const stepsDisplay = useCountUpDisplay(healthSnapshot?.steps ?? 0);
 
+  // Phase briefing detection
+  useEffect(() => {
+    (async () => {
+      const lastSeenPhase = await AsyncStorage.getItem('genesis_lastSeenPhase');
+      if (phase && lastSeenPhase !== phase) {
+        router.push('/(modals)/phase-briefing');
+      }
+    })();
+  }, [phase]);
+
+  // Season complete detection
+  useEffect(() => {
+    if (currentWeek > 12) {
+      router.push('/(screens)/season-complete');
+    }
+  }, [currentWeek]);
+
+  // Weekly wrap (show on Sunday=0 or Monday=1)
+  const [weeklyWrapDismissed, setWeeklyWrapDismissed] = useState(true);
+  const dayOfWeek = new Date().getDay();
+  const showWeeklyWrap = dayOfWeek === 0 || dayOfWeek === 1;
+
+  useEffect(() => {
+    if (!showWeeklyWrap) return;
+    (async () => {
+      const key = `genesis_weeklyWrap_${currentWeek}`;
+      const dismissed = await AsyncStorage.getItem(key);
+      if (!dismissed) setWeeklyWrapDismissed(false);
+    })();
+  }, [currentWeek, showWeeklyWrap]);
+
+  const handleDismissWeeklyWrap = useCallback(async () => {
+    setWeeklyWrapDismissed(true);
+    await AsyncStorage.setItem(`genesis_weeklyWrap_${currentWeek}`, 'true');
+  }, [currentWeek]);
+
+  // Next week focus for WeeklyWrap
+  const nextWeekPhase = weeks[currentWeek]?.phase ?? phase;
+  const nextWeekFocus = PHASE_CONFIG[nextWeekPhase as PhaseType]?.label ?? 'Entrenamiento';
+
   // Proactive insight
   const [insightDismissed, setInsightDismissed] = useState(false);
   const insightMessage = useMemo(() => {
@@ -136,9 +192,17 @@ export default function HomeScreen() {
   const entrance = useStaggeredEntrance(6, 120);
   const totalDuration = 600 + 6 * 120;
 
-  // Filter education by current phase
-  const phaseEducation = MOCK_EDUCATION.filter((e) => e.relevantPhases.includes(phase));
-  const todayLesson = phaseEducation[0];
+  // Phase-ranked education with read tracking
+  const readArticleIds = useEducationStore((s) => s.readArticleIds);
+  useEffect(() => {
+    useEducationStore.getState().loadReadArticles();
+  }, []);
+  const rankedArticles = useMemo(
+    () => getPhaseRankedArticles(MOCK_EDUCATION, phase, readArticleIds),
+    [phase, readArticleIds],
+  );
+  const todayLesson = rankedArticles.find((a) => !readArticleIds.includes(a.id)) ?? null;
+  const allRead = todayLesson === null;
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
@@ -153,6 +217,14 @@ export default function HomeScreen() {
             currentWeek={currentWeek}
             currentPhase={phase}
             weeks={weeks}
+          />
+
+          {/* Wellness Indicator */}
+          <WellnessIndicator
+            score={wellnessScore}
+            mood={todayCheckIn?.mood}
+            hasCheckedIn={!!todayCheckIn}
+            onCheckInPress={() => router.push('/(modals)/check-in')}
           />
 
           {(trainingError || nutritionError) && (
@@ -262,6 +334,24 @@ export default function HomeScreen() {
             </Animated.View>
           )}
 
+          {/* Coach Notes */}
+          <CoachNotes />
+
+          {/* Weekly Wrap (Sunday/Monday only) */}
+          {showWeeklyWrap && !weeklyWrapDismissed && (
+            <WeeklyWrap
+              weekNumber={currentWeek}
+              workoutsCompleted={completedDays}
+              workoutsPlanned={7}
+              nutritionAdherence={dailyGoal > 0 ? Math.min(100, (nutritionTotals.calories / dailyGoal) * 100) : 0}
+              streakDays={streak}
+              prCount={0}
+              nextWeekFocus={nextWeekFocus}
+              nextWeekPhase={nextWeekPhase}
+              onDismiss={handleDismissWeeklyWrap}
+            />
+          )}
+
           {/* Quick Metrics Row */}
           <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -317,33 +407,49 @@ export default function HomeScreen() {
           </SectionLabel>
           </StaggeredSection>
 
-          {/* Micro-Lesson */}
+          {/* GENESIS Recommends */}
           <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
-          {todayLesson && (
-            <SectionLabel title="APRENDE HOY">
-              <ImageCard
-                imageUrl={todayLesson.imageUrl}
-                height={140}
-                badge={todayLesson.duration}
-                badgeColor={phaseConfig.color}
-                onPress={() => router.push(`/(screens)/education-detail?id=${todayLesson.id}`)}
-              >
-                <View style={{ gap: 4 }}>
-                  <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
-                    {todayLesson.category.toUpperCase()}
-                  </Text>
-                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
-                    {todayLesson.title}
+            <SectionLabel title={`GENESIS RECOMIENDA PARA ${phaseConfig.label.toUpperCase()}`}>
+              {allRead ? (
+                <View style={{
+                  backgroundColor: GENESIS_COLORS.surfaceCard,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: GENESIS_COLORS.borderSubtle,
+                  padding: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: phaseConfig.color }} />
+                  <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter' }}>
+                    Todas las recomendaciones leídas
                   </Text>
                 </View>
-              </ImageCard>
+              ) : todayLesson ? (
+                <ImageCard
+                  imageUrl={todayLesson.imageUrl}
+                  height={140}
+                  badge={todayLesson.duration}
+                  badgeColor={phaseConfig.color}
+                  onPress={() => router.push(`/(screens)/education-detail?id=${todayLesson.id}`)}
+                >
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1 }}>
+                      {todayLesson.category.toUpperCase()}
+                    </Text>
+                    <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
+                      {todayLesson.title}
+                    </Text>
+                  </View>
+                </ImageCard>
+              ) : null}
             </SectionLabel>
-          )}
           </StaggeredSection>
 
           {/* Week Progress */}
           <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
-          <SectionLabel title="ESTA SEMANA">
+          <CollapsibleSection title="ESTA SEMANA" defaultExpanded={false} storageKey="genesis_section_thisWeek">
             <GlassCard shine>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Progreso Semanal</Text>
@@ -381,20 +487,23 @@ export default function HomeScreen() {
                 })}
               </View>
             </GlassCard>
-          </SectionLabel>
+            <CoachReviewBadge visible={false} />
+          </CollapsibleSection>
           </StaggeredSection>
 
           {/* Streak */}
           <StaggeredSection index={5} entrance={entrance} totalDuration={totalDuration}>
-          <GlassCard>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Flame size={22} color="#F97316" />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{streak} {streak === 1 ? 'día' : 'días'} de racha</Text>
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{streak > 0 ? '¡Sigue así!' : 'Completa tu check-in para iniciar tu racha.'}</Text>
+          <CollapsibleSection title="RACHA" defaultExpanded={false} storageKey="genesis_section_streak">
+            <GlassCard>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Flame size={22} color="#F97316" />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{streak} {streak === 1 ? 'día' : 'días'} de racha</Text>
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{streak > 0 ? '¡Sigue así!' : 'Completa tu check-in para iniciar tu racha.'}</Text>
+                </View>
               </View>
-            </View>
-          </GlassCard>
+            </GlassCard>
+          </CollapsibleSection>
           </StaggeredSection>
         </ScrollView>
       </SafeAreaView>
@@ -402,7 +511,7 @@ export default function HomeScreen() {
   );
 }
 
-function MetricMini({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+const MetricMini = memo(function MetricMini({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
   return (
     <View style={{
       flex: 1,
@@ -419,9 +528,9 @@ function MetricMini({ icon, value, label }: { icon: React.ReactNode; value: stri
       <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>{label}</Text>
     </View>
   );
-}
+});
 
-function MissionCard({
+const MissionCard = memo(function MissionCard({
   icon, iconBg, title, subtitle, detail, onPress, gradientColors,
 }: {
   icon: React.ReactNode; iconBg: string; title: string; subtitle: string; detail: string; onPress?: () => void;
@@ -459,7 +568,7 @@ function MissionCard({
       </LinearGradient>
     </Pressable>
   );
-}
+});
 
 function StaggeredSection({ index, entrance, totalDuration, children }: {
   index: number;
