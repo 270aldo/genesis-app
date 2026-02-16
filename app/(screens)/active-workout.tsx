@@ -17,8 +17,10 @@ import { GENESIS_COLORS } from '../../constants/colors';
 import { theme } from '../../constants/theme';
 import { useSeasonStore, useTrainingStore } from '../../stores';
 import { ExerciseForm } from '../../components/training/ExerciseForm';
-import { RestTimer } from '../../components/training/RestTimer';
-import { WorkoutComplete } from '../../components/training/WorkoutComplete';
+import { EnhancedRestTimer } from '../../components/training/EnhancedRestTimer';
+import { PostWorkoutSummary } from '../../components/training/PostWorkoutSummary';
+import { ExerciseTransition } from '../../components/training/ExerciseTransition';
+import { FormCues } from '../../components/training/FormCues';
 import { PRCelebration } from '../../components/training/PRCelebration';
 import { PHASE_CONFIG } from '../../data';
 import { detectPersonalRecords } from '../../utils/prDetection';
@@ -53,6 +55,11 @@ export default function ActiveWorkoutScreen() {
   const [detectedPRs, setDetectedPRs] = useState<DetectedPR[]>([]);
   const [showComplete, setShowComplete] = useState(false);
   const [showPRCelebration, setShowPRCelebration] = useState(false);
+  const [showTransition, setShowTransition] = useState(false);
+  const [transitionExercise, setTransitionExercise] = useState({ name: '', number: 0 });
+
+  // Exercise catalog for form cues lookup
+  const exerciseCatalog = useTrainingStore((s) => s.exerciseCatalog);
 
   // Timer glow animation
   const timerGlow = useSharedValue(0.3);
@@ -138,12 +145,19 @@ export default function ActiveWorkoutScreen() {
     router.back();
   };
 
-  // Auto-advance to next exercise when current is completed
+  // Show transition overlay before auto-advancing to next exercise
   useEffect(() => {
     if (currentExercise?.completed && currentExerciseIndex < currentSession.exercises.length - 1) {
-      advanceToNextExercise();
+      const nextEx = currentSession.exercises[currentExerciseIndex + 1];
+      setTransitionExercise({ name: nextEx.name, number: currentExerciseIndex + 2 });
+      setShowTransition(true);
     }
-  }, [currentExercise?.completed, currentExerciseIndex, currentSession.exercises.length, advanceToNextExercise]);
+  }, [currentExercise?.completed, currentExerciseIndex, currentSession.exercises.length]);
+
+  const handleTransitionComplete = useCallback(() => {
+    setShowTransition(false);
+    advanceToNextExercise();
+  }, [advanceToNextExercise]);
 
   // PR Celebration overlay
   if (showPRCelebration && detectedPRs.length > 0) {
@@ -163,13 +177,31 @@ export default function ActiveWorkoutScreen() {
     );
   }
 
-  // Completion overlay
+  // Completion overlay — compute summary stats
   if (showComplete) {
+    const completedExercises = currentSession.exercises.filter((ex) => ex.completed).length;
+    const summaryTotalSets = currentSession.exercises.reduce(
+      (sum, ex) => sum + (ex.exerciseSets?.filter((s) => s.completed).length ?? 0),
+      0,
+    );
+    const summaryTotalVolume = currentSession.exercises.reduce((sum, ex) => {
+      if (!ex.exerciseSets) return sum + (ex.completed ? ex.sets * ex.reps * ex.weight : 0);
+      return sum + ex.exerciseSets
+        .filter((s) => s.completed)
+        .reduce((setSum, s) => setSum + (s.actualWeight ?? s.targetWeight) * (s.actualReps ?? s.targetReps), 0);
+    }, 0);
+
     return (
-      <WorkoutComplete
-        session={currentSession}
+      <PostWorkoutSummary
+        workoutName={currentSession.exercises[0]?.name ? 'Active Workout' : 'Workout'}
+        duration={Math.round(elapsedSeconds / 60)}
+        exercisesCompleted={completedExercises}
+        totalSets={summaryTotalSets}
+        totalVolume={summaryTotalVolume}
         prs={detectedPRs}
-        onDismiss={handleDismiss}
+        phaseColor={phaseConfig.accentColor}
+        coachReviewed={false}
+        onClose={handleDismiss}
       />
     );
   }
@@ -246,9 +278,20 @@ export default function ActiveWorkoutScreen() {
             </View>
           )}
 
-          {/* Rest Timer */}
+          {/* Enhanced Rest Timer */}
           {(isRestTimerActive || restTimeRemaining > 0) && (
-            <RestTimer defaultDuration={phaseConfig.restSeconds} onComplete={() => hapticMedium()} />
+            <EnhancedRestTimer
+              seconds={phaseConfig.restSeconds}
+              phaseColor={phaseConfig.accentColor}
+              phaseLabel={phase}
+              onComplete={() => {
+                hapticMedium();
+                useTrainingStore.setState({ restTimeRemaining: 0, isRestTimerActive: false });
+              }}
+              onSkip={() => {
+                useTrainingStore.setState({ restTimeRemaining: 0, isRestTimerActive: false });
+              }}
+            />
           )}
 
           {/* Exercise Form */}
@@ -259,6 +302,13 @@ export default function ActiveWorkoutScreen() {
             onLogSet={handleLogSet}
             onSkipSet={skipSet}
           />
+
+          {/* Form Cues */}
+          {currentExercise && (
+            <FormCues
+              cues={exerciseCatalog.find((e) => e.name === currentExercise.name)?.formCues ?? []}
+            />
+          )}
         </ScrollView>
 
         {/* Footer — Finish button */}
@@ -287,6 +337,16 @@ export default function ActiveWorkoutScreen() {
             </LinearGradient>
           </Pressable>
         </View>
+        {/* Exercise Transition Overlay */}
+        {showTransition && (
+          <ExerciseTransition
+            exerciseName={transitionExercise.name}
+            exerciseNumber={transitionExercise.number}
+            totalExercises={currentSession.exercises.length}
+            phaseColor={phaseConfig.accentColor}
+            onComplete={handleTransitionComplete}
+          />
+        )}
       </SafeAreaView>
     </LinearGradient>
   );

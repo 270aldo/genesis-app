@@ -55,3 +55,7 @@ __pycache__/
 *_PROMPT.md
 *_PLAN.md
 NGX_GENESIS_Audit_Report_*.docx
+app/(tabs)/.home.tsx.swp
+bff/.env.stores
+bff/=5.5.0
+supabase/.temp/

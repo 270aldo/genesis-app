@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dumbbell, Sparkles, ChevronRight, Info, Moon, Layers, Zap, Target, Footprints, Grip } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ListItemCard, Divider, SeasonHeader, ErrorBanner } from '../../components/ui';
+import { CoachReviewBadge } from '../../components/coach';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useTrainingStore } from '../../stores';
@@ -188,6 +189,7 @@ export default function TrainScreen() {
                 </View>
               </View>
             </ImageCard>}
+            <CoachReviewBadge visible={false} />
           </StaggeredSection>
 
           {/* Phase Info */}

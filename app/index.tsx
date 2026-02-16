@@ -16,17 +16,18 @@ export default function Index() {
       return;
     }
 
-    supabaseClient
-      .from('profiles')
-      .select('goal')
-      .eq('id', session.user.id)
-      .single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabaseClient
+          .from('profiles')
+          .select('goal')
+          .eq('id', session.user.id)
+          .single();
         setProfileCheck(data?.goal ? 'complete' : 'incomplete');
-      })
-      .catch(() => {
+      } catch {
         setProfileCheck('incomplete');
-      });
+      }
+    })();
   }, [session, isInitialized]);
 
   if (!isInitialized) return null;

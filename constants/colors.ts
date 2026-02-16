@@ -60,3 +60,27 @@ export const MOOD_COLORS = {
 } as const;
 
 export type GenesisColor = keyof typeof GENESIS_COLORS;
+
+export const SEASON_PHASE_COLORS = {
+  hypertrophy: '#00D4FF',
+  strength: '#6D00FF',
+  power: '#FFD93D',
+  deload: '#00F5AA',
+} as const;
+
+export const BODY_MAP_COLORS: Record<string, string> = {
+  inactive: '#2A2A3E',
+  recovered: '#00F5AA',
+  active: '#6D00FF',
+  soreness: '#FF6B6B',
+} as const;
+
+export const MUSCLE_GRADIENTS: Record<string, [string, string]> = {
+  chest: ['#6D00FF', '#9D4EDD'],
+  back: ['#00D4FF', '#38bdf8'],
+  shoulders: ['#F97316', '#fb923c'],
+  legs: ['#00F5AA', '#34d399'],
+  arms: ['#FFD93D', '#fbbf24'],
+  core: ['#FF6B6B', '#f87171'],
+  full_body: ['#6D00FF', '#00D4FF'],
+} as const;

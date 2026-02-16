@@ -38,6 +38,7 @@ export default function EducationDetailScreen() {
   useEffect(() => {
     if (id) {
       fetchArticleDetail(id);
+      useEducationStore.getState().markArticleAsRead(id);
     }
   }, [id]);
 

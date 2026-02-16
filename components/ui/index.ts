@@ -25,3 +25,5 @@ export * from './SeasonHeader';
 export * from './AnimatedProgressRing';
 export * from './EmptyStateIllustration';
 export * from './AnimatedWaterTracker';
+export * from './CollapsibleSection';
+export * from './WellnessIndicator';

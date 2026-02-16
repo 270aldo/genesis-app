@@ -1,5 +1,33 @@
 # GENESIS App — Project Context
 
+## Documentation Navigation (READ THIS FIRST)
+
+### For Coding Agents (Claude Code, Codex, Gemini CLI)
+
+| Priority | File | Purpose |
+|----------|------|---------|
+| 1 | **THIS FILE (`CLAUDE.md`)** | Source of truth — project state, tech stack, patterns, commands |
+| 2 | `GENESIS.md` | Architecture master — 7 agents, target infra, business model |
+| 3 | `docs/active/` | **CURRENT work** — PRD + Master Prompt for active phase |
+
+### Active Phase: UI Phase 5 — "First Mile" (Sprints N/O/P)
+- **Prompt**: `docs/active/MASTER_PROMPT_UI_PHASE5.md` — Step-by-step execution prompt
+
+### Reference Only (DO NOT EXECUTE)
+- `docs/active/MASTER_PROMPT_UI_PHASE4.md` — UI Phase 4 "Core Experience" (Sprints K/L/M) — Done
+- `docs/active/PRD-UI-PHASE3-HYBRID-CEREMONY.md` — UI Phase 3 "HYBRID Ceremony" (Sprints H/I/J) — Done
+- `docs/active/MASTER_PROMPT_UI_PHASE3.md` — Phase 3 execution prompt — Done
+- `docs/active/PRD-UI-PHASE2-VISUAL-DENSITY.md` — UI Phase 2 "Visual Density" (Sprints D/E/F/G) — Done
+- `docs/active/MASTER_PROMPT_UI_PHASE2.md` — Phase 2 execution prompt — Done
+- `docs/completed/ui-phase1/` — Sprints A/B/C (onboarding, FAB, animations) — Done
+- `docs/completed/phase9-adk/` — ADK agents, A2UI, intelligence, knowledge — Done
+- `docs/completed/phase8-steel/` — Testing, hardening, offline-first — Done
+
+### Deprecated (IGNORE)
+- `docs/deprecated/` — Obsolete prompts with exposed credentials. Never use.
+
+---
+
 ## What is this?
 
 GENESIS is a premium AI-powered fitness coaching app built with Expo (React Native) and a FastAPI BFF (Backend for Frontend). It currently runs 5 ADK agents (genesis orchestrator + train, fuel, mind, track sub-agents) powered by Gemini, with 2 more planned (vision, coach_bridge). The app features 12-week periodized training seasons and comprehensive wellness tracking. A companion coach web app (GENESIS BRAIN, Next.js) is planned for Sprint 6.
