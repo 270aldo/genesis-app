@@ -7,3 +7,4 @@ export * from './useSeasonStore';
 export * from './useTrackStore';
 export * from './useTrainingStore';
 export * from './useWellnessStore';
+export * from './useSettingsStore';
