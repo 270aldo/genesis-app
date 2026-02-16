@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X } from 'lucide-react-native';
+import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X, Heart, Check, Settings } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner } from '../../components/ui';
 import { ImageCard } from '../../components/cards';
@@ -19,6 +20,100 @@ import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggere
 import { SkeletonCard } from '../../components/loading/SkeletonCard';
 
 const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+const GettingStartedCard = memo(function GettingStartedCard({
+  completedCheckIn,
+  completedWorkout,
+  completedMeal,
+  onCheckIn,
+  onTrain,
+  onFuel,
+  onDismiss,
+}: {
+  completedCheckIn: boolean;
+  completedWorkout: boolean;
+  completedMeal: boolean;
+  onCheckIn: () => void;
+  onTrain: () => void;
+  onFuel: () => void;
+  onDismiss: () => void;
+}) {
+  const allComplete = completedCheckIn && completedWorkout && completedMeal;
+
+  const rows = [
+    { label: 'Registra tu check-in', done: completedCheckIn, icon: Heart, onPress: onCheckIn },
+    { label: 'Completa un entrenamiento', done: completedWorkout, icon: Dumbbell, onPress: onTrain },
+    { label: 'Registra una comida', done: completedMeal, icon: Utensils, onPress: onFuel },
+  ];
+
+  return (
+    <GlassCard shine style={{ borderColor: GENESIS_COLORS.primary + '33', borderWidth: 1 }}>
+      <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold', marginBottom: 4 }}>
+        Primeros pasos
+      </Text>
+      <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', marginBottom: 12 }}>
+        Completa estas acciones para personalizar tu experiencia.
+      </Text>
+      <View style={{ gap: 10 }}>
+        {rows.map((row) => {
+          const Icon = row.icon;
+          return (
+            <Pressable
+              key={row.label}
+              onPress={row.done ? undefined : row.onPress}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                opacity: row.done ? 0.5 : 1,
+              }}
+            >
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                backgroundColor: row.done ? GENESIS_COLORS.success + '20' : 'rgba(255,255,255,0.06)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icon size={16} color={row.done ? GENESIS_COLORS.success : GENESIS_COLORS.textMuted} />
+              </View>
+              <Text style={{
+                flex: 1,
+                color: row.done ? GENESIS_COLORS.textMuted : '#FFFFFF',
+                fontSize: 13,
+                fontFamily: 'Inter',
+                textDecorationLine: row.done ? 'line-through' : 'none',
+              }}>
+                {row.label}
+              </Text>
+              {row.done
+                ? <Check size={16} color={GENESIS_COLORS.success} />
+                : <ChevronRight size={16} color={GENESIS_COLORS.textMuted} />}
+            </Pressable>
+          );
+        })}
+      </View>
+      {allComplete && (
+        <Pressable
+          onPress={onDismiss}
+          style={{
+            marginTop: 12,
+            alignSelf: 'center',
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            borderRadius: 10,
+            backgroundColor: 'rgba(255,255,255,0.06)',
+          }}
+        >
+          <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter' }}>
+            Ocultar
+          </Text>
+        </Pressable>
+      )}
+    </GlassCard>
+  );
+});
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -88,6 +183,30 @@ export default function HomeScreen() {
   // Streak from track store
   const streak = useTrackStore((s) => s.streak);
 
+  // Getting Started card state
+  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(true);
+  useEffect(() => {
+    AsyncStorage.getItem('genesis_gettingStartedDismissed').then((v) => {
+      if (!v) setGettingStartedDismissed(false);
+    });
+  }, []);
+
+  const completedCheckIn = !!todayCheckIn;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const completedWorkout = previousSessions.some(
+    (s) => s.completed && s.date.startsWith(todayStr),
+  );
+  const completedMeal = meals.length > 0;
+  const showGettingStarted = !gettingStartedDismissed;
+
+  const handleDismissGettingStarted = useCallback(async () => {
+    setGettingStartedDismissed(true);
+    await AsyncStorage.setItem('genesis_gettingStartedDismissed', 'true');
+  }, []);
+  const handleCheckInPress = useCallback(() => router.push('/(modals)/check-in'), [router]);
+  const handleTrainPress = useCallback(() => router.push('/(tabs)/train'), [router]);
+  const handleFuelPress = useCallback(() => router.push('/(tabs)/fuel'), [router]);
+
   useEffect(() => {
     if (weeks.length === 0) fetchSeasonPlan();
     useTrainingStore.getState().fetchTodayPlan();
@@ -147,6 +266,27 @@ export default function HomeScreen() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
           showsVerticalScrollIndicator={false}
         >
+          {/* Header with greeting + settings */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 16, fontFamily: 'JetBrainsMonoSemiBold', color: '#FFF' }}>
+              {greeting}
+            </Text>
+            <Pressable
+              onPress={() => router.push('/(screens)/settings')}
+              hitSlop={8}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Settings size={18} color="#FFFFFF" />
+            </Pressable>
+          </View>
+
           {/* Season Header */}
           <SeasonHeader
             seasonNumber={seasonNumber}
@@ -154,6 +294,19 @@ export default function HomeScreen() {
             currentPhase={phase}
             weeks={weeks}
           />
+
+          {/* Getting Started Card (new users) */}
+          {showGettingStarted && (
+            <GettingStartedCard
+              completedCheckIn={completedCheckIn}
+              completedWorkout={completedWorkout}
+              completedMeal={completedMeal}
+              onCheckIn={handleCheckInPress}
+              onTrain={handleTrainPress}
+              onFuel={handleFuelPress}
+              onDismiss={handleDismissGettingStarted}
+            />
+          )}
 
           {(trainingError || nutritionError) && (
             <ErrorBanner message={trainingError || nutritionError || 'Error al cargar datos'} />
