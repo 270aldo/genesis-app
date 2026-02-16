@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Measurement, ProgressPhoto } from '../types';
 import { hasSupabaseConfig } from '../services/supabaseClient';
 
@@ -231,6 +232,7 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
           }
         }
         set({ streak });
+        AsyncStorage.setItem('genesis_currentStreak', String(streak)).catch(() => {});
       }
     } catch (err: any) {
       console.warn('fetchStreak failed:', err?.message);

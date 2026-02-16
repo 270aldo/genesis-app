@@ -49,12 +49,14 @@ export async function getSmartNotifications(): Promise<SmartNotification[]> {
     });
   }
 
-  // 3. Streak risk (9:00 PM) — if on a streak and workout not done today
+  // 3. Streak risk (9:00 PM) — only if streak >= 3 and workout not done today
   const workoutDone = await AsyncStorage.getItem(`genesis_workoutDone_${today}`);
-  if (!workoutDone) {
+  const streakStr = await AsyncStorage.getItem('genesis_currentStreak');
+  const streak = parseInt(streakStr || '0', 10);
+  if (streak >= 3 && !workoutDone) {
     notifications.push({
       title: 'No pierdas tu racha',
-      body: 'Aún no has entrenado hoy. Completa algo para mantener tu consistencia.',
+      body: `Llevas ${streak} días seguidos. No rompas la cadena — entrena hoy.`,
       category: 'training',
       hour: 21,
       minute: 0,

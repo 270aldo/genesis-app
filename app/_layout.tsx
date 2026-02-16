@@ -99,6 +99,8 @@ export default function RootLayout() {
         router.push('/(tabs)/train');
       } else if (category === 'nutrition') {
         router.push('/(tabs)/fuel');
+      } else if (category === 'coach') {
+        router.push('/(modals)/genesis-chat');
       }
     });
     return () => sub.remove();
