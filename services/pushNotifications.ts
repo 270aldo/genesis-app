@@ -90,31 +90,43 @@ export async function scheduleLocalNotification(
 }
 
 export async function scheduleDailyReminders(): Promise<void> {
-  // Cancel existing scheduled notifications before re-scheduling
   await cancelAllScheduled();
 
-  // 1. Check-in reminder — 8:00 AM daily
-  await scheduleLocalNotification(
-    'Buenos dias, atleta',
-    'Registra tu check-in matutino para que GENESIS calibre tu dia.',
-    { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: 8, minute: 0 },
-  );
+  try {
+    const { useSettingsStore } = await import('../stores/useSettingsStore');
+    const { getSmartNotifications, isInQuietHours } = await import('./smartNotifications');
 
-  // 2. Hydration reminders — every 2 hours from 10AM to 8PM
-  for (let hour = 10; hour <= 20; hour += 2) {
+    const { notifications: prefs, quietHoursStart, quietHoursEnd } = useSettingsStore.getState();
+    const smartNotifs = await getSmartNotifications();
+
+    for (const notif of smartNotifs) {
+      // Check if category is enabled
+      const pref = prefs.find((p) => p.category === notif.category);
+      if (pref && !pref.enabled) continue;
+
+      // Check quiet hours
+      if (isInQuietHours(notif.hour, quietHoursStart, quietHoursEnd)) continue;
+
+      await scheduleLocalNotification(
+        notif.title,
+        notif.body,
+        { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: notif.hour, minute: notif.minute },
+      );
+    }
+  } catch (err: any) {
+    console.warn('scheduleDailyReminders failed, falling back to defaults:', err?.message);
+    // Fallback: schedule basic reminders
     await scheduleLocalNotification(
-      'Hydration check',
-      'Toma un vaso de agua para mantener tu rendimiento.',
-      { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute: 0 },
+      'Buenos días, atleta',
+      'Registra tu check-in matutino para que GENESIS calibre tu día.',
+      { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: 8, minute: 0 },
+    );
+    await scheduleLocalNotification(
+      'Training time',
+      'Tu sesión de hoy te espera. Vamos a entrenar.',
+      { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: 17, minute: 0 },
     );
   }
-
-  // 3. Training reminder — 5:00 PM daily (user can customize later)
-  await scheduleLocalNotification(
-    'Training time',
-    'Tu sesion de hoy te espera. Vamos a entrenar.',
-    { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: 17, minute: 0 },
-  );
 }
 
 export async function cancelAllScheduled(): Promise<void> {

@@ -1,6 +1,7 @@
 import '../global.css';
-import { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,11 +19,14 @@ import {
 } from '@expo-google-fonts/jetbrains-mono';
 import { useAuthStore } from '../stores';
 import { supabaseClient, hasSupabaseConfig } from '../services/supabaseClient';
+import * as Notifications from 'expo-notifications';
 import { registerForPushNotifications, scheduleDailyReminders } from '../services/pushNotifications';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const router = useRouter();
+  const appState = useRef<AppStateStatus>(AppState.currentState);
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   useEffect(() => {
@@ -72,6 +76,33 @@ export default function RootLayout() {
       await scheduleDailyReminders();
     })();
   }, [isInitialized]);
+
+  // Re-schedule notifications on foreground return
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+        scheduleDailyReminders();
+      }
+      appState.current = nextState;
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Notification deep links
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as Record<string, string> | undefined;
+      const category = data?.category;
+      if (category === 'check_in') {
+        router.push('/(modals)/check-in');
+      } else if (category === 'training') {
+        router.push('/(tabs)/train');
+      } else if (category === 'nutrition') {
+        router.push('/(tabs)/fuel');
+      }
+    });
+    return () => sub.remove();
+  }, [router]);
 
   useEffect(() => {
     if (fontsLoaded && isInitialized) SplashScreen.hideAsync();

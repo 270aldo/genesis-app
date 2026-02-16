@@ -102,7 +102,7 @@ export default function OnboardingScreen() {
         generateDefaultSeason(profileId, goal, schedule, level).catch((err) => {
           console.warn('Season generation failed (non-blocking):', err?.message);
         });
-        router.replace('/(tabs)/home');
+        router.replace('/(screens)/welcome-briefing');
       } catch (err: any) {
         setSaveError(err?.message ?? 'Failed to save profile');
       } finally {

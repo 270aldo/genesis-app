@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Pause, Play, ArrowLeft } from 'lucide-react-native';
 import Animated, {
@@ -126,6 +127,9 @@ export default function ActiveWorkoutScreen() {
     const prs = detectPersonalRecords(currentSession.exercises, existingRecords);
     setDetectedPRs(prs);
     await finishWorkout(prs);
+
+    const today = new Date().toISOString().split('T')[0];
+    await AsyncStorage.setItem(`genesis_workoutDone_${today}`, 'true');
   }, [currentSession, finishWorkout]);
 
   const handleDismiss = () => {
