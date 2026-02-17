@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -72,11 +72,13 @@ export default function MindScreen() {
 
   // Derive mood from today's check-in
   const selectedMood = todayCheckIn?.mood ? (moodToSelector[todayCheckIn.mood] ?? 'okay') : undefined;
+  const [pendingMood, setPendingMood] = useState<string | undefined>(undefined);
+  const displayedMood = selectedMood ?? pendingMood;
 
-  const handleMoodSelect = (_mood: string) => {
+  const handleMoodSelect = (mood: string) => {
     hapticSelection();
     if (!todayCheckIn) {
-      router.push('/(modals)/check-in');
+      setPendingMood(mood);
     }
     // If already checked in, mood is display-only
   };
@@ -184,15 +186,15 @@ export default function MindScreen() {
             <SectionLabel title="CHECK-IN">
               <GlassCard shine>
                 <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Mood de Hoy</Text>
-                <MoodSelector selected={selectedMood} onSelect={handleMoodSelect} disabled={!!todayCheckIn} />
+                <MoodSelector selected={displayedMood} onSelect={handleMoodSelect} disabled={!!todayCheckIn} />
                 {todayCheckIn ? (
                   <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
-                    Ya hiciste tu check-in hoy · {moodLabels[selectedMood ?? ''] ?? ''}
+                    Check-in completado · {moodLabels[selectedMood ?? ''] ?? ''}
                   </Text>
-                ) : selectedMood ? (
-                  <Text style={{ color: phaseConfig.accentColor, fontSize: 13, fontFamily: 'Inter' }}>
-                    {moodLabels[selectedMood] ?? ''}
-                  </Text>
+                ) : pendingMood ? (
+                  <Pressable onPress={() => router.push('/(modals)/check-in')} className="mt-3 bg-[#6D00FF] rounded-xl py-3 px-6 self-center">
+                    <Text className="text-white font-semibold text-sm">Continuar check-in →</Text>
+                  </Pressable>
                 ) : null}
               </GlassCard>
             </SectionLabel>
@@ -200,20 +202,20 @@ export default function MindScreen() {
 
           {/* Recovery Heatmap */}
           <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>
-            <SectionLabel title="RECOVERY STATUS">
+            <SectionLabel title="ESTADO DE RECOVERY">
               <RecoveryHeatmap data={recoveryData} />
             </SectionLabel>
           </StaggeredSection>
 
           {/* Wellness Score */}
           <StaggeredSection index={2} entrance={entrance} totalDuration={totalDuration}>
-            <SectionLabel title="WELLNESS SCORE">
+            <SectionLabel title="BIENESTAR">
               <GlassCard shine>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Activity size={18} color={phaseConfig.accentColor} />
                   <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Overall</Text>
                 </View>
-                <Text style={{ color: '#FFFFFF', fontSize: 36, fontFamily: 'InterBold' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 52, fontFamily: 'InterBold' }}>
                   {todayCheckIn ? wellnessScore : '--'}
                 </Text>
                 <ProgressBar progress={todayCheckIn ? wellnessScore : 0} gradient />
@@ -243,8 +245,8 @@ export default function MindScreen() {
                         <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{med.name}</Text>
                         <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{med.duration} · {med.type}</Text>
                       </View>
-                      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: med.color + '20', alignItems: 'center', justifyContent: 'center' }}>
-                        <Play size={16} color={med.color} />
+                      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: med.color, alignItems: 'center', justifyContent: 'center' }}>
+                        <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
                       </View>
                     </View>
                   </ImageCard>
@@ -255,7 +257,7 @@ export default function MindScreen() {
 
           {/* Sleep */}
           <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
-            <SectionLabel title="SLEEP">
+            <SectionLabel title="SUEÑO">
               <GlassCard shine>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Moon size={18} color={GENESIS_COLORS.primary} />

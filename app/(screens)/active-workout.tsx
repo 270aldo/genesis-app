@@ -119,6 +119,7 @@ export default function ActiveWorkoutScreen() {
   const allExercisesDone = currentSession.exercises.every((ex) => ex.completed);
 
   const handleLogSet = useCallback((exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => {
+    hapticMedium();
     logSet(exerciseId, setNumber, data);
     // Auto-start rest timer
     startRestTimer(phaseConfig.restSeconds);
@@ -266,7 +267,7 @@ export default function ActiveWorkoutScreen() {
               borderColor: `${phaseConfig.color}33`,
               gap: 4,
             }}>
-              <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
                 CURRENT EXERCISE
               </Text>
               <Text style={{ color: theme.colors.textPrimary, fontSize: 18, fontFamily: 'InterBold' }}>

@@ -4,7 +4,8 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Sparkles, ChevronRight, Info, Moon, Layers, Zap, Target, Footprints, Grip } from 'lucide-react-native';
+import { Dumbbell, Sparkle, ChevronRight, Info, Moon } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ListItemCard, Divider, SeasonHeader, ErrorBanner } from '../../components/ui';
 import { CoachReviewBadge } from '../../components/coach';
@@ -12,31 +13,21 @@ import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useTrainingStore } from '../../stores';
 import { hasSupabaseConfig } from '../../services/supabaseClient';
-import { MOCK_WORKOUT_PLANS, PHASE_CONFIG } from '../../data';
+import { MOCK_WORKOUT_PLANS, PHASE_CONFIG, IMAGES } from '../../data';
 import type { PhaseType } from '../../types';
 import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
 import { SkeletonCard } from '../../components/loading/SkeletonCard';
 import { GenesisGuide } from '../../components/onboarding';
 
-const MUSCLE_GROUP_STYLES: Record<string, { colors: [string, string]; Icon: typeof Dumbbell }> = {
-  chest: { colors: ['#FF6B6B', '#D94040'], Icon: Layers },
-  back: { colors: ['#6D00FF', '#4A00B0'], Icon: Layers },
-  shoulders: { colors: ['#00E5FF', '#0097A7'], Icon: Target },
-  legs: { colors: ['#00F5AA', '#00A86B'], Icon: Footprints },
-  arms: { colors: ['#F97316', '#D45A00'], Icon: Zap },
-  core: { colors: ['#FFD93D', '#D4A800'], Icon: Grip },
-  default: { colors: ['#6D00FF', '#4A00B0'], Icon: Dumbbell },
-};
-
-function getMuscleGroupStyle(muscleGroups: string[]) {
+function getMuscleGroupImage(muscleGroups: string[]): string {
   const primary = (muscleGroups[0] || '').toLowerCase();
-  if (primary.includes('chest') || primary.includes('pec')) return MUSCLE_GROUP_STYLES.chest;
-  if (primary.includes('back') || primary.includes('lat') || primary.includes('row')) return MUSCLE_GROUP_STYLES.back;
-  if (primary.includes('shoulder') || primary.includes('delt')) return MUSCLE_GROUP_STYLES.shoulders;
-  if (primary.includes('quad') || primary.includes('ham') || primary.includes('glute') || primary.includes('leg') || primary.includes('calf')) return MUSCLE_GROUP_STYLES.legs;
-  if (primary.includes('bicep') || primary.includes('tricep') || primary.includes('arm') || primary.includes('curl')) return MUSCLE_GROUP_STYLES.arms;
-  if (primary.includes('core') || primary.includes('ab')) return MUSCLE_GROUP_STYLES.core;
-  return MUSCLE_GROUP_STYLES.default;
+  if (primary.includes('chest') || primary.includes('pec')) return IMAGES.chest;
+  if (primary.includes('back') || primary.includes('lat') || primary.includes('row')) return IMAGES.back;
+  if (primary.includes('shoulder') || primary.includes('delt')) return IMAGES.shoulders;
+  if (primary.includes('quad') || primary.includes('ham') || primary.includes('glute') || primary.includes('leg') || primary.includes('calf')) return IMAGES.legs;
+  if (primary.includes('bicep') || primary.includes('tricep') || primary.includes('arm') || primary.includes('curl')) return IMAGES.arms;
+  if (primary.includes('core') || primary.includes('ab')) return IMAGES.core;
+  return IMAGES.chest;
 }
 
 export default function TrainScreen() {
@@ -179,8 +170,8 @@ export default function TrainScreen() {
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                   {workout.muscleGroups.map((mg) => (
-                    <View key={mg} style={{ backgroundColor: phaseConfig.color + '20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{mg}</Text>
+                    <View key={mg} style={{ backgroundColor: '#6D00FF', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{mg}</Text>
                     </View>
                   ))}
                   <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
@@ -222,26 +213,17 @@ export default function TrainScreen() {
               </View>
               <View style={{ gap: 12 }}>
                 {exercises.map((ex) => {
-                  const mgStyle = getMuscleGroupStyle(workout?.muscleGroups ?? []);
-                  const IconComp = mgStyle.Icon;
                   return (
                     <ListItemCard
                       key={ex.id}
                       icon={
-                        <LinearGradient
-                          colors={mgStyle.colors}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <IconComp size={18} color="rgba(255,255,255,0.6)" />
-                        </LinearGradient>
+                        <Image
+                          source={{ uri: getMuscleGroupImage(workout?.muscleGroups ?? []) }}
+                          placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+                          contentFit="cover"
+                          style={{ width: 36, height: 36, borderRadius: 10 }}
+                          transition={200}
+                        />
                       }
                       title={ex.name}
                       subtitle={`${ex.sets} × ${ex.reps} reps${ex.weight ? ` · ${ex.weight} ${ex.unit}` : ''}`}
@@ -261,7 +243,7 @@ export default function TrainScreen() {
           <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
             <GlassCard shine>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Sparkles size={14} color={phaseConfig.accentColor} />
+                <Sparkle size={14} color={phaseConfig.accentColor} />
                 <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
               </View>
               <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
