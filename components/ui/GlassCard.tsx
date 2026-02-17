@@ -8,7 +8,7 @@ const shadowStyles: Record<ShadowVariant, ViewStyle> = {
   success: { shadowColor: '#00F5AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
   warning: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
   error: { shadowColor: '#FF6B6B', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
-  info: { shadowColor: '#00D4FF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
+  info: { shadowColor: '#9D4EDD', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
 };
 
 type GlassCardProps = PropsWithChildren<{
@@ -21,7 +21,7 @@ type GlassCardProps = PropsWithChildren<{
 export function GlassCard({ children, className = '', shadow = 'primary', shine = false, style }: GlassCardProps) {
   return (
     <View
-      className={`relative overflow-hidden rounded-[16px] border border-[#FFFFFF14] bg-[#0A0A0AD9] p-4 ${className}`}
+      className={`relative overflow-hidden rounded-[16px] border border-[#FFFFFF14] bg-[#0A0A0AD9] p-5 ${className}`}
       style={[shadowStyles[shadow], style]}
     >
       {shine && (

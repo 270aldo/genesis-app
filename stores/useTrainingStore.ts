@@ -3,6 +3,7 @@ import type { Exercise, ExerciseLibraryItem, ExerciseSet, WorkoutPlan, WorkoutSe
 import type { Json } from '../types/supabase';
 import type { DetectedPR } from '../utils/prDetection';
 import { hasSupabaseConfig } from '../services/supabaseClient';
+import { DEMO_TODAY_PLAN } from '../data/demoProfile';
 
 type WorkoutStatus = 'idle' | 'active' | 'paused' | 'completing' | 'completed';
 
@@ -201,6 +202,10 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   },
 
   fetchTodayPlan: async () => {
+    if (!hasSupabaseConfig) {
+      set({ todayPlan: DEMO_TODAY_PLAN });
+      return;
+    }
     set({ isTodayPlanLoading: true, error: null });
     try {
       const { genesisAgentApi } = await import('../services/genesisAgentApi');

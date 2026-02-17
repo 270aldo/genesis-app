@@ -11,7 +11,7 @@ export function WaterDots({ filled, total }: WaterDotsProps) {
       {Array.from({ length: total }).map((_, i) => (
         <View
           key={i}
-          className={`h-[10px] w-[10px] rounded-full ${i < filled ? 'bg-[#38bdf8]' : 'bg-[#FFFFFF14]'}`}
+          className={`h-[10px] w-[10px] rounded-full ${i < filled ? 'bg-[#9D4EDD]' : 'bg-[#FFFFFF14]'}`}
         />
       ))}
     </View>

@@ -33,7 +33,7 @@ describe('useAuthStore', () => {
     const state = useAuthStore.getState();
     expect(state.user).not.toBeNull();
     expect(state.user!.email).toBe('athlete@test.com');
-    expect(state.user!.name).toBe('Demo Athlete');
+    expect(state.user!.name).toBe('Marco Reyes');
     expect(state.session).not.toBeNull();
     expect(state.error).toBeNull();
   });

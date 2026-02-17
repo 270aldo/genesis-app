@@ -8,7 +8,7 @@ const variantColors: Record<ColorVariant, { border: string; shadow: string; icon
   purple: { border: '#6D00FF', shadow: '#6D00FF', iconBg: 'rgba(109, 0, 255, 0.1)', iconColor: '#6D00FF' },
   green: { border: '#00F5AA', shadow: '#00F5AA', iconBg: '#00F5AA20', iconColor: '#00F5AA' },
   orange: { border: '#F97316', shadow: '#F97316', iconBg: '#F9731620', iconColor: '#F97316' },
-  blue: { border: '#00D4FF', shadow: '#00D4FF', iconBg: '#00D4FF20', iconColor: '#00D4FF' },
+  blue: { border: '#9D4EDD', shadow: '#9D4EDD', iconBg: '#9D4EDD20', iconColor: '#9D4EDD' },
   red: { border: '#FF6B6B', shadow: '#FF6B6B', iconBg: '#FF6B6B20', iconColor: '#FF6B6B' },
 };
 

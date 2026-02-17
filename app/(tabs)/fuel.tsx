@@ -5,7 +5,8 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Camera, Droplets, Info } from 'lucide-react-native';
+import { Camera, Droplets, Info, Plus, Sparkle, Coffee, Utensils, Moon, Apple } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import {
   GlassCard,
   MacroCard,
@@ -16,6 +17,7 @@ import {
   SeasonHeader,
   ErrorBanner,
   EmptyStateIllustration,
+  CollapsibleSection,
 } from '../../components/ui';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useSeasonStore, useNutritionStore } from '../../stores';
@@ -23,6 +25,13 @@ import { PHASE_CONFIG, getPhaseNutritionTargets } from '../../data';
 import type { PhaseType } from '../../types';
 import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
 import { SkeletonCard } from '../../components/loading/SkeletonCard';
+
+const MEAL_SECTIONS = [
+  { key: 'breakfast', label: 'DESAYUNO', icon: Coffee },
+  { key: 'lunch', label: 'ALMUERZO', icon: Utensils },
+  { key: 'dinner', label: 'CENA', icon: Moon },
+  { key: 'snack', label: 'SNACKS', icon: Apple },
+] as const;
 
 export default function FuelScreen() {
   const router = useRouter();
@@ -57,8 +66,21 @@ export default function FuelScreen() {
     };
   }, [meals, targets.calories]);
 
-  const entrance = useStaggeredEntrance(5, 120);
-  const totalDuration = 600 + 5 * 120;
+  // Group meals by type
+  const mealsByType = useMemo(() => {
+    const groups: Record<string, typeof meals> = { breakfast: [], lunch: [], dinner: [], snack: [] };
+    meals.forEach((meal) => {
+      const type = meal.name.toLowerCase();
+      if (type.includes('breakfast') || type === 'desayuno') groups.breakfast.push(meal);
+      else if (type.includes('lunch') || type === 'almuerzo') groups.lunch.push(meal);
+      else if (type.includes('dinner') || type === 'cena') groups.dinner.push(meal);
+      else groups.snack.push(meal);
+    });
+    return groups;
+  }, [meals]);
+
+  const entrance = useStaggeredEntrance(7, 120);
+  const totalDuration = 600 + 7 * 120;
 
   return (
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
@@ -117,7 +139,7 @@ export default function FuelScreen() {
                   <View style={{ alignItems: 'center', justifyContent: 'center', width: 120, height: 120 }}>
                     <AnimatedProgressRing progress={progress / 100} size={120} strokeWidth={10} color={phaseConfig.color} />
                     <View style={{ position: 'absolute', alignItems: 'center' }}>
-                      <Text style={{ color: '#FFFFFF', fontSize: 28, fontFamily: 'InterBold' }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 48, fontFamily: 'InterBold' }}>
                         {consumed.toLocaleString()}
                       </Text>
                       <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
@@ -135,54 +157,169 @@ export default function FuelScreen() {
           <StaggeredSection index={2} entrance={entrance} totalDuration={totalDuration}>
             <SectionLabel title="MACROS">
               <View style={{ flexDirection: 'row', gap: 12 }}>
-                <MacroCard label="PROTEIN" value={proteinConsumed} unit="g" progress={Math.min(100, (proteinConsumed / targets.protein) * 100)} color={GENESIS_COLORS.info} gradientColors={['#38bdf8', '#0ea5e9']} />
-                <MacroCard label="CARBS" value={carbsConsumed} unit="g" progress={Math.min(100, (carbsConsumed / targets.carbs) * 100)} color={GENESIS_COLORS.success} gradientColors={['#00F5AA', '#00D4FF']} />
+                <MacroCard label="PROTEIN" value={proteinConsumed} unit="g" progress={Math.min(100, (proteinConsumed / targets.protein) * 100)} color={GENESIS_COLORS.info} gradientColors={['#6D00FF', '#9D4EDD']} />
+                <MacroCard label="CARBS" value={carbsConsumed} unit="g" progress={Math.min(100, (carbsConsumed / targets.carbs) * 100)} color={GENESIS_COLORS.success} gradientColors={['#00F5AA', '#10B981']} />
                 <MacroCard label="FAT" value={fatConsumed} unit="g" progress={Math.min(100, (fatConsumed / targets.fat) * 100)} color={GENESIS_COLORS.warning} gradientColors={['#F97316', '#EF4444']} />
               </View>
             </SectionLabel>
           </StaggeredSection>
 
-          {/* Meals */}
+          {/* Quick Actions */}
           <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Pressable
+                onPress={() => router.push('/(modals)/camera-scanner')}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  paddingVertical: 14,
+                  borderRadius: 14,
+                  backgroundColor: 'rgba(0,0,0,0.4)',
+                  borderWidth: 1.5,
+                  borderColor: GENESIS_COLORS.primary,
+                  shadowColor: GENESIS_COLORS.primary,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 0 },
+                  elevation: 4,
+                }}
+              >
+                <Camera size={16} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 0.5 }}>ESCANEAR</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/(modals)/camera-scanner')}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  paddingVertical: 14,
+                  borderRadius: 14,
+                  backgroundColor: 'rgba(0,0,0,0.4)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.15)',
+                }}
+              >
+                <Plus size={16} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 0.5 }}>AGREGAR</Text>
+              </Pressable>
+            </View>
+          </StaggeredSection>
+
+          {/* Meals — Grouped by Type */}
+          <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
             <SectionLabel title="COMIDAS">
-              <View style={{ gap: 12 }}>
-                {meals.length === 0 ? (
-                  isLoading ? (
-                    <SkeletonCard />
-                  ) : (
-                    <EmptyStateIllustration variant="fuel" title="Sin comidas registradas" subtitle="Registra tu primera comida del dia." />
-                  )
+              <View style={{ gap: 8 }}>
+                {meals.length === 0 && !isLoading ? (
+                  <EmptyStateIllustration variant="fuel" title="Sin comidas registradas" subtitle="Registra tu primera comida del dia." />
                 ) : (
-                  meals.map((meal) => (
-                    <GlassCard key={meal.id}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ gap: 2 }}>
-                          <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
-                            {meal.name.charAt(0).toUpperCase() + meal.name.slice(1)}
+                  MEAL_SECTIONS.map((section) => {
+                    const sectionMeals = mealsByType[section.key] ?? [];
+                    const sectionCal = sectionMeals.reduce((sum, m) => sum + m.calories, 0);
+                    const Icon = section.icon;
+                    return (
+                      <CollapsibleSection
+                        key={section.key}
+                        title={section.label}
+                        defaultExpanded={sectionMeals.length > 0}
+                        storageKey={`genesis_meals_${section.key}`}
+                        headerRight={
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            {sectionCal > 0 && (
+                              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
+                                {sectionCal} kcal
+                              </Text>
+                            )}
+                            <Pressable
+                              onPress={() => {}}
+                              hitSlop={8}
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 11,
+                                backgroundColor: GENESIS_COLORS.primary + '20',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Plus size={12} color={GENESIS_COLORS.primary} />
+                            </Pressable>
+                          </View>
+                        }
+                      >
+                        {sectionMeals.length === 0 ? (
+                          <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 12, fontFamily: 'Inter', textAlign: 'center', paddingVertical: 12 }}>
+                            Toca + para agregar
                           </Text>
-                          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{meal.time}</Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                          <Text style={{ color: GENESIS_COLORS.success, fontSize: 14, fontFamily: 'InterBold' }}>{meal.calories} cal</Text>
-                          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
-                            P:{meal.protein}g · C:{meal.carbs}g · F:{meal.fat}g
-                          </Text>
-                        </View>
-                      </View>
-                    </GlassCard>
-                  ))
+                        ) : (
+                          <View style={{ gap: 8 }}>
+                            {sectionMeals.map((meal) => (
+                              <GlassCard key={meal.id}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                  <View style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 12,
+                                    backgroundColor: phaseConfig.accentColor + '15',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}>
+                                    <Icon size={20} color={phaseConfig.accentColor} />
+                                  </View>
+                                  <View style={{ flex: 1, gap: 2 }}>
+                                    <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
+                                      {meal.name.charAt(0).toUpperCase() + meal.name.slice(1)}
+                                    </Text>
+                                    <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{meal.time}</Text>
+                                  </View>
+                                  <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                                    <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{meal.calories} cal</Text>
+                                    <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 9, fontFamily: 'JetBrainsMonoMedium' }}>
+                                      P:{meal.protein}g · C:{meal.carbs}g · F:{meal.fat}g
+                                    </Text>
+                                  </View>
+                                </View>
+                              </GlassCard>
+                            ))}
+                          </View>
+                        )}
+                      </CollapsibleSection>
+                    );
+                  })
                 )}
               </View>
             </SectionLabel>
           </StaggeredSection>
 
+          {/* Nutrition Insight */}
+          <StaggeredSection index={5} entrance={entrance} totalDuration={totalDuration}>
+            <GlassCard shine>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Sparkle size={14} color={phaseConfig.accentColor} />
+                <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>INSIGHT</Text>
+              </View>
+              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+                {remaining > 500
+                  ? `Te faltan ${remaining.toLocaleString()} kcal. Asegúrate de completar tus comidas para alcanzar tu meta de ${phaseConfig.label.toLowerCase()}.`
+                  : remaining > 0
+                    ? `Casi llegas a tu meta — solo ${remaining} kcal más. ¡Buen trabajo!`
+                    : 'Meta calórica alcanzada. Mantén tu ingesta balanceada el resto del día.'}
+              </Text>
+            </GlassCard>
+          </StaggeredSection>
+
           {/* Hydration */}
-          <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
+          <StaggeredSection index={6} entrance={entrance} totalDuration={totalDuration}>
             <SectionLabel title="HIDRATACIÓN">
               <GlassCard>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Droplets size={18} color={GENESIS_COLORS.cyan} />
-                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Water Intake</Text>
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Ingesta de Agua</Text>
                 </View>
                 <AnimatedWaterTracker current={water} target={targetWater} onAdd={addWater} />
               </GlassCard>
@@ -190,30 +327,6 @@ export default function FuelScreen() {
           </StaggeredSection>
         </ScrollView>
       </SafeAreaView>
-
-      {/* Scan FAB */}
-      <Pressable
-        onPress={() => router.push('/(modals)/camera-scanner')}
-        style={{ position: 'absolute', bottom: 24, right: 24 }}
-      >
-        <LinearGradient
-          colors={[GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: GENESIS_COLORS.primary,
-            shadowOpacity: 0.5,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
-            elevation: 8,
-          }}
-        >
-          <Camera size={24} color="#FFFFFF" />
-        </LinearGradient>
-      </Pressable>
     </LinearGradient>
   );
 }

@@ -6,7 +6,7 @@ const variantStyles: Record<PillVariant, { bg: string; text: string }> = {
   default: { bg: '#FFFFFF14', text: '#6D00FF' },
   success: { bg: '#00F5AA20', text: '#00F5AA' },
   warning: { bg: '#FFD93D20', text: '#FFD93D' },
-  info: { bg: '#00D4FF20', text: '#00D4FF' },
+  info: { bg: '#6D00FF20', text: '#6D00FF' },
 };
 
 type PillProps = {

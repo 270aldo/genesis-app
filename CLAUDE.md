@@ -10,10 +10,10 @@
 | 2 | `GENESIS.md` | Architecture master — 7 agents, target infra, business model |
 | 3 | `docs/active/` | **CURRENT work** — PRD + Master Prompt for active phase |
 
-### Active Phase: UI Phase 5 — "First Mile" (Sprints N/O/P)
-- **Prompt**: `docs/active/MASTER_PROMPT_UI_PHASE5.md` — Step-by-step execution prompt
+### Active Phase: None — all UI phases complete. Next: Phase 9 Sprint 5.
 
 ### Reference Only (DO NOT EXECUTE)
+- `docs/active/MASTER_PROMPT_UI_PHASE5.md` — UI Phase 5 "First Mile" (Sprints N/O/P) — Done
 - `docs/active/MASTER_PROMPT_UI_PHASE4.md` — UI Phase 4 "Core Experience" (Sprints K/L/M) — Done
 - `docs/active/PRD-UI-PHASE3-HYBRID-CEREMONY.md` — UI Phase 3 "HYBRID Ceremony" (Sprints H/I/J) — Done
 - `docs/active/MASTER_PROMPT_UI_PHASE3.md` — Phase 3 execution prompt — Done
@@ -32,11 +32,12 @@
 
 GENESIS is a premium AI-powered fitness coaching app built with Expo (React Native) and a FastAPI BFF (Backend for Frontend). It currently runs 5 ADK agents (genesis orchestrator + train, fuel, mind, track sub-agents) powered by Gemini, with 2 more planned (vision, coach_bridge). The app features 12-week periodized training seasons and comprehensive wellness tracking. A companion coach web app (GENESIS BRAIN, Next.js) is planned for Sprint 6.
 
-## Current Status (Phase 9 Sprint 4 Track B complete — Feb 2026)
+## Current Status (UI Phase 5 complete — Feb 2026)
 
 ### Completed Phases
 - **Phase 1-4**: Core screens, navigation, chat, UI polish
 - **Phase 5**: Supabase integration, workout flow, chat backend
+- **UI Phase 5 "First Mile" (Sprints N/O/P)**: Welcome briefing, Getting Started card, settings screen (editable profile, logout alert, master notification toggle, quiet hours, support email), smart context-aware notifications with streak gating, coach notification deep-link
 - **Phase 5.5**: UI refinement, color system overhaul, auth redesign
 - **Phase 6 Sprint 1**: Color fixes, DB migrations, training data pipeline
 - **Phase 6 Sprint 2**: Wire Home, Track, Mind tabs to real data
@@ -97,6 +98,10 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - Cloud Run deploy script (scripts/deploy_cloud_run.sh) — Artifact Registry + gcloud run deploy
 - End-to-end smoke test script (scripts/smoke_test.py) — health, chat, knowledge retrieval validation
 - .env.example for BFF (all env vars documented) + root .env.example for mobile
+- Settings screen: editable profile name (persists via `upsertProfile` to Supabase), logout confirmation alert, master notification toggle, quiet hours editor, support email link (`soporte@ngx.com`)
+- Smart notifications: context-aware (check-in, training, streak risk, hydration), streak notification gated on streak >= 3, streak persisted to AsyncStorage for non-React access
+- Notification deep-links: check_in → check-in modal, training → train tab, nutrition → fuel tab, coach → genesis-chat modal
+- Welcome briefing + Getting Started card on home screen
 
 ### Known issues
 - `react-native-svg` version mismatch warning (15.15.2 installed, 15.12.1 expected)
@@ -174,6 +179,7 @@ genesis-app/
 │   │   ├── voice-call.tsx        # Voice call with AI coach
 │   │   └── exercise-video.tsx    # Exercise demo video player
 │   └── (screens)/                # Full screens
+│       ├── settings.tsx          # Settings: profile, notifications, quiet hours, support
 │       ├── active-workout.tsx    # Live workout tracking
 │       ├── library.tsx           # Exercise library browser
 │       ├── exercise-detail.tsx   # Single exercise detail
@@ -273,7 +279,8 @@ genesis-app/
 │   ├── elevenLabsApi.ts          # ElevenLabs TTS API
 │   ├── elevenLabsConversation.ts # ElevenLabs conversational voice
 │   ├── offlineQueue.ts           # Offline operation queue (AsyncStorage-based)
-│   └── pushNotifications.ts      # Push notification registration + handling
+│   ├── pushNotifications.ts      # Push notification registration + handling
+│   └── smartNotifications.ts     # Context-aware notification scheduler (streak >= 3 gating)
 ├── hooks/                        # Custom React hooks
 │   ├── useGenesisChat.ts         # Chat message handling
 │   ├── useHealthKit.ts           # HealthKit data hook
