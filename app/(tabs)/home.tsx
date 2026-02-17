@@ -4,7 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } fro
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Utensils, Brain, Sparkles, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X, Heart, Check, Settings } from 'lucide-react-native';
+import { Dumbbell, Utensils, Brain, Sparkle, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X, Heart, Check, Settings } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner, CollapsibleSection, WellnessIndicator } from '../../components/ui';
@@ -408,15 +408,15 @@ export default function HomeScreen() {
                 {/* Phase Badge */}
                 <View style={{
                   alignSelf: 'flex-start',
-                  backgroundColor: GENESIS_COLORS.primaryDim,
+                  backgroundColor: 'transparent',
                   borderRadius: 9999,
                   borderWidth: 1,
-                  borderColor: GENESIS_COLORS.borderActive,
+                  borderColor: GENESIS_COLORS.primary,
                   paddingHorizontal: 10,
                   paddingVertical: 4,
                 }}>
                   <Text style={{
-                    color: GENESIS_COLORS.primary,
+                    color: '#FFFFFF',
                     fontSize: 10,
                     fontFamily: 'JetBrainsMonoSemiBold',
                     letterSpacing: 1,
@@ -425,7 +425,7 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Sparkles size={16} color={phaseConfig.accentColor} />
+                  <Sparkle size={16} color={phaseConfig.accentColor} />
                   <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
                     GENESIS
                   </Text>
@@ -703,7 +703,7 @@ const MissionCard = memo(function MissionCard({
     <Pressable
       onPress={onPress}
       style={{
-        width: 140,
+        width: 160,
         borderRadius: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
