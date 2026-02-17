@@ -13,15 +13,15 @@ export const GENESIS_COLORS = {
   chromeDarker: '#404040',
 
   // Accents
-  cyan: '#00E5FF',
-  cyanDeep: '#00BBD4',
+  cyan: '#9D4EDD',
+  cyanDeep: '#7B2FBE',
   mint: '#00F5AA',
 
   // Status Semantic
   success: '#00F5AA',
   warning: '#FFD93D',
   error: '#FF6B6B',
-  info: '#00D4FF',
+  info: '#9D4EDD',
 
   // Backgrounds
   bgGradientStart: '#151226',
@@ -46,14 +46,14 @@ export const GENESIS_COLORS = {
 } as const;
 
 export const MACRO_COLORS = {
-  protein: '#38bdf8',
+  protein: '#FFFFFF',
   carbs: '#00F5AA',
   fat: '#F97316',
 } as const;
 
 export const MOOD_COLORS = {
   excellent: '#00F5AA',
-  good: '#00D4FF',
+  good: '#9D4EDD',
   neutral: '#808080',
   poor: '#FFD93D',
   terrible: '#FF6B6B',
@@ -62,10 +62,10 @@ export const MOOD_COLORS = {
 export type GenesisColor = keyof typeof GENESIS_COLORS;
 
 export const SEASON_PHASE_COLORS = {
-  hypertrophy: '#00D4FF',
+  hypertrophy: '#6D00FF',
   strength: '#6D00FF',
-  power: '#FFD93D',
-  deload: '#00F5AA',
+  power: '#9D4EDD',
+  deload: '#7C3AED',
 } as const;
 
 export const BODY_MAP_COLORS: Record<string, string> = {
@@ -77,10 +77,10 @@ export const BODY_MAP_COLORS: Record<string, string> = {
 
 export const MUSCLE_GRADIENTS: Record<string, [string, string]> = {
   chest: ['#6D00FF', '#9D4EDD'],
-  back: ['#00D4FF', '#38bdf8'],
-  shoulders: ['#F97316', '#fb923c'],
-  legs: ['#00F5AA', '#34d399'],
-  arms: ['#FFD93D', '#fbbf24'],
-  core: ['#FF6B6B', '#f87171'],
-  full_body: ['#6D00FF', '#00D4FF'],
+  back: ['#9D4EDD', '#6D00FF'],
+  shoulders: ['#7C3AED', '#9D4EDD'],
+  legs: ['#6D00FF', '#9D4EDD'],
+  arms: ['#9D4EDD', '#7C3AED'],
+  core: ['#9D4EDD', '#6D00FF'],
+  full_body: ['#6D00FF', '#9D4EDD'],
 } as const;

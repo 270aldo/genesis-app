@@ -12,7 +12,7 @@ import { Trophy } from 'lucide-react-native';
 import { hapticHeavy } from '../../utils/haptics';
 import type { DetectedPR } from '../../utils/prDetection';
 
-const CONFETTI_COLORS = ['#FFD700', '#6D00FF', '#00F5AA', '#00E5FF', '#FF6B6B'];
+const CONFETTI_COLORS = ['#FFD700', '#6D00FF', '#00F5AA', '#9D4EDD', '#FF6B6B'];
 
 type ConfettiPiece = {
   id: number;

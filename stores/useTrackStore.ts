@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Measurement, ProgressPhoto } from '../types';
 import { hasSupabaseConfig } from '../services/supabaseClient';
+import { DEMO_PERSONAL_RECORDS, DEMO_TRACK_STATS } from '../data/demoProfile';
 
 type StrengthProgressData = {
   exerciseName: string;
@@ -184,7 +185,10 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
   },
 
   fetchPersonalRecords: async () => {
-    if (!hasSupabaseConfig) return;
+    if (!hasSupabaseConfig) {
+      set({ personalRecords: DEMO_PERSONAL_RECORDS });
+      return;
+    }
     set({ isLoading: true });
     try {
       const { fetchPersonalRecords: fetchPRs, getCurrentUserId } = await import('../services/supabaseQueries');
@@ -209,7 +213,10 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
   },
 
   fetchStreak: async () => {
-    if (!hasSupabaseConfig) return;
+    if (!hasSupabaseConfig) {
+      set({ streak: DEMO_TRACK_STATS.streak });
+      return;
+    }
     try {
       const { fetchCheckIns, getCurrentUserId } = await import('../services/supabaseQueries');
       const userId = getCurrentUserId();
@@ -240,6 +247,13 @@ export const useTrackStore = create<TrackingState>((set, get) => ({
   },
 
   fetchTrackStats: async () => {
+    if (!hasSupabaseConfig) {
+      set({
+        completedWorkouts: DEMO_TRACK_STATS.completedWorkouts,
+        totalPlanned: DEMO_TRACK_STATS.totalPlanned,
+      });
+      return;
+    }
     set({ error: null });
     try {
       const { genesisAgentApi } = await import('../services/genesisAgentApi');

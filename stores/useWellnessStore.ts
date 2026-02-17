@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { WellnessCheckIn } from '../types';
 import { hasSupabaseConfig } from '../services/supabaseClient';
+import { DEMO_CHECKIN } from '../data/demoProfile';
 
 type WellnessState = {
   todayCheckIn: WellnessCheckIn | null;
@@ -81,7 +82,10 @@ export const useWellnessStore = create<WellnessState>((set, get) => ({
   },
 
   fetchTodayCheckIn: async () => {
-    if (!hasSupabaseConfig) return;
+    if (!hasSupabaseConfig) {
+      set({ todayCheckIn: DEMO_CHECKIN });
+      return;
+    }
     set({ isLoading: true });
     try {
       const { fetchCheckIns, getCurrentUserId } = await import('../services/supabaseQueries');

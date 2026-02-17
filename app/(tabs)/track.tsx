@@ -4,7 +4,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TrendingUp, Trophy, Target, Calendar, Zap, Camera, Trash2 } from 'lucide-react-native';
+import { TrendingUp, Award, Crosshair, Activity, Zap, Camera, Trash2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
   GlassCard,
@@ -25,6 +25,7 @@ import { useCountUpDisplay } from '../../hooks/useCountUpDisplay';
 import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
 import { SkeletonCard } from '../../components/loading/SkeletonCard';
 import { EmptyStateIllustration } from '../../components/ui';
+import { hapticLight } from '../../utils/haptics';
 
 export default function TrackScreen() {
   const { seasonNumber, currentWeek, currentPhase, weeks, progressPercent } = useSeasonStore();
@@ -59,6 +60,7 @@ export default function TrackScreen() {
   }, []);
 
   const handlePickPhoto = useCallback(async () => {
+    hapticLight();
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
@@ -71,6 +73,7 @@ export default function TrackScreen() {
   }, [addPhoto]);
 
   const handleTakePhoto = useCallback(async () => {
+    hapticLight();
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') return;
     const result = await ImagePicker.launchCameraAsync({
@@ -91,8 +94,8 @@ export default function TrackScreen() {
   const prsDisplay = useCountUpDisplay(totalPRs);
   const adherenceDisplay = useCountUpDisplay(adherence ?? 0);
 
-  const entrance = useStaggeredEntrance(6, 120);
-  const totalDuration = 600 + 6 * 120;
+  const entrance = useStaggeredEntrance(7, 120);
+  const totalDuration = 600 + 7 * 120;
 
   // Strength chart data from store (guard against undefined from API)
   const chartData = strengthProgress?.dataPoints ?? [];
@@ -140,7 +143,7 @@ export default function TrackScreen() {
                 <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
                   SEASON {seasonNumber} · SEMANA {currentWeek}/12
                 </Text>
-                <Text style={{ color: '#FFFFFF', fontSize: 20, fontFamily: 'InterBold' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 36, fontFamily: 'InterBold' }}>
                   {progressPercent}% Completado
                 </Text>
                 <ProgressBar progress={progressPercent || 18} gradient />
@@ -150,25 +153,25 @@ export default function TrackScreen() {
 
           {/* Season Stats */}
           <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>
-            <SectionLabel title="STATS">
+            <SectionLabel title="ESTADÍSTICAS">
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <ScoreCard
-                  icon={<Calendar size={20} color={phaseConfig.accentColor} />}
+                  icon={<Activity size={18} color={phaseConfig.accentColor} strokeWidth={2.5} />}
                   value={workoutsDisplay}
                   label="WORKOUTS"
-                  iconBgColor={phaseConfig.color + '20'}
+                  iconBgColor={phaseConfig.color + '15'}
                 />
                 <ScoreCard
-                  icon={<Trophy size={20} color="#FFD700" />}
+                  icon={<Award size={18} color="#FFD700" strokeWidth={2.5} />}
                   value={prsDisplay}
                   label="PRs"
-                  iconBgColor="#FFD70020"
+                  iconBgColor="#FFD70015"
                 />
                 <ScoreCard
-                  icon={<Target size={20} color={GENESIS_COLORS.success} />}
+                  icon={<Crosshair size={18} color={GENESIS_COLORS.success} strokeWidth={2.5} />}
                   value={adherence !== null ? `${adherenceDisplay}%` : '—'}
                   label={adherence !== null ? 'ADHERENCE' : 'SIN PLAN'}
-                  iconBgColor={GENESIS_COLORS.success + '20'}
+                  iconBgColor={GENESIS_COLORS.success + '15'}
                 />
               </View>
             </SectionLabel>
@@ -198,7 +201,7 @@ export default function TrackScreen() {
 
           {/* Personal Records */}
           <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
-            <SectionLabel title="PERSONAL RECORDS">
+            <SectionLabel title="RECORDS PERSONALES">
               <View style={{ gap: 12 }}>
                 {personalRecords.length > 0 ? (
                   personalRecords.map((pr) => (
@@ -206,7 +209,7 @@ export default function TrackScreen() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                           <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFD70020', alignItems: 'center', justifyContent: 'center' }}>
-                            <Trophy size={18} color="#FFD700" />
+                            <Award size={18} color="#FFD700" strokeWidth={2.5} />
                           </View>
                           <View style={{ gap: 2 }}>
                             <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{pr.exerciseName}</Text>
@@ -228,9 +231,42 @@ export default function TrackScreen() {
             </SectionLabel>
           </StaggeredSection>
 
-          {/* Progress Photos */}
+          {/* Body Measurements */}
           <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
-            <SectionLabel title="PROGRESS PHOTOS">
+            <SectionLabel title="MEDIDAS CORPORALES">
+              <GlassCard shine>
+                <View style={{ gap: 14 }}>
+                  <MeasurementRow label="Peso" unit="kg" value="--" />
+                  <MeasurementRow label="Grasa corporal" unit="%" value="--" />
+                  <MeasurementRow label="Cintura" unit="cm" value="--" />
+                  <Pressable
+                    onPress={() => {}}
+                    style={{
+                      alignSelf: 'center',
+                      marginTop: 4,
+                      paddingVertical: 10,
+                      paddingHorizontal: 20,
+                      borderRadius: 12,
+                      backgroundColor: 'rgba(0,0,0,0.4)',
+                      borderWidth: 1.5,
+                      borderColor: GENESIS_COLORS.primary,
+                      shadowColor: GENESIS_COLORS.primary,
+                      shadowOpacity: 0.25,
+                      shadowRadius: 6,
+                      shadowOffset: { width: 0, height: 0 },
+                      elevation: 3,
+                    }}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 0.5 }}>REGISTRAR MEDIDAS</Text>
+                  </Pressable>
+                </View>
+              </GlassCard>
+            </SectionLabel>
+          </StaggeredSection>
+
+          {/* Progress Photos */}
+          <StaggeredSection index={5} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="FOTOS DE PROGRESO">
               <View style={{ gap: 12 }}>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Pressable
@@ -243,13 +279,18 @@ export default function TrackScreen() {
                       gap: 6,
                       paddingVertical: 12,
                       borderRadius: 12,
-                      backgroundColor: `${GENESIS_COLORS.primary}20`,
-                      borderWidth: 1,
-                      borderColor: `${GENESIS_COLORS.primary}40`,
+                      backgroundColor: 'rgba(0,0,0,0.4)',
+                      borderWidth: 1.5,
+                      borderColor: GENESIS_COLORS.primary,
+                      shadowColor: GENESIS_COLORS.primary,
+                      shadowOpacity: 0.25,
+                      shadowRadius: 6,
+                      shadowOffset: { width: 0, height: 0 },
+                      elevation: 3,
                     }}
                   >
-                    <Camera size={16} color={GENESIS_COLORS.primary} />
-                    <Text style={{ color: GENESIS_COLORS.primary, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>TAKE PHOTO</Text>
+                    <Camera size={16} color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>TOMAR FOTO</Text>
                   </Pressable>
                   <Pressable
                     onPress={handlePickPhoto}
@@ -261,12 +302,12 @@ export default function TrackScreen() {
                       gap: 6,
                       paddingVertical: 12,
                       borderRadius: 12,
-                      backgroundColor: `${phaseConfig.color}15`,
+                      backgroundColor: 'rgba(0,0,0,0.4)',
                       borderWidth: 1,
-                      borderColor: `${phaseConfig.color}33`,
+                      borderColor: 'rgba(255,255,255,0.15)',
                     }}
                   >
-                    <Text style={{ color: phaseConfig.accentColor, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>GALLERY</Text>
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>GALERÍA</Text>
                   </Pressable>
                 </View>
 
@@ -310,7 +351,7 @@ export default function TrackScreen() {
           </StaggeredSection>
 
           {/* Phase Insight */}
-          <StaggeredSection index={5} entrance={entrance} totalDuration={totalDuration}>
+          <StaggeredSection index={6} entrance={entrance} totalDuration={totalDuration}>
             <GlassCard shine>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Zap size={14} color={phaseConfig.accentColor} />
@@ -327,6 +368,20 @@ export default function TrackScreen() {
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
+  );
+}
+
+function MeasurementRow({ label, unit, value }: { label: string; unit: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter' }}>
+        {label} <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 10 }}>({unit})</Text>
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Text style={{ color: '#FFFFFF', fontSize: 16, fontFamily: 'JetBrainsMonoBold' }}>{value}</Text>
+        <TrendingUp size={12} color={GENESIS_COLORS.textMuted} />
+      </View>
+    </View>
   );
 }
 

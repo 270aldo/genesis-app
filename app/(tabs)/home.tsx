@@ -4,7 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } fro
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Utensils, Brain, Sparkle, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X, Heart, Check, Settings } from 'lucide-react-native';
+import { Dumbbell, Utensils, Brain, Sparkle, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X, Heart, Check, Settings, User } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner, CollapsibleSection, WellnessIndicator } from '../../components/ui';
@@ -329,11 +329,29 @@ export default function HomeScreen() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header with greeting + settings */}
+          {/* Header with avatar + greeting + settings */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 16, fontFamily: 'JetBrainsMonoSemiBold', color: '#FFF' }}>
-              {greeting}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Pressable
+                onPress={() => router.push('/(screens)/settings')}
+                hitSlop={8}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: GENESIS_COLORS.primary + '20',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: GENESIS_COLORS.primary + '40',
+                }}
+              >
+                <User size={18} color={GENESIS_COLORS.primary} />
+              </Pressable>
+              <Text style={{ fontSize: 16, fontFamily: 'JetBrainsMonoSemiBold', color: '#FFF' }}>
+                {greeting}
+              </Text>
+            </View>
             <Pressable
               onPress={() => router.push('/(screens)/settings')}
               hitSlop={8}

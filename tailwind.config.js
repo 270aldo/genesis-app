@@ -13,7 +13,7 @@ module.exports = {
           success: '#22ff73',
           warning: '#F97316',
           error: '#ff6b6b',
-          info: '#38bdf8',
+          info: '#9D4EDD',
           'text-primary': '#FFFFFF',
           'text-secondary': '#827a89',
           'text-tertiary': '#6b6b7b',
@@ -66,7 +66,7 @@ module.exports = {
         'glow-success': '0 8px 16px rgba(34, 255, 115, 0.1)',
         'glow-warning': '0 8px 16px rgba(249, 115, 22, 0.1)',
         'glow-error': '0 8px 16px rgba(255, 107, 107, 0.1)',
-        'glow-info': '0 8px 16px rgba(56, 189, 248, 0.1)',
+        'glow-info': '0 8px 16px rgba(157, 78, 221, 0.1)',
         shine: '0 1px 2px rgba(255, 255, 255, 0.05)',
         'glass-sm': '0 4px 12px rgba(0, 0, 0, 0.2)',
         'glass-md': '0 8px 24px rgba(0, 0, 0, 0.3)'

@@ -4,7 +4,7 @@ import { Smile, SmilePlus, Meh, Frown, Angry } from 'lucide-react-native';
 const moods = [
   { key: 'great', label: 'Great', icon: Smile, color: '#00F5AA' },
   { key: 'good', label: 'Good', icon: SmilePlus, color: '#6D00FF' },
-  { key: 'okay', label: 'Okay', icon: Meh, color: '#00D4FF' },
+  { key: 'okay', label: 'Okay', icon: Meh, color: '#9D4EDD' },
   { key: 'low', label: 'Low', icon: Frown, color: '#FFD93D' },
   { key: 'bad', label: 'Bad', icon: Angry, color: '#FF6B6B' },
 ] as const;
@@ -17,7 +17,7 @@ type MoodSelectorProps = {
 
 export function MoodSelector({ selected, onSelect, disabled }: MoodSelectorProps) {
   return (
-    <View className="flex-row justify-between" style={disabled ? { opacity: 0.5 } : undefined}>
+    <View className="flex-row justify-between">
       {moods.map((mood) => {
         const isSelected = selected === mood.key;
         const IconComponent = mood.icon;

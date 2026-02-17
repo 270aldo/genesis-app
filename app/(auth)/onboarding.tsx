@@ -18,7 +18,7 @@ const STEPS: Step[] = ['goal', 'experience', 'schedule', 'body', 'review'];
 const GOALS = [
   { id: 'strength', label: 'Fuerza', subtitle: 'Construcción de fuerza máxima y potencia', icon: Dumbbell, color: GENESIS_COLORS.primary },
   { id: 'endurance', label: 'Resistencia', subtitle: 'Capacidad cardiovascular y muscular', icon: Timer, color: GENESIS_COLORS.success },
-  { id: 'aesthetics', label: 'Estética', subtitle: 'Composición corporal y definición', icon: Ruler, color: '#00E5FF' },
+  { id: 'aesthetics', label: 'Estética', subtitle: 'Composición corporal y definición', icon: Ruler, color: '#9D4EDD' },
   { id: 'longevity', label: 'Longevidad', subtitle: 'Salud funcional a largo plazo', icon: Target, color: GENESIS_COLORS.warning },
 ];
 
@@ -43,7 +43,7 @@ const GUIDE_MESSAGES: Record<Step, string> = {
   review: 'He diseñado tu temporada personalizada. Esto es lo que te espera.',
 };
 
-const PHASE_COLORS = ['#6D00FF', '#00E5FF', '#00F5AA', '#FFD93D'];
+const PHASE_COLORS = ['#6D00FF', '#9D4EDD', '#7C3AED', '#5B21B6'];
 const PHASE_NAMES = ['Hipertrofia', 'Fuerza', 'Potencia', 'Deload'];
 
 export default function OnboardingScreen() {

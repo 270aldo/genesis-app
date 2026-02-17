@@ -276,6 +276,17 @@ export default function ActiveWorkoutScreen() {
               <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>
                 Set {completedSets + 1} of {totalSets} · {currentExercise.weight}{currentExercise.unit}
               </Text>
+              {currentExercise?.videoUrl && (
+                <Pressable
+                  onPress={() => router.push(`/(modals)/exercise-video?url=${encodeURIComponent(currentExercise.videoUrl!)}`)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}
+                >
+                  <Play size={12} color={GENESIS_COLORS.primary} />
+                  <Text style={{ color: GENESIS_COLORS.primary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                    Ver demo
+                  </Text>
+                </Pressable>
+              )}
             </View>
           )}
 
