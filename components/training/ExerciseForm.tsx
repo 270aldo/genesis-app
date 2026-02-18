@@ -31,7 +31,7 @@ function SetRow({
     return (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, opacity: 0.6 }}>
         <Check size={14} color={theme.colors.success} />
-        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMonoMedium' }}>
+        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMonoMedium', textDecorationLine: 'line-through' }}>
           Set {exerciseSet.setNumber}: {exerciseSet.actualWeight ?? exerciseSet.targetWeight}kg × {exerciseSet.actualReps ?? exerciseSet.targetReps}
           {exerciseSet.rpe ? ` @RPE ${exerciseSet.rpe}` : ''}
         </Text>
@@ -46,7 +46,7 @@ function SetRow({
       </Text>
       <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: theme.colors.textTertiary, fontSize: 9 }}>KG</Text>
+          <Text style={{ color: theme.colors.textTertiary, fontSize: 11 }}>KG</Text>
           <TextInput
             value={weight}
             onChangeText={setWeight}
@@ -56,7 +56,7 @@ function SetRow({
               borderWidth: 1,
               borderColor: theme.colors.borderSubtle,
               borderRadius: 8,
-              padding: 8,
+              padding: 12,
               color: theme.colors.textPrimary,
               fontSize: 14,
               fontFamily: 'JetBrainsMonoMedium',
@@ -65,7 +65,7 @@ function SetRow({
           />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: theme.colors.textTertiary, fontSize: 9 }}>REPS</Text>
+          <Text style={{ color: theme.colors.textTertiary, fontSize: 11 }}>REPS</Text>
           <TextInput
             value={reps}
             onChangeText={setReps}
@@ -75,7 +75,7 @@ function SetRow({
               borderWidth: 1,
               borderColor: theme.colors.borderSubtle,
               borderRadius: 8,
-              padding: 8,
+              padding: 12,
               color: theme.colors.textPrimary,
               fontSize: 14,
               fontFamily: 'JetBrainsMonoMedium',
@@ -84,19 +84,19 @@ function SetRow({
           />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: theme.colors.textTertiary, fontSize: 9 }}>RPE</Text>
+          <Text style={{ color: theme.colors.textTertiary, fontSize: 11 }}>RPE</Text>
           <TextInput
             value={rpe}
             onChangeText={setRpe}
             keyboardType="numeric"
-            placeholder="—"
+            placeholder="7"
             placeholderTextColor={theme.colors.textTertiary}
             style={{
               backgroundColor: 'rgba(255,255,255,0.04)',
               borderWidth: 1,
               borderColor: theme.colors.borderSubtle,
               borderRadius: 8,
-              padding: 8,
+              padding: 12,
               color: theme.colors.textPrimary,
               fontSize: 14,
               fontFamily: 'JetBrainsMonoMedium',
@@ -114,13 +114,16 @@ function SetRow({
           style={{
             backgroundColor: theme.colors.primary,
             borderRadius: 8,
-            width: 40,
-            height: 40,
+            flex: 0.6,
+            height: 48,
+            flexDirection: 'row',
+            gap: 4,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Check size={18} color="#FFFFFF" />
+          <Check size={16} color="#FFFFFF" />
+          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>LOG</Text>
         </Pressable>
       </View>
     </View>
