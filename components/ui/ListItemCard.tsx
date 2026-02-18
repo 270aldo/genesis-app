@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, type TextStyle, Text, View, type ViewStyle } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 
 type ColorVariant = 'purple' | 'green' | 'orange' | 'blue' | 'red';
@@ -15,7 +15,7 @@ const variantColors: Record<ColorVariant, { border: string; shadow: string; icon
 type ListItemCardProps = {
   icon: ReactNode;
   title: string;
-  subtitle: string;
+  subtitle: string | ReactNode;
   variant?: ColorVariant;
   right?: ReactNode;
   onPress?: () => void;
@@ -47,7 +47,11 @@ export function ListItemCard({ icon, title, subtitle, variant = 'purple', right,
       </View>
       <View className="flex-1 gap-1">
         <Text className="font-jetbrains-bold text-[13px] text-white">{title}</Text>
-        <Text className="font-inter text-[11px]" style={{ color: 'rgba(192, 192, 192, 0.60)' }}>{subtitle}</Text>
+        {typeof subtitle === 'string' ? (
+          <Text className="font-inter text-[11px]" style={{ color: 'rgba(192, 192, 192, 0.60)' }}>{subtitle}</Text>
+        ) : (
+          subtitle
+        )}
       </View>
       {right ?? <ChevronRight size={16} color="rgba(255, 255, 255, 0.40)" />}
     </Pressable>
