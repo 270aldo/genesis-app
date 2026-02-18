@@ -131,8 +131,8 @@ export function EnhancedRestTimer({
       {/* Phase tip */}
       {tip ? (
         <Text style={{
-          color: GENESIS_COLORS.textMuted,
-          fontSize: 11,
+          color: GENESIS_COLORS.textSecondary,
+          fontSize: 12,
           fontFamily: 'Inter',
           textAlign: 'center',
           lineHeight: 16,
@@ -156,8 +156,8 @@ export function EnhancedRestTimer({
         }}
       >
         <SkipForward size={14} color={phaseColor} />
-        <Text style={{ color: phaseColor, fontSize: 13, fontFamily: 'JetBrainsMonoSemiBold' }}>
-          Saltar descanso
+        <Text style={{ color: phaseColor, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>
+          SKIP
         </Text>
       </Pressable>
     </View>
