@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Play } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GlassCard } from '../../components/ui';
@@ -73,6 +73,8 @@ export default function ExerciseDetailScreen() {
                 height: 36,
                 borderRadius: 18,
                 backgroundColor: GENESIS_COLORS.surfaceCard,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.15)',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -85,6 +87,9 @@ export default function ExerciseDetailScreen() {
             {/* Name */}
             <Text style={{ color: '#FFFFFF', fontSize: 24, fontFamily: 'InterBold' }}>
               {exercise.name}
+            </Text>
+            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5, marginTop: 4 }}>
+              {exercise.equipment.toUpperCase()}
             </Text>
 
             {/* Metadata pills — pill shape */}
@@ -188,6 +193,24 @@ export default function ExerciseDetailScreen() {
               </View>
             </View>
 
+            {/* Video CTA */}
+            {exercise.videoUrl && (
+              <Pressable
+                onPress={() => router.push(`/(modals)/exercise-video?url=${encodeURIComponent(exercise.videoUrl)}`)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: GENESIS_COLORS.primary + '15',
+                  borderRadius: 10,
+                  padding: 10,
+                }}
+              >
+                <Play size={16} color={GENESIS_COLORS.primary} />
+                <Text style={{ color: GENESIS_COLORS.primary, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>VER DEMO</Text>
+              </Pressable>
+            )}
+
             {/* Alternatives */}
             {alternatives.length > 0 && (
               <View style={{ gap: 10 }}>
@@ -196,13 +219,13 @@ export default function ExerciseDetailScreen() {
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
                   {alternatives.map((alt) => (
-                    <View key={alt.id} style={{ width: 150 }}>
+                    <View key={alt.id} style={{ width: 170 }}>
                       <ImageCard
                         imageUrl={alt.imageUrl}
                         title={alt.name}
                         badge={alt.equipment}
                         badgeColor={DIFFICULTY_COLORS[alt.difficulty]}
-                        height={120}
+                        height={140}
                         onPress={() => router.push(`/(screens)/exercise-detail?id=${alt.id}`)}
                       />
                     </View>
