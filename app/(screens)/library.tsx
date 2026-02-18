@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-nativ
 import { FlatList, ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Search } from 'lucide-react-native';
+import { ArrowLeft, Dumbbell, Search } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
@@ -75,7 +75,7 @@ export default function LibraryScreen() {
               alignItems: 'center',
               gap: 8,
               backgroundColor: GENESIS_COLORS.surfaceCard,
-              borderRadius: 16,
+              borderRadius: 9999,
               borderWidth: 1,
               borderColor: isFocused ? GENESIS_COLORS.borderActive : GENESIS_COLORS.borderSubtle,
               paddingHorizontal: 12,
@@ -105,8 +105,8 @@ export default function LibraryScreen() {
                     {
                       backgroundColor: active ? GENESIS_COLORS.primary : 'rgba(255,255,255,0.05)',
                       borderRadius: 9999,
-                      paddingHorizontal: 14,
-                      paddingVertical: 7,
+                      paddingHorizontal: 16,
+                      paddingVertical: 9,
                       borderWidth: 1,
                       borderColor: active ? GENESIS_COLORS.primary : GENESIS_COLORS.borderSubtle,
                     },
@@ -149,7 +149,7 @@ export default function LibraryScreen() {
                 imageUrl={item.imageUrl}
                 title={item.name}
                 badge={item.equipment}
-                badgeColor={DIFFICULTY_COLORS[item.difficulty]}
+                badgeColor={GENESIS_COLORS.textSecondary}
                 height={180}
                 onPress={() => router.push(`/(screens)/exercise-detail?id=${item.id}`)}
               />
@@ -160,7 +160,10 @@ export default function LibraryScreen() {
               {isCatalogLoading ? (
                 <ActivityIndicator size="large" color={GENESIS_COLORS.primary} />
               ) : (
-                <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 14, fontFamily: 'Inter' }}>No exercises found</Text>
+                <>
+                  <Dumbbell size={32} color={GENESIS_COLORS.textMuted} style={{ marginBottom: 12 }} />
+                  <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 14, fontFamily: 'Inter' }}>No se encontraron ejercicios</Text>
+                </>
               )}
             </View>
           }
