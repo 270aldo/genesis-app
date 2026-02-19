@@ -4,10 +4,10 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Sparkle, ChevronRight, Info, Moon } from 'lucide-react-native';
+import { Dumbbell, ChevronRight, Moon, Camera } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { GlassCard, GradientCard, ListItemCard, Divider, SeasonHeader, ErrorBanner } from '../../components/ui';
+import { GlassCard, GradientCard, ListItemCard, SeasonHeader, ErrorBanner, CollapsibleSection, GenesisIcon } from '../../components/ui';
 import { CoachReviewBadge } from '../../components/coach';
 import { ImageCard } from '../../components/cards';
 import { GENESIS_COLORS } from '../../constants/colors';
@@ -33,10 +33,11 @@ function getMuscleGroupImage(muscleGroups: string[]): string {
 export default function TrainScreen() {
   const router = useRouter();
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
-  const { todayPlan, isTodayPlanLoading, error: trainError, fetchTodayPlan } = useTrainingStore();
+  const { todayPlan, isTodayPlanLoading, error: trainError, fetchTodayPlan, previousSessions, exerciseCatalog } = useTrainingStore();
 
   useEffect(() => {
     fetchTodayPlan();
+    useTrainingStore.getState().fetchPreviousSessions();
   }, []);
 
   // Use real plan from BFF, fall back to mock only in demo mode (no Supabase config)
@@ -45,8 +46,8 @@ export default function TrainScreen() {
   const phase = ((todayPlan?.phase || currentPhase || 'hypertrophy') as PhaseType);
   const phaseConfig = PHASE_CONFIG[phase];
 
-  const entrance = useStaggeredEntrance(5, 120);
-  const totalDuration = 600 + 5 * 120;
+  const entrance = useStaggeredEntrance(6, 120);
+  const totalDuration = 600 + 6 * 120;
 
   // Loading state
   if (isTodayPlanLoading) {
@@ -106,8 +107,6 @@ export default function TrainScreen() {
 
   // Rest day state (BFF returned plan: null and we have a real season)
   if (todayPlan === null && !isTodayPlanLoading && !trainError && seasonNumber > 0) {
-    // Check if fetchTodayPlan has been called (todayPlan starts as null before fetch too)
-    // We use a simple heuristic: if the store has attempted the fetch, show rest day
     return (
       <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -143,7 +142,7 @@ export default function TrainScreen() {
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 180, gap: 24 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Season Header */}
@@ -170,32 +169,30 @@ export default function TrainScreen() {
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                   {workout.muscleGroups.map((mg) => (
-                    <View key={mg} style={{ backgroundColor: '#6D00FF', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                    <View key={mg} style={{ backgroundColor: '#6D00FF', borderRadius: 9999, paddingHorizontal: 8, paddingVertical: 3 }}>
                       <Text style={{ color: '#FFFFFF', fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{mg}</Text>
                     </View>
                   ))}
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 9999, paddingHorizontal: 8, paddingVertical: 3 }}>
                     <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{workout.estimatedDuration} min</Text>
                   </View>
                 </View>
               </View>
             </ImageCard>}
-            <CoachReviewBadge visible={false} />
           </StaggeredSection>
 
-          {/* Phase Info */}
+          {/* Compact Phase Bar */}
           <StaggeredSection index={1} entrance={entrance} totalDuration={totalDuration}>
-            <GlassCard>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Info size={16} color={phaseConfig.accentColor} />
-                <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>
-                  {phaseConfig.label.toUpperCase()} PHASE
-                </Text>
-              </View>
-              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
-                Reps: {phaseConfig.repRange} · Sets: {phaseConfig.setsRange} · Descanso: {phaseConfig.restSeconds}s
+            <View style={{
+              backgroundColor: phaseConfig.accentColor + '10',
+              borderRadius: 10,
+              paddingVertical: 8,
+              paddingHorizontal: 14,
+            }}>
+              <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                {phaseConfig.label.toUpperCase()} · {phaseConfig.repRange} reps · {phaseConfig.setsRange} sets · {phaseConfig.restSeconds}s rest
               </Text>
-            </GlassCard>
+            </View>
           </StaggeredSection>
 
           {/* Exercises */}
@@ -213,12 +210,14 @@ export default function TrainScreen() {
               </View>
               <View style={{ gap: 12 }}>
                 {exercises.map((ex) => {
+                  const catalogMatch = exerciseCatalog.find((c) => c.name.toLowerCase() === ex.name.toLowerCase());
+                  const imageUri = catalogMatch?.imageUrl || getMuscleGroupImage(workout?.muscleGroups ?? []);
                   return (
                     <ListItemCard
                       key={ex.id}
                       icon={
                         <Image
-                          source={{ uri: getMuscleGroupImage(workout?.muscleGroups ?? []) }}
+                          source={{ uri: imageUri }}
                           placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
                           contentFit="cover"
                           style={{ width: 36, height: 36, borderRadius: 10 }}
@@ -226,7 +225,11 @@ export default function TrainScreen() {
                         />
                       }
                       title={ex.name}
-                      subtitle={`${ex.sets} × ${ex.reps} reps${ex.weight ? ` · ${ex.weight} ${ex.unit}` : ''}`}
+                      subtitle={
+                        <Text style={{ color: 'rgba(192, 192, 192, 0.60)', fontSize: 11, fontFamily: 'Inter' }}>
+                          {ex.sets} × {ex.reps} reps{ex.weight ? <Text> · <Text style={{ color: phaseConfig.accentColor }}>{ex.weight} {ex.unit}</Text></Text> : null}
+                        </Text>
+                      }
                       variant="purple"
                       onPress={() => {
                         router.push(`/(screens)/exercise-detail?id=${ex.id}`);
@@ -243,7 +246,7 @@ export default function TrainScreen() {
           <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
             <GlassCard shine>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Sparkle size={14} color={phaseConfig.accentColor} />
+                <GenesisIcon size={14} color={phaseConfig.accentColor} />
                 <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
               </View>
               <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
@@ -255,20 +258,100 @@ export default function TrainScreen() {
             </GlassCard>
           </StaggeredSection>
 
-          {/* Divider + Summary + Start Button */}
+          {/* Camera Form Check CTA */}
           <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
-            <Divider />
+            <Pressable onPress={() => router.push('/(modals)/camera-scanner')}>
+              <GlassCard>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    backgroundColor: GENESIS_COLORS.primary + '20',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Camera size={20} color={GENESIS_COLORS.primary} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>Verificar forma</Text>
+                    <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter' }}>
+                      Usa la cámara para analizar tu técnica
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color={GENESIS_COLORS.textTertiary} />
+                </View>
+              </GlassCard>
+            </Pressable>
+          </StaggeredSection>
 
-            {/* Summary */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 }}>
-              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>{exercises.length} ejercicios</Text>
-              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 13, fontFamily: 'JetBrainsMonoMedium' }}>~{workout?.estimatedDuration ?? 0} min</Text>
-            </View>
+          {/* Recent Sessions */}
+          <StaggeredSection index={5} entrance={entrance} totalDuration={totalDuration}>
+            <CollapsibleSection title="SESIONES RECIENTES" defaultExpanded={false} storageKey="genesis_section_recentSessions">
+              {previousSessions.length === 0 ? (
+                <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 12, fontFamily: 'Inter', textAlign: 'center', paddingVertical: 16 }}>
+                  Sin sesiones anteriores aún
+                </Text>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {previousSessions.slice(0, 5).map((session) => (
+                    <GlassCard key={session.id}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ gap: 2 }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
+                            {session.workoutName ?? session.exercises[0]?.name ?? 'Sesion'}
+                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            {session.completed && (
+                              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: GENESIS_COLORS.success }} />
+                            )}
+                            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                              {new Date(session.date).toLocaleDateString('es', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                          <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+                            {session.exercises.length} ejercicios
+                          </Text>
+                          {session.duration > 0 && (
+                            <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
+                              {Math.round(session.duration / 60)} min
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </GlassCard>
+                  ))}
+                </View>
+              )}
+            </CollapsibleSection>
+          </StaggeredSection>
+        </ScrollView>
 
-            {/* Start Button */}
+        {/* Sticky Start CTA */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+          <LinearGradient
+            colors={['transparent', GENESIS_COLORS.bgGradientEnd]}
+            style={{ height: 40 }}
+          />
+          <View style={{ backgroundColor: GENESIS_COLORS.bgGradientEnd, paddingHorizontal: 20, paddingBottom: 34 }}>
             <Pressable
               disabled={!workout}
-              style={{ marginTop: 24 }}
+              style={{
+                alignItems: 'center',
+                paddingVertical: 16,
+                borderRadius: 14,
+                backgroundColor: 'rgba(0,0,0,0.4)',
+                borderWidth: 1.5,
+                borderColor: GENESIS_COLORS.primary,
+                shadowColor: GENESIS_COLORS.primary,
+                shadowOpacity: 0.4,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 0 },
+                elevation: 6,
+                opacity: workout ? 1 : 0.5,
+              }}
               onPress={() => {
                 if (!workout) return;
                 const session = {
@@ -277,17 +360,19 @@ export default function TrainScreen() {
                   exercises: workout.exercises.map((ex) => ({ ...ex, completed: false })),
                   duration: 0,
                   completed: false,
+                  workoutName: workout.name,
                 };
                 useTrainingStore.getState().startWorkout(session);
                 router.push('/(screens)/active-workout');
               }}
             >
-              <GradientCard className="items-center py-4">
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>START WORKOUT</Text>
-              </GradientCard>
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1 }}>INICIAR SESION</Text>
+              <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', marginTop: 4 }}>
+                {exercises.length} ejercicios · ~{workout?.estimatedDuration ?? 0} min
+              </Text>
             </Pressable>
-          </StaggeredSection>
-        </ScrollView>
+          </View>
+        </View>
       </SafeAreaView>
     </LinearGradient>
   );

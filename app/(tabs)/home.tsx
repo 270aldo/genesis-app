@@ -4,10 +4,10 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } fro
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Utensils, Brain, Sparkle, Flame, BookOpen, ChevronRight, Moon, Droplets, Footprints, Cpu, X, Heart, Check, Settings } from 'lucide-react-native';
+import { Dumbbell, Utensils, Brain, Sparkle, Flame, BookOpen, ChevronRight, ChevronLeft, Moon, Droplets, Footprints, Cpu, X, Heart, Check, Settings, User, Target, Layers, Timer } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner, CollapsibleSection, WellnessIndicator } from '../../components/ui';
+import { GlassCard, GradientCard, ScreenHeader, SectionLabel, ProgressBar, SeasonHeader, ErrorBanner, CollapsibleSection, WellnessIndicator, GenesisIcon } from '../../components/ui';
 import { CoachNotes, CoachReviewBadge } from '../../components/coach';
 import { WeeklyWrap } from '../../components/season';
 import { ImageCard } from '../../components/cards';
@@ -44,13 +44,13 @@ const GettingStartedCard = memo(function GettingStartedCard({
   const allComplete = completedCheckIn && completedWorkout && completedMeal;
 
   const rows = [
-    { label: 'Registra tu check-in', done: completedCheckIn, icon: Heart, onPress: onCheckIn },
-    { label: 'Completa un entrenamiento', done: completedWorkout, icon: Dumbbell, onPress: onTrain },
-    { label: 'Registra una comida', done: completedMeal, icon: Utensils, onPress: onFuel },
+    { label: 'Registra tu check-in', done: completedCheckIn, icon: Heart, color: '#FF6B6B', onPress: onCheckIn },
+    { label: 'Completa un entrenamiento', done: completedWorkout, icon: Dumbbell, color: GENESIS_COLORS.primary, onPress: onTrain },
+    { label: 'Registra una comida', done: completedMeal, icon: Utensils, color: GENESIS_COLORS.success, onPress: onFuel },
   ];
 
   return (
-    <GlassCard shine style={{ borderColor: GENESIS_COLORS.primary + '33', borderWidth: 1 }}>
+    <GlassCard shine style={{ backgroundColor: '#000000', borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
       <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold', marginBottom: 4 }}>
         Primeros pasos
       </Text>
@@ -75,11 +75,11 @@ const GettingStartedCard = memo(function GettingStartedCard({
                 width: 32,
                 height: 32,
                 borderRadius: 10,
-                backgroundColor: row.done ? GENESIS_COLORS.success + '20' : 'rgba(255,255,255,0.06)',
+                backgroundColor: row.done ? GENESIS_COLORS.success + '20' : row.color + '15',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                <Icon size={16} color={row.done ? GENESIS_COLORS.success : GENESIS_COLORS.textMuted} />
+                <Icon size={16} color={row.done ? GENESIS_COLORS.success : row.color} />
               </View>
               <Text style={{
                 flex: 1,
@@ -236,10 +236,35 @@ export default function HomeScreen() {
   const phaseConfig = PHASE_CONFIG[phase];
   const currentDayIndex = new Date().getDay();
 
-  // Build briefing from real data
-  const briefingMessage = todayPlan
-    ? `Semana ${currentWeek} de ${phaseConfig.label}. Hoy toca ${todayPlan.name} — ${todayPlan.exercises.length} ejercicios, ~${todayPlan.estimatedDuration} min.`
-    : `Semana ${currentWeek} de ${phaseConfig.label}. Hoy es día de descanso. Enfócate en recovery y nutrición.`;
+  // Build adaptive briefing from real data
+  const sleepHours = todayCheckIn?.sleepHours ?? (healthSnapshot?.sleepHours ?? null);
+  const briefingMessage = useMemo(() => {
+    const workoutCtx = todayPlan
+      ? `Hoy toca ${todayPlan.name} — ${todayPlan.exercises.length} ejercicios, rango ${phaseConfig.repRange} reps.`
+      : `Hoy es día de descanso. Enfócate en recovery y nutrición.`;
+
+    // Priority 1: Sleep alert
+    if (sleepHours !== null && sleepHours < 6) {
+      return `Dormiste ${sleepHours}h — baja la intensidad y prioriza técnica. ${workoutCtx}`;
+    }
+    // Priority 2: Zero streak
+    if (streak === 0) {
+      return `Sin racha activa. ${workoutCtx} ¡Hoy es un gran día para empezar!`;
+    }
+    // Priority 3: Nutrition gap (>50% kcal remaining)
+    if (dailyGoal > 0 && remaining > dailyGoal * 0.5) {
+      return `Te faltan ${remaining.toLocaleString()} kcal hoy. ${workoutCtx}`;
+    }
+    // Priority 4: Default with phase context
+    return `Semana ${currentWeek} de ${phaseConfig.label}. ${workoutCtx}`;
+  }, [todayPlan, sleepHours, streak, dailyGoal, remaining, currentWeek, phaseConfig]);
+
+  // Format rest time
+  const restFormatted = useMemo(() => {
+    const mins = Math.floor(phaseConfig.restSeconds / 60);
+    const secs = phaseConfig.restSeconds % 60;
+    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+  }, [phaseConfig.restSeconds]);
 
   // Loading flag
   const isDataLoading = isTodayPlanLoading || isTrainingLoading;
@@ -329,11 +354,29 @@ export default function HomeScreen() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100, gap: 24 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header with greeting + settings */}
+          {/* Header with avatar + greeting + settings */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 16, fontFamily: 'JetBrainsMonoSemiBold', color: '#FFF' }}>
-              {greeting}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Pressable
+                onPress={() => router.push('/(screens)/settings')}
+                hitSlop={8}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: GENESIS_COLORS.primary + '20',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: GENESIS_COLORS.primary + '40',
+                }}
+              >
+                <User size={18} color={GENESIS_COLORS.primary} />
+              </Pressable>
+              <Text style={{ fontSize: 16, fontFamily: 'JetBrainsMonoSemiBold', color: '#FFF' }}>
+                {greeting}
+              </Text>
+            </View>
             <Pressable
               onPress={() => router.push('/(screens)/settings')}
               hitSlop={8}
@@ -387,41 +430,39 @@ export default function HomeScreen() {
           <StaggeredSection index={0} entrance={entrance} totalDuration={totalDuration}>
             <Pressable onPress={() => router.push('/(modals)/genesis-chat')}>
               <View style={{
-                backgroundColor: GENESIS_COLORS.surfaceCard,
+                backgroundColor: '#000000',
                 borderRadius: 20,
                 borderWidth: 1,
-                borderColor: GENESIS_COLORS.borderSubtle,
+                borderColor: GENESIS_COLORS.primary,
                 padding: 20,
                 gap: 12,
-                shadowColor: '#6D00FF',
-                shadowOpacity: 0.25,
-                shadowRadius: 15,
-                shadowOffset: { width: 0, height: 0 },
-                elevation: 8,
               }}>
-                <LinearGradient
-                  colors={['rgba(109,0,255,0.06)', 'transparent']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 20 }}
-                />
-                {/* Phase Badge */}
-                <View style={{
-                  alignSelf: 'flex-start',
-                  backgroundColor: 'transparent',
-                  borderRadius: 9999,
-                  borderWidth: 1,
-                  borderColor: GENESIS_COLORS.primary,
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                }}>
-                  <Text style={{
-                    color: '#FFFFFF',
-                    fontSize: 10,
-                    fontFamily: 'JetBrainsMonoSemiBold',
-                    letterSpacing: 1,
-                    textTransform: 'uppercase',
-                  }}>{phaseConfig.label}</Text>
+                {/* Phase Badge + Streak Badge Row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{
+                    backgroundColor: 'transparent',
+                    borderRadius: 9999,
+                    borderWidth: 1,
+                    borderColor: GENESIS_COLORS.primary,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                  }}>
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 10,
+                      fontFamily: 'JetBrainsMonoSemiBold',
+                      letterSpacing: 1,
+                      textTransform: 'uppercase',
+                    }}>{phaseConfig.label}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Flame size={12} color={streak > 0 ? '#FF6B6B' : GENESIS_COLORS.textMuted} />
+                    <Text style={{
+                      color: streak > 0 ? '#FF6B6B' : GENESIS_COLORS.textMuted,
+                      fontSize: 12,
+                      fontFamily: 'JetBrainsMonoBold',
+                    }}>{streak} {streak === 1 ? 'día' : 'días'}</Text>
+                  </View>
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -430,12 +471,66 @@ export default function HomeScreen() {
                     GENESIS
                   </Text>
                 </View>
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold', lineHeight: 20 }}>
-                  {greeting}
-                </Text>
                 <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', lineHeight: 19 }}>
                   {briefingMessage}
                 </Text>
+
+                {/* Training params — chip row */}
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                  <View style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    backgroundColor: phaseConfig.color + '15',
+                    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
+                  }}>
+                    <Target size={11} color={phaseConfig.color} />
+                    <Text style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'JetBrainsMonoBold' }}>
+                      {phaseConfig.repRange} reps
+                    </Text>
+                  </View>
+                  <View style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    backgroundColor: phaseConfig.color + '15',
+                    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
+                  }}>
+                    <Layers size={11} color={phaseConfig.color} />
+                    <Text style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'JetBrainsMonoBold' }}>
+                      {phaseConfig.setsRange} series
+                    </Text>
+                  </View>
+                  <View style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    backgroundColor: phaseConfig.color + '15',
+                    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
+                  }}>
+                    <Timer size={11} color={phaseConfig.color} />
+                    <Text style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'JetBrainsMonoBold' }}>
+                      {restFormatted}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Nutrition note */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: phaseConfig.color + '08',
+                  borderRadius: 8,
+                  paddingVertical: 8,
+                  paddingHorizontal: 10,
+                  borderLeftWidth: 3,
+                  borderLeftColor: phaseConfig.color,
+                }}>
+                  <Utensils size={12} color={phaseConfig.color} />
+                  <Text style={{
+                    flex: 1,
+                    color: GENESIS_COLORS.textSecondary,
+                    fontSize: 11,
+                    fontFamily: 'Inter',
+                  }}>
+                    {phaseConfig.nutritionNote}
+                  </Text>
+                </View>
               </View>
             </Pressable>
           </StaggeredSection>
@@ -444,34 +539,22 @@ export default function HomeScreen() {
           {insightMessage && (
             <Animated.View style={insightStyle}>
               <View style={{
-                backgroundColor: GENESIS_COLORS.surfaceCard,
+                backgroundColor: '#000000',
                 borderRadius: 14,
                 borderWidth: 1,
-                borderColor: GENESIS_COLORS.borderSubtle,
+                borderColor: GENESIS_COLORS.primary,
                 padding: 14,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 12,
-                overflow: 'hidden',
               }}>
-                {/* Purple accent bar */}
-                <View style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 3,
-                  backgroundColor: '#a866ff',
-                  borderRadius: 2,
-                }} />
-                <Cpu size={14} color="#a866ff" />
+                <Cpu size={14} color={GENESIS_COLORS.primary} />
                 <Text style={{
                   flex: 1,
                   color: GENESIS_COLORS.textSecondary,
                   fontSize: 12,
                   fontFamily: 'Inter',
                   lineHeight: 17,
-                  marginLeft: 2,
                 }}>
                   {insightMessage}
                 </Text>
@@ -514,6 +597,9 @@ export default function HomeScreen() {
             </View>
           </StaggeredSection>
 
+          {/* GENESIS TIP Carousel */}
+          <HomeGenesisTipCarousel />
+
           {/* Daily Missions */}
           <StaggeredSection index={2} entrance={entrance} totalDuration={totalDuration}>
           <SectionLabel title="HOY">
@@ -534,7 +620,6 @@ export default function HomeScreen() {
                   subtitle={todayPlan ? todayPlan.name : 'Día de descanso'}
                   detail={todayPlan ? `${todayPlan.exercises.length} ejercicios · ${todayPlan.estimatedDuration} min` : 'Recovery activo'}
                   onPress={() => router.push('/(tabs)/train')}
-                  gradientColors={[phaseConfig.color + '15', 'rgba(20,18,26,0.85)']}
                 />
                 <MissionCard
                   icon={<Utensils size={18} color={GENESIS_COLORS.success} />}
@@ -543,7 +628,6 @@ export default function HomeScreen() {
                   subtitle={`${kcalValue} / ${dailyGoal.toLocaleString()}`}
                   detail={remaining > 0 ? `Faltan ${remaining.toLocaleString()} kcal` : 'Meta alcanzada'}
                   onPress={() => router.push('/(tabs)/fuel')}
-                  gradientColors={[GENESIS_COLORS.success + '15', 'rgba(20,18,26,0.85)']}
                 />
                 <MissionCard
                   icon={<Brain size={18} color={GENESIS_COLORS.info} />}
@@ -552,7 +636,6 @@ export default function HomeScreen() {
                   subtitle={todayCheckIn ? 'Completado' : 'Pendiente'}
                   detail={todayCheckIn ? todayCheckIn.mood : 'Registra tu día'}
                   onPress={() => router.push('/(modals)/check-in')}
-                  gradientColors={[GENESIS_COLORS.info + '15', 'rgba(20,18,26,0.85)']}
                 />
               </ScrollView>
             )}
@@ -564,10 +647,10 @@ export default function HomeScreen() {
             <SectionLabel title={`GENESIS RECOMIENDA PARA ${phaseConfig.label.toUpperCase()}`}>
               {allRead ? (
                 <View style={{
-                  backgroundColor: GENESIS_COLORS.surfaceCard,
+                  backgroundColor: '#000000',
                   borderRadius: 14,
                   borderWidth: 1,
-                  borderColor: GENESIS_COLORS.borderSubtle,
+                  borderColor: GENESIS_COLORS.primary,
                   padding: 16,
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -582,8 +665,6 @@ export default function HomeScreen() {
                 <ImageCard
                   imageUrl={todayLesson.imageUrl}
                   height={140}
-                  badge={todayLesson.duration}
-                  badgeColor={phaseConfig.color}
                   onPress={() => router.push(`/(screens)/education-detail?id=${todayLesson.id}`)}
                 >
                   <View style={{ gap: 4 }}>
@@ -593,6 +674,11 @@ export default function HomeScreen() {
                     <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
                       {todayLesson.title}
                     </Text>
+                    {todayLesson.duration && (
+                      <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>
+                        {todayLesson.duration}
+                      </Text>
+                    )}
                   </View>
                 </ImageCard>
               ) : null}
@@ -602,7 +688,7 @@ export default function HomeScreen() {
           {/* Week Progress */}
           <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
           <CollapsibleSection title="ESTA SEMANA" defaultExpanded={false} storageKey="genesis_section_thisWeek">
-            <GlassCard shine>
+            <GlassCard shine style={{ backgroundColor: '#000000', borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Progreso Semanal</Text>
                 <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{completedDays}/7 días</Text>
@@ -646,9 +732,9 @@ export default function HomeScreen() {
           {/* Streak */}
           <StaggeredSection index={5} entrance={entrance} totalDuration={totalDuration}>
           <CollapsibleSection title="RACHA" defaultExpanded={false} storageKey="genesis_section_streak">
-            <GlassCard>
+            <GlassCard style={{ backgroundColor: '#000000', borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Flame size={22} color="#F97316" />
+                <Flame size={22} color={GENESIS_COLORS.primary} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>{streak} {streak === 1 ? 'día' : 'días'} de racha</Text>
                   <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>{streak > 0 ? '¡Sigue así!' : 'Completa tu check-in para iniciar tu racha.'}</Text>
@@ -667,10 +753,10 @@ const MetricMini = memo(function MetricMini({ icon, value, label }: { icon: Reac
   return (
     <View style={{
       flex: 1,
-      backgroundColor: GENESIS_COLORS.surfaceCard,
+      backgroundColor: '#000000',
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: GENESIS_COLORS.borderSubtle,
+      borderColor: GENESIS_COLORS.primary,
       padding: 10,
       alignItems: 'center',
       gap: 4,
@@ -683,44 +769,131 @@ const MetricMini = memo(function MetricMini({ icon, value, label }: { icon: Reac
 });
 
 const MissionCard = memo(function MissionCard({
-  icon, iconBg, title, subtitle, detail, onPress, gradientColors,
+  icon, iconBg, title, subtitle, detail, onPress,
 }: {
   icon: React.ReactNode; iconBg: string; title: string; subtitle: string; detail: string; onPress?: () => void;
-  gradientColors?: [string, string];
 }) {
-  const content = (
-    <>
-      <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: iconBg }}>
-        {icon}
-      </View>
-      <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoBold' }}>{title}</Text>
-      <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'Inter' }}>{subtitle}</Text>
-      <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'Inter' }}>{detail}</Text>
-    </>
-  );
-
   return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        width: 160,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-        overflow: 'hidden',
-      }}
-    >
+    <Pressable onPress={onPress}>
       <LinearGradient
-        colors={gradientColors ?? ['rgba(20,18,26,0.7)', 'rgba(20,18,26,0.7)']}
+        colors={['#9D4EDD', '#6D00FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ gap: 8, padding: 16 }}
+        style={{
+          width: 160,
+          borderRadius: 16,
+          padding: 1,
+          shadowColor: '#6D00FF',
+          shadowOpacity: 0.25,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+        }}
       >
-        {content}
+        <View style={{
+          borderRadius: 15,
+          backgroundColor: 'rgba(10, 10, 10, 0.85)',
+          padding: 16,
+          gap: 8,
+          overflow: 'hidden',
+        }}>
+          {/* Shine line */}
+          <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          }} />
+          <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: iconBg }}>
+            {icon}
+          </View>
+          <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoBold' }}>{title}</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: 'Inter' }}>{subtitle}</Text>
+          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'Inter' }}>{detail}</Text>
+        </View>
       </LinearGradient>
     </Pressable>
   );
 });
+
+const HOME_GENESIS_TIPS = [
+  'La consistencia supera a la intensidad. Pequenas acciones diarias construyen grandes resultados.',
+  'Hidratate antes de entrenar — tu rendimiento mejora hasta un 15% con hidratacion adecuada.',
+  'El sueno es tu herramienta de recuperacion #1. Prioriza 7-8 horas cada noche.',
+  'Tu check-in diario entrena a GENESIS para darte mejores recomendaciones.',
+  'La nutricion post-entrenamiento es tan importante como el entrenamiento mismo.',
+];
+
+function HomeGenesisTipCarousel() {
+  const [currentTip, setCurrentTip] = useState(0);
+
+  const goNext = useCallback(() => {
+    setCurrentTip((prev) => (prev + 1) % HOME_GENESIS_TIPS.length);
+  }, []);
+
+  const goPrev = useCallback(() => {
+    setCurrentTip((prev) => (prev - 1 + HOME_GENESIS_TIPS.length) % HOME_GENESIS_TIPS.length);
+  }, []);
+
+  return (
+    <View style={{
+      backgroundColor: '#000000',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: GENESIS_COLORS.primary,
+      padding: 16,
+      gap: 12,
+    }}>
+      {/* Header with navigation */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <GenesisIcon size={14} color={GENESIS_COLORS.primary} />
+          <Text style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoMedium', marginRight: 6 }}>
+            {currentTip + 1}/{HOME_GENESIS_TIPS.length}
+          </Text>
+          <Pressable onPress={goPrev} hitSlop={8} style={{
+            width: 28, height: 28, borderRadius: 8,
+            borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ChevronLeft size={14} color="#FFFFFF" />
+          </Pressable>
+          <Pressable onPress={goNext} hitSlop={8} style={{
+            width: 28, height: 28, borderRadius: 8,
+            borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ChevronRight size={14} color="#FFFFFF" />
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Tip content */}
+      <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
+        {HOME_GENESIS_TIPS[currentTip]}
+      </Text>
+
+      {/* Dot indicators */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 4 }}>
+        {HOME_GENESIS_TIPS.map((_, i) => (
+          <View
+            key={i}
+            style={{
+              width: i === currentTip ? 16 : 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: i === currentTip ? GENESIS_COLORS.primary : 'rgba(255,255,255,0.15)',
+            }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
 
 function StaggeredSection({ index, entrance, totalDuration, children }: {
   index: number;

@@ -45,14 +45,14 @@ function WaterGlass({ filled, index, onPress }: { filled: boolean; index: number
             borderRadius: 18,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: filled ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)',
+            backgroundColor: filled ? 'rgba(157,78,221,0.2)' : 'rgba(255,255,255,0.06)',
             borderWidth: 1,
-            borderColor: filled ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.1)',
+            borderColor: filled ? 'rgba(157,78,221,0.4)' : 'rgba(255,255,255,0.1)',
           },
           animatedStyle,
         ]}
       >
-        <Droplets size={16} color={filled ? '#38bdf8' : 'rgba(255,255,255,0.2)'} />
+        <Droplets size={16} color={filled ? '#9D4EDD' : 'rgba(255,255,255,0.2)'} />
       </Animated.View>
     </Pressable>
   );

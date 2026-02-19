@@ -12,6 +12,7 @@ type CollapsibleSectionProps = {
   children: React.ReactNode;
   accentColor?: string;
   storageKey?: string;
+  headerRight?: React.ReactNode;
 };
 
 export function CollapsibleSection({
@@ -21,6 +22,7 @@ export function CollapsibleSection({
   children,
   accentColor = GENESIS_COLORS.textSecondary,
   storageKey,
+  headerRight,
 }: CollapsibleSectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const chevronRotation = useSharedValue(defaultExpanded ? 180 : 0);
@@ -84,9 +86,12 @@ export function CollapsibleSection({
             </Text>
           ) : null}
         </View>
-        <Animated.View style={chevronStyle}>
-          <ChevronDown size={16} color={GENESIS_COLORS.textMuted} />
-        </Animated.View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {headerRight}
+          <Animated.View style={chevronStyle}>
+            <ChevronDown size={16} color={GENESIS_COLORS.textMuted} />
+          </Animated.View>
+        </View>
       </Pressable>
 
       {expanded && children}

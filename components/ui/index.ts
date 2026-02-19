@@ -4,6 +4,7 @@ export * from './Divider';
 export * from './EmptyState';
 export * from './ErrorBanner';
 export * from './ErrorState';
+export * from './GenesisIcon';
 export * from './GlassCard';
 export * from './GradientCard';
 export * from './LoadingScreen';

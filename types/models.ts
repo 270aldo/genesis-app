@@ -58,6 +58,7 @@ export interface WorkoutSession {
   exercises: Exercise[];
   duration: number;
   completed: boolean;
+  workoutName?: string;
   notes?: string;
 }
 

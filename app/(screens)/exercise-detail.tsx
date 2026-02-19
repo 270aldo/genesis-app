@@ -3,13 +3,14 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Play } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GlassCard } from '../../components/ui';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { PHASE_CONFIG } from '../../data';
 import { useTrainingStore } from '../../stores/useTrainingStore';
+import { getExerciseImage } from '../../utils/exerciseImages';
 import type { PhaseType } from '../../types';
 
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -61,7 +62,7 @@ export default function ExerciseDetailScreen() {
         >
           {/* Hero */}
           <View>
-            <ImageCard imageUrl={exercise.imageUrl} height={260} />
+            <ImageCard imageUrl={exercise.imageUrl || getExerciseImage(exercise.name, exercise.muscleGroup)} height={260} />
             <Pressable
               onPress={() => router.back()}
               hitSlop={12}
@@ -73,6 +74,8 @@ export default function ExerciseDetailScreen() {
                 height: 36,
                 borderRadius: 18,
                 backgroundColor: GENESIS_COLORS.surfaceCard,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.15)',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -82,64 +85,122 @@ export default function ExerciseDetailScreen() {
           </View>
 
           <View style={{ paddingHorizontal: 20, paddingTop: 16, gap: 24 }}>
-            {/* Name */}
-            <Text style={{ color: '#FFFFFF', fontSize: 24, fontFamily: 'InterBold' }}>
-              {exercise.name}
-            </Text>
+            {/* Name + equipment subtitle */}
+            <View style={{ gap: 4 }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 24, fontFamily: 'InterBold' }}>
+                {exercise.name}
+              </Text>
+              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
+                {exercise.equipment.toUpperCase()}
+              </Text>
+            </View>
 
-            {/* Metadata pills — pill shape */}
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              <View style={{
-                backgroundColor: GENESIS_COLORS.primaryDim,
-                borderRadius: 9999,
-                borderWidth: 1,
-                borderColor: GENESIS_COLORS.borderActive,
-                paddingHorizontal: 12,
-                paddingVertical: 5,
-              }}>
-                <Text style={{
-                  color: GENESIS_COLORS.primary,
-                  fontSize: 10,
-                  fontFamily: 'JetBrainsMonoMedium',
-                  textTransform: 'uppercase',
+            {/* Video CTA pill — prominent, full-width */}
+            {exercise.videoUrl && (
+              <Pressable
+                onPress={() => router.push(`/(modals)/exercise-video?url=${encodeURIComponent(exercise.videoUrl)}`)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  height: 44,
+                  backgroundColor: GENESIS_COLORS.primary + '20',
+                  borderRadius: 9999,
+                  borderWidth: 1,
+                  borderColor: GENESIS_COLORS.primary + '40',
+                }}
+              >
+                <Play size={16} color={GENESIS_COLORS.primary} fill={GENESIS_COLORS.primary} />
+                <Text style={{ color: GENESIS_COLORS.primary, fontSize: 13, fontFamily: 'JetBrainsMonoSemiBold' }}>VER DEMO</Text>
+              </Pressable>
+            )}
+
+            {/* Metadata pills — muscle + secondary + equipment + difficulty */}
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                <View style={{
+                  backgroundColor: GENESIS_COLORS.primaryDim,
+                  borderRadius: 9999,
+                  borderWidth: 1,
+                  borderColor: GENESIS_COLORS.borderActive,
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
                 }}>
-                  {exercise.muscleGroup.replace('_', ' ')}
-                </Text>
-              </View>
-              <View style={{
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                borderRadius: 9999,
-                borderWidth: 1,
-                borderColor: GENESIS_COLORS.borderSubtle,
-                paddingHorizontal: 12,
-                paddingVertical: 5,
-              }}>
-                <Text style={{
-                  color: GENESIS_COLORS.textSecondary,
-                  fontSize: 10,
-                  fontFamily: 'JetBrainsMonoMedium',
-                  textTransform: 'uppercase',
+                  <Text style={{
+                    color: GENESIS_COLORS.primary,
+                    fontSize: 10,
+                    fontFamily: 'JetBrainsMonoMedium',
+                    textTransform: 'uppercase',
+                  }}>
+                    {exercise.muscleGroup.replace('_', ' ')}
+                  </Text>
+                </View>
+                <View style={{
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  borderRadius: 9999,
+                  borderWidth: 1,
+                  borderColor: GENESIS_COLORS.borderSubtle,
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
                 }}>
-                  {exercise.equipment}
-                </Text>
-              </View>
-              <View style={{
-                backgroundColor: DIFFICULTY_COLORS[exercise.difficulty] + '15',
-                borderRadius: 9999,
-                borderWidth: 1,
-                borderColor: DIFFICULTY_COLORS[exercise.difficulty] + '40',
-                paddingHorizontal: 12,
-                paddingVertical: 5,
-              }}>
-                <Text style={{
-                  color: DIFFICULTY_COLORS[exercise.difficulty],
-                  fontSize: 10,
-                  fontFamily: 'JetBrainsMonoMedium',
-                  textTransform: 'uppercase',
+                  <Text style={{
+                    color: GENESIS_COLORS.textSecondary,
+                    fontSize: 10,
+                    fontFamily: 'JetBrainsMonoMedium',
+                    textTransform: 'uppercase',
+                  }}>
+                    {exercise.equipment}
+                  </Text>
+                </View>
+                <View style={{
+                  backgroundColor: DIFFICULTY_COLORS[exercise.difficulty] + '15',
+                  borderRadius: 9999,
+                  borderWidth: 1,
+                  borderColor: DIFFICULTY_COLORS[exercise.difficulty] + '40',
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
                 }}>
-                  {exercise.difficulty}
-                </Text>
+                  <Text style={{
+                    color: DIFFICULTY_COLORS[exercise.difficulty],
+                    fontSize: 10,
+                    fontFamily: 'JetBrainsMonoMedium',
+                    textTransform: 'uppercase',
+                  }}>
+                    {exercise.difficulty}
+                  </Text>
+                </View>
               </View>
+              {/* Secondary muscles */}
+              {exercise.secondaryMuscles && exercise.secondaryMuscles.length > 0 && (
+                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Text style={{
+                    color: GENESIS_COLORS.textMuted,
+                    fontSize: 9,
+                    fontFamily: 'JetBrainsMonoMedium',
+                    letterSpacing: 1,
+                  }}>
+                    SECONDARY:
+                  </Text>
+                  {exercise.secondaryMuscles.map((muscle) => (
+                    <View key={muscle} style={{
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderRadius: 9999,
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                    }}>
+                      <Text style={{
+                        color: GENESIS_COLORS.textTertiary,
+                        fontSize: 9,
+                        fontFamily: 'JetBrainsMonoMedium',
+                        textTransform: 'uppercase',
+                      }}>
+                        {muscle.replace('_', ' ')}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Form Cues */}
@@ -169,23 +230,46 @@ export default function ExerciseDetailScreen() {
               </GlassCard>
             </View>
 
-            {/* Recommended Phases */}
+            {/* Phase Prescriptions — all 4 phases with rep/set params */}
             <View style={{ gap: 10 }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
-                Recommended Phases
+              <Text style={{
+                color: GENESIS_COLORS.textTertiary,
+                fontSize: 10,
+                fontFamily: 'JetBrainsMonoMedium',
+                textTransform: 'uppercase',
+                letterSpacing: 2,
+              }}>
+                PHASE PRESCRIPTIONS
               </Text>
-              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                {exercise.recommendedPhases.map((p) => {
-                  const cfg = PHASE_CONFIG[p as PhaseType];
-                  return (
-                    <View key={p} style={{ backgroundColor: cfg.color + '20', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}>
-                      <Text style={{ color: cfg.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
-                        {cfg.label}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
+              <GlassCard style={{ backgroundColor: GENESIS_COLORS.surfaceCard, borderRadius: 20 }}>
+                <View style={{ gap: 10 }}>
+                  {(Object.keys(PHASE_CONFIG) as PhaseType[]).map((phaseKey) => {
+                    const cfg = PHASE_CONFIG[phaseKey];
+                    return (
+                      <View key={phaseKey} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cfg.accentColor }} />
+                        <Text style={{
+                          color: '#FFFFFF',
+                          fontSize: 12,
+                          fontFamily: 'InterBold',
+                          width: 100,
+                          textTransform: 'uppercase',
+                        }}>
+                          {cfg.label}
+                        </Text>
+                        <Text style={{
+                          color: GENESIS_COLORS.textSecondary,
+                          fontSize: 12,
+                          fontFamily: 'JetBrainsMonoMedium',
+                          flex: 1,
+                        }}>
+                          {cfg.repRange} reps {'\u00B7'} {cfg.setsRange} sets
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </GlassCard>
             </View>
 
             {/* Alternatives */}
@@ -196,13 +280,13 @@ export default function ExerciseDetailScreen() {
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
                   {alternatives.map((alt) => (
-                    <View key={alt.id} style={{ width: 150 }}>
+                    <View key={alt.id} style={{ width: 170 }}>
                       <ImageCard
-                        imageUrl={alt.imageUrl}
+                        imageUrl={alt.imageUrl || getExerciseImage(alt.name, alt.muscleGroup)}
                         title={alt.name}
                         badge={alt.equipment}
                         badgeColor={DIFFICULTY_COLORS[alt.difficulty]}
-                        height={120}
+                        height={140}
                         onPress={() => router.push(`/(screens)/exercise-detail?id=${alt.id}`)}
                       />
                     </View>

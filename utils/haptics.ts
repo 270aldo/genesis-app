@@ -15,3 +15,7 @@ export function hapticHeavy() {
 export function hapticSelection() {
   Haptics.selectionAsync();
 }
+
+export function hapticNotificationSuccess() {
+  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+}

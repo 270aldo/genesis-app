@@ -28,7 +28,7 @@ export const GLASS_SHADOWS = {
     elevation: 6,
   },
   info: {
-    shadowColor: '#38bdf8',
+    shadowColor: '#9D4EDD',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 8,

@@ -5,7 +5,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Moon, Play, Activity, Sparkles } from 'lucide-react-native';
+import { Moon, Play, Activity, Sparkles, Wind } from 'lucide-react-native';
 import {
   GlassCard,
   MoodSelector,
@@ -83,8 +83,8 @@ export default function MindScreen() {
     // If already checked in, mood is display-only
   };
 
-  const entrance = useStaggeredEntrance(6, 120);
-  const totalDuration = 600 + 6 * 120;
+  const entrance = useStaggeredEntrance(7, 120);
+  const totalDuration = 600 + 7 * 120;
 
   // Derive sleep data from today's check-in
   const sleepHours = todayCheckIn?.sleepHours ?? 0;
@@ -192,8 +192,11 @@ export default function MindScreen() {
                     Check-in completado · {moodLabels[selectedMood ?? ''] ?? ''}
                   </Text>
                 ) : pendingMood ? (
-                  <Pressable onPress={() => router.push('/(modals)/check-in')} className="mt-3 bg-[#6D00FF] rounded-xl py-3 px-6 self-center">
-                    <Text className="text-white font-semibold text-sm">Continuar check-in →</Text>
+                  <Pressable
+                    onPress={() => router.push('/(modals)/check-in')}
+                    style={{ marginTop: 12, backgroundColor: GENESIS_COLORS.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, alignSelf: 'center' }}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'InterBold' }}>Continuar check-in →</Text>
                   </Pressable>
                 ) : null}
               </GlassCard>
@@ -213,7 +216,7 @@ export default function MindScreen() {
               <GlassCard shine>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Activity size={18} color={phaseConfig.accentColor} />
-                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>Overall</Text>
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'JetBrainsMonoBold' }}>General</Text>
                 </View>
                 <Text style={{ color: '#FFFFFF', fontSize: 52, fontFamily: 'InterBold' }}>
                   {todayCheckIn ? wellnessScore : '--'}
@@ -255,8 +258,50 @@ export default function MindScreen() {
             </SectionLabel>
           </StaggeredSection>
 
-          {/* Sleep */}
+          {/* Breathing Exercises */}
           <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
+            <SectionLabel title="RESPIRACIÓN">
+              <View style={{ gap: 10 }}>
+                {[
+                  { name: 'Box Breathing', pattern: '4-4-4-4 · 5 min', color: GENESIS_COLORS.primary },
+                  { name: 'Relajación 4-7-8', pattern: '4-7-8 · 3 min', color: GENESIS_COLORS.success },
+                  { name: 'Respiración Energizante', pattern: '2-1-4-1 · 3 min', color: '#F97316' },
+                ].map((exercise) => (
+                  <GlassCard key={exercise.name}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                      <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        backgroundColor: exercise.color + '20',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Wind size={20} color={exercise.color} />
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>{exercise.name}</Text>
+                        <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>{exercise.pattern}</Text>
+                      </View>
+                      <View style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: exercise.color + '20',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Play size={14} color={exercise.color} fill={exercise.color} />
+                      </View>
+                    </View>
+                  </GlassCard>
+                ))}
+              </View>
+            </SectionLabel>
+          </StaggeredSection>
+
+          {/* Sleep */}
+          <StaggeredSection index={5} entrance={entrance} totalDuration={totalDuration}>
             <SectionLabel title="SUEÑO">
               <GlassCard shine>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

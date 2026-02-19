@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, type TextStyle, Text, View, type ViewStyle } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 
 type ColorVariant = 'purple' | 'green' | 'orange' | 'blue' | 'red';
@@ -8,14 +8,14 @@ const variantColors: Record<ColorVariant, { border: string; shadow: string; icon
   purple: { border: '#6D00FF', shadow: '#6D00FF', iconBg: 'rgba(109, 0, 255, 0.1)', iconColor: '#6D00FF' },
   green: { border: '#00F5AA', shadow: '#00F5AA', iconBg: '#00F5AA20', iconColor: '#00F5AA' },
   orange: { border: '#F97316', shadow: '#F97316', iconBg: '#F9731620', iconColor: '#F97316' },
-  blue: { border: '#00D4FF', shadow: '#00D4FF', iconBg: '#00D4FF20', iconColor: '#00D4FF' },
+  blue: { border: '#9D4EDD', shadow: '#9D4EDD', iconBg: '#9D4EDD20', iconColor: '#9D4EDD' },
   red: { border: '#FF6B6B', shadow: '#FF6B6B', iconBg: '#FF6B6B20', iconColor: '#FF6B6B' },
 };
 
 type ListItemCardProps = {
   icon: ReactNode;
   title: string;
-  subtitle: string;
+  subtitle: string | ReactNode;
   variant?: ColorVariant;
   right?: ReactNode;
   onPress?: () => void;
@@ -47,7 +47,11 @@ export function ListItemCard({ icon, title, subtitle, variant = 'purple', right,
       </View>
       <View className="flex-1 gap-1">
         <Text className="font-jetbrains-bold text-[13px] text-white">{title}</Text>
-        <Text className="font-inter text-[11px]" style={{ color: 'rgba(192, 192, 192, 0.60)' }}>{subtitle}</Text>
+        {typeof subtitle === 'string' ? (
+          <Text className="font-inter text-[11px]" style={{ color: 'rgba(192, 192, 192, 0.60)' }}>{subtitle}</Text>
+        ) : (
+          subtitle
+        )}
       </View>
       {right ?? <ChevronRight size={16} color="rgba(255, 255, 255, 0.40)" />}
     </Pressable>

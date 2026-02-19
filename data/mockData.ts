@@ -24,7 +24,7 @@ export const PHASE_CONFIG: Record<PhaseType, {
   hypertrophy: {
     label: 'Hypertrophy',
     color: '#6D00FF',
-    accentColor: '#9D4EDD',
+    accentColor: '#6D00FF',
     restSeconds: 75,
     repRange: '10-12',
     setsRange: '3-4',
@@ -33,8 +33,8 @@ export const PHASE_CONFIG: Record<PhaseType, {
   },
   strength: {
     label: 'Strength',
-    color: '#38bdf8',
-    accentColor: '#7dd3fc',
+    color: '#6D00FF',
+    accentColor: '#6D00FF',
     restSeconds: 150,
     repRange: '4-6',
     setsRange: '4-5',
@@ -43,8 +43,8 @@ export const PHASE_CONFIG: Record<PhaseType, {
   },
   power: {
     label: 'Power',
-    color: '#F97316',
-    accentColor: '#fb923c',
+    color: '#6D00FF',
+    accentColor: '#6D00FF',
     restSeconds: 120,
     repRange: '3-5',
     setsRange: '3-4',
@@ -53,8 +53,8 @@ export const PHASE_CONFIG: Record<PhaseType, {
   },
   deload: {
     label: 'Deload',
-    color: '#00F5AA',
-    accentColor: '#00F5AA',
+    color: '#6D00FF',
+    accentColor: '#6D00FF',
     restSeconds: 60,
     repRange: '8-10',
     setsRange: '2-3',

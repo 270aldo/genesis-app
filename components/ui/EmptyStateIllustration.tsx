@@ -13,7 +13,7 @@ import Animated, {
 const VARIANT_CONFIG = {
   track: { icon: TrendingUp, gradient: ['#6D00FF', '#9D4EDD'] as [string, string] },
   fuel: { icon: Utensils, gradient: ['#00F5AA', '#00BB7D'] as [string, string] },
-  mind: { icon: Brain, gradient: ['#00D4FF', '#0099CC'] as [string, string] },
+  mind: { icon: Brain, gradient: ['#9D4EDD', '#7B2FBE'] as [string, string] },
   train: { icon: Dumbbell, gradient: ['#FFD93D', '#E6B800'] as [string, string] },
 } as const;
 
@@ -68,6 +68,10 @@ export function EmptyStateIllustration({ variant, title, subtitle }: EmptyStateI
             borderRadius: 30,
             alignItems: 'center',
             justifyContent: 'center',
+            shadowColor: '#6D00FF',
+            shadowOpacity: 0.3,
+            shadowRadius: 20,
+            shadowOffset: { width: 0, height: 0 },
           }}
         >
           <IconComponent size={28} color="#FFFFFF" />

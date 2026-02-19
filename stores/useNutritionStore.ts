@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Meal } from '../types';
 import { hasSupabaseConfig } from '../services/supabaseClient';
+import { DEMO_MEALS } from '../data/demoProfile';
 
 type DailyTotals = {
   calories: number;
@@ -104,6 +105,10 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
 
   fetchMeals: async (date) => {
     set({ isLoading: true, error: null });
+    if (!hasSupabaseConfig) {
+      set({ meals: DEMO_MEALS, isLoading: false });
+      return;
+    }
     try {
       if (hasSupabaseConfig) {
         const { fetchMealsForDate, getCurrentUserId } = await import('../services/supabaseQueries');
@@ -128,7 +133,6 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
           }
         }
       }
-      // No fallback — meals start empty if no Supabase
     } catch (err: any) {
       console.warn('fetchMeals failed:', err?.message);
       set({ error: err?.message ?? 'Error al cargar comidas' });

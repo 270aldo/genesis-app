@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Week } from '../types';
 import { hasSupabaseConfig } from '../services/supabaseClient';
+import { DEMO_SEASON } from '../data/demoProfile';
 
 type SeasonState = {
   seasonNumber: number;
@@ -95,23 +96,15 @@ export const useSeasonStore = create<SeasonState>()(
             }
           }
 
-          // Fallback: generate mock 12-week plan
-          const now = new Date();
-          const sampleWeeks: Week[] = Array.from({ length: 12 }).map((_, index) => ({
-            number: index + 1,
-            phase: index < 4 ? 'hypertrophy' : index < 8 ? 'strength' : 'power',
-            startDate: new Date(now.getTime() + index * 7 * 86400000).toISOString(),
-            endDate: new Date(now.getTime() + (index * 7 + 6) * 86400000).toISOString(),
-            completed: index + 1 < 3,
-          }));
-
+          // Fallback: use demo season profile (Marco Reyes, Season 2, Week 6)
           set({
-            weeks: sampleWeeks,
-            startDate: sampleWeeks[0]?.startDate ?? '',
-            endDate: sampleWeeks[sampleWeeks.length - 1]?.endDate ?? '',
-            progressPercent: 18,
-            currentWeek: 3,
-            currentPhase: 'strength',
+            seasonNumber: DEMO_SEASON.seasonNumber,
+            weeks: DEMO_SEASON.weeks,
+            startDate: DEMO_SEASON.startDate,
+            endDate: DEMO_SEASON.endDate,
+            progressPercent: DEMO_SEASON.progressPercent,
+            currentWeek: DEMO_SEASON.currentWeek,
+            currentPhase: DEMO_SEASON.currentPhase,
           });
         } catch (err: any) {
           console.warn('fetchSeasonPlan failed:', err?.message);

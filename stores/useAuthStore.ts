@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Session } from '@supabase/supabase-js';
 import { supabaseClient, hasSupabaseConfig } from '../services/supabaseClient';
 import type { User } from '../types';
+import { DEMO_USER } from '../data/demoProfile';
 
 type AuthState = {
   user: User | null;
@@ -32,14 +33,6 @@ const secureStorage = createJSONStorage(() => ({
   setItem: async (name: string, value: string) => SecureStore.setItemAsync(name, value),
   removeItem: async (name: string) => SecureStore.deleteItemAsync(name),
 }));
-
-const DEMO_USER: User = {
-  id: 'demo-user',
-  email: 'demo@genesis.app',
-  name: 'Demo Athlete',
-  plan: 'hybrid',
-  subscriptionStatus: 'active',
-};
 
 export const useAuthStore = create<AuthState>()(
   persist(
