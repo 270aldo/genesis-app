@@ -36,8 +36,8 @@ export function ListItemCard({ icon, title, subtitle, variant = 'purple', right,
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-[16px] border border-[#FFFFFF14] bg-[#0A0A0AD9] p-4"
-      style={cardStyle}
+      className="flex-row items-center gap-3 rounded-[16px] border bg-black p-4"
+      style={[cardStyle, { borderColor: colors.border + '40' }]}
     >
       <View
         className="h-10 w-10 items-center justify-center rounded-[12px]"

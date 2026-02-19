@@ -3,13 +3,16 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Play } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { ArrowLeft, ChevronRight, Play, Sparkles } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ImageCard } from '../../components/cards';
 import { GlassCard } from '../../components/ui';
-import { GENESIS_COLORS } from '../../constants/colors';
-import { PHASE_CONFIG } from '../../data';
+import { FormCues } from '../../components/training/FormCues';
+import { GENESIS_COLORS, getMuscleGroupColor } from '../../constants/colors';
+import { PHASE_CONFIG, GENESIS_TIPS } from '../../data';
 import { useTrainingStore } from '../../stores/useTrainingStore';
+import { useSeasonStore } from '../../stores/useSeasonStore';
 import { getExerciseImage } from '../../utils/exerciseImages';
 import type { PhaseType } from '../../types';
 
@@ -22,9 +25,10 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export default function ExerciseDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { exerciseCatalog, isCatalogLoading, fetchExerciseCatalog } = useTrainingStore();
+  const { exerciseCatalog, isCatalogLoading, fetchExerciseCatalog, getPreviousExerciseData } =
+    useTrainingStore();
+  const currentPhase = useSeasonStore((s) => s.currentPhase) as PhaseType;
 
-  // If catalog is empty (e.g., deep link), fetch on mount
   useEffect(() => {
     if (exerciseCatalog.length === 0) {
       fetchExerciseCatalog();
@@ -32,37 +36,61 @@ export default function ExerciseDetailScreen() {
   }, []);
 
   const exercise = exerciseCatalog.find((e) => e.id === id);
+  const muscleColor = exercise ? getMuscleGroupColor(exercise.muscleGroup) : GENESIS_COLORS.primary;
+  const phaseConfig = PHASE_CONFIG[currentPhase] ?? PHASE_CONFIG.hypertrophy;
+  const isCompound = exercise ? exercise.secondaryMuscles.length > 0 : false;
 
-  // Alternatives: same muscle group, exclude current exercise, take first 3
+  // History — last session data per exercise
+  const previousData = useMemo(() => getPreviousExerciseData(), []);
+  const exerciseHistory = exercise ? previousData[exercise.id] : undefined;
+
+  // GENESIS Pro Tip — random per phase, stable per mount
+  const genesisTip = useMemo(() => {
+    const tips = GENESIS_TIPS[currentPhase] ?? GENESIS_TIPS.hypertrophy;
+    return tips[Math.floor(Math.random() * tips.length)];
+  }, [currentPhase]);
+
+  // Alternatives: same muscle group, exclude current, take 6
   const alternatives = useMemo(() => {
     if (!exercise) return [];
     return exerciseCatalog
       .filter((e) => e.id !== exercise.id && e.muscleGroup === exercise.muscleGroup)
-      .slice(0, 3);
+      .slice(0, 6);
   }, [exercise, exerciseCatalog]);
 
   if (!exercise) {
     return (
-      <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <LinearGradient
+        colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]}
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+      >
         {isCatalogLoading ? (
           <ActivityIndicator size="large" color={GENESIS_COLORS.primary} />
         ) : (
-          <Text style={{ color: GENESIS_COLORS.textTertiary, fontFamily: 'Inter', fontSize: 16 }}>Exercise not found</Text>
+          <Text style={{ color: GENESIS_COLORS.textTertiary, fontFamily: 'Inter', fontSize: 16 }}>
+            Exercise not found
+          </Text>
         )}
       </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
+    <LinearGradient
+      colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]}
+      style={{ flex: 1 }}
+    >
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <ScrollView
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Hero */}
+        <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+          {/* ── A: Enhanced Hero ── */}
           <View>
-            <ImageCard imageUrl={exercise.imageUrl || getExerciseImage(exercise.name, exercise.muscleGroup)} height={260} />
+            <ImageCard
+              imageUrl={exercise.imageUrl || getExerciseImage(exercise.name, exercise.muscleGroup)}
+              height={280}
+              overlayColors={['transparent', 'rgba(0,0,0,0.4)', muscleColor + 'CC']}
+            />
+
+            {/* Back button */}
             <Pressable
               onPress={() => router.back()}
               hitSlop={12}
@@ -82,187 +110,420 @@ export default function ExerciseDetailScreen() {
             >
               <ArrowLeft size={20} color="#FFFFFF" />
             </Pressable>
-          </View>
 
-          <View style={{ paddingHorizontal: 20, paddingTop: 16, gap: 24 }}>
-            {/* Name + equipment subtitle */}
-            <View style={{ gap: 4 }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 24, fontFamily: 'InterBold' }}>
-                {exercise.name}
-              </Text>
-              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
-                {exercise.equipment.toUpperCase()}
-              </Text>
-            </View>
-
-            {/* Video CTA pill — prominent, full-width */}
-            {exercise.videoUrl && (
-              <Pressable
-                onPress={() => router.push(`/(modals)/exercise-video?url=${encodeURIComponent(exercise.videoUrl)}`)}
+            {/* Floating pills — equipment + difficulty */}
+            <View style={{ position: 'absolute', bottom: 16, left: 16, flexDirection: 'row', gap: 8 }}>
+              <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  height: 44,
-                  backgroundColor: GENESIS_COLORS.primary + '20',
+                  backgroundColor: 'rgba(0,0,0,0.5)',
                   borderRadius: 9999,
                   borderWidth: 1,
-                  borderColor: GENESIS_COLORS.primary + '40',
+                  borderColor: 'rgba(255,255,255,0.15)',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
                 }}
               >
-                <Play size={16} color={GENESIS_COLORS.primary} fill={GENESIS_COLORS.primary} />
-                <Text style={{ color: GENESIS_COLORS.primary, fontSize: 13, fontFamily: 'JetBrainsMonoSemiBold' }}>VER DEMO</Text>
-              </Pressable>
-            )}
-
-            {/* Metadata pills — muscle + secondary + equipment + difficulty */}
-            <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                <View style={{
-                  backgroundColor: GENESIS_COLORS.primaryDim,
-                  borderRadius: 9999,
-                  borderWidth: 1,
-                  borderColor: GENESIS_COLORS.borderActive,
-                  paddingHorizontal: 12,
-                  paddingVertical: 5,
-                }}>
-                  <Text style={{
-                    color: GENESIS_COLORS.primary,
+                <Text
+                  style={{
+                    color: '#FFFFFF',
                     fontSize: 10,
                     fontFamily: 'JetBrainsMonoMedium',
                     textTransform: 'uppercase',
-                  }}>
-                    {exercise.muscleGroup.replace('_', ' ')}
-                  </Text>
-                </View>
-                <View style={{
-                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  }}
+                >
+                  {exercise.equipment}
+                </Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: DIFFICULTY_COLORS[exercise.difficulty] + '30',
                   borderRadius: 9999,
                   borderWidth: 1,
-                  borderColor: GENESIS_COLORS.borderSubtle,
-                  paddingHorizontal: 12,
-                  paddingVertical: 5,
-                }}>
-                  <Text style={{
-                    color: GENESIS_COLORS.textSecondary,
-                    fontSize: 10,
-                    fontFamily: 'JetBrainsMonoMedium',
-                    textTransform: 'uppercase',
-                  }}>
-                    {exercise.equipment}
-                  </Text>
-                </View>
-                <View style={{
-                  backgroundColor: DIFFICULTY_COLORS[exercise.difficulty] + '15',
-                  borderRadius: 9999,
-                  borderWidth: 1,
-                  borderColor: DIFFICULTY_COLORS[exercise.difficulty] + '40',
-                  paddingHorizontal: 12,
-                  paddingVertical: 5,
-                }}>
-                  <Text style={{
+                  borderColor: DIFFICULTY_COLORS[exercise.difficulty] + '50',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                }}
+              >
+                <Text
+                  style={{
                     color: DIFFICULTY_COLORS[exercise.difficulty],
                     fontSize: 10,
                     fontFamily: 'JetBrainsMonoMedium',
                     textTransform: 'uppercase',
-                  }}>
-                    {exercise.difficulty}
-                  </Text>
-                </View>
+                  }}
+                >
+                  {exercise.difficulty}
+                </Text>
               </View>
-              {/* Secondary muscles */}
-              {exercise.secondaryMuscles && exercise.secondaryMuscles.length > 0 && (
-                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Text style={{
-                    color: GENESIS_COLORS.textMuted,
-                    fontSize: 9,
-                    fontFamily: 'JetBrainsMonoMedium',
-                    letterSpacing: 1,
-                  }}>
-                    SECONDARY:
-                  </Text>
-                  {exercise.secondaryMuscles.map((muscle) => (
-                    <View key={muscle} style={{
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      borderRadius: 9999,
-                      paddingHorizontal: 8,
-                      paddingVertical: 3,
-                    }}>
-                      <Text style={{
-                        color: GENESIS_COLORS.textTertiary,
-                        fontSize: 9,
-                        fontFamily: 'JetBrainsMonoMedium',
-                        textTransform: 'uppercase',
-                      }}>
-                        {muscle.replace('_', ' ')}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
             </View>
 
-            {/* Form Cues */}
-            <View style={{ gap: 10 }}>
-              <Text style={{
-                color: GENESIS_COLORS.textTertiary,
-                fontSize: 10,
-                fontFamily: 'JetBrainsMonoMedium',
-                textTransform: 'uppercase',
-                letterSpacing: 2,
-              }}>
-                FORM CUES
+            {/* H: Video CTA — floating circle */}
+            {exercise.videoUrl ? (
+              <Pressable
+                onPress={() =>
+                  router.push(
+                    `/(modals)/exercise-video?url=${encodeURIComponent(exercise.videoUrl)}`,
+                  )
+                }
+                style={{
+                  position: 'absolute',
+                  bottom: 16,
+                  right: 16,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.15)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={{ paddingHorizontal: 20, paddingTop: 16, gap: 24 }}>
+            {/* ── A2: Title + Classification Pill ── */}
+            <View style={{ gap: 8 }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 26, fontFamily: 'InterBold' }}>
+                {exercise.name}
               </Text>
-              <GlassCard style={{ backgroundColor: GENESIS_COLORS.surfaceCard, borderRadius: 20 }}>
-                <View style={{ gap: 10 }}>
-                  {exercise.formCues.map((cue, i) => (
-                    <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-                      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: GENESIS_COLORS.primaryDim, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                        <Text style={{ color: GENESIS_COLORS.primary, fontSize: 11, fontFamily: 'JetBrainsMonoBold' }}>{i + 1}</Text>
-                      </View>
-                      <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', lineHeight: 19, flex: 1 }}>
-                        {cue}
+              <View
+                style={{
+                  alignSelf: 'flex-start',
+                  borderWidth: 1,
+                  borderColor: GENESIS_COLORS.textMuted,
+                  borderRadius: 9999,
+                  paddingHorizontal: 10,
+                  paddingVertical: 3,
+                }}
+              >
+                <Text
+                  style={{
+                    color: GENESIS_COLORS.textTertiary,
+                    fontSize: 9,
+                    fontFamily: 'JetBrainsMonoMedium',
+                    letterSpacing: 1.5,
+                  }}
+                >
+                  {isCompound ? 'COMPOUND' : 'ISOLATION'}
+                </Text>
+              </View>
+            </View>
+
+            {/* ── B: Muscles Targeted ── */}
+            <View style={{ gap: 10 }}>
+              <Text
+                style={{
+                  color: GENESIS_COLORS.textTertiary,
+                  fontSize: 10,
+                  fontFamily: 'JetBrainsMonoMedium',
+                  letterSpacing: 2,
+                }}
+              >
+                MUSCLES TARGETED
+              </Text>
+              <GlassCard style={{ backgroundColor: '#000000', borderRadius: 20, borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
+                <View style={{ gap: 12 }}>
+                  {/* Primary muscle */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: muscleColor,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        color: muscleColor,
+                        fontSize: 13,
+                        fontFamily: 'InterBold',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {exercise.muscleGroup.replace('_', ' ')}
+                    </Text>
+                    <Text
+                      style={{
+                        color: GENESIS_COLORS.textMuted,
+                        fontSize: 10,
+                        fontFamily: 'JetBrainsMonoMedium',
+                      }}
+                    >
+                      PRIMARY
+                    </Text>
+                  </View>
+
+                  {/* Secondary muscles with individual colors */}
+                  {exercise.secondaryMuscles.length > 0 && (
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                      {exercise.secondaryMuscles.map((muscle) => {
+                        const mColor = getMuscleGroupColor(muscle);
+                        return (
+                          <View
+                            key={muscle}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 5,
+                              backgroundColor: mColor + '12',
+                              borderRadius: 9999,
+                              paddingHorizontal: 9,
+                              paddingVertical: 3,
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: 3,
+                                backgroundColor: mColor + '80',
+                              }}
+                            />
+                            <Text
+                              style={{
+                                color: mColor,
+                                fontSize: 10,
+                                fontFamily: 'JetBrainsMonoMedium',
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              {muscle.replace('_', ' ')}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  {/* Equipment + Difficulty pills inside card */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: 8,
+                      borderTopWidth: 1,
+                      borderTopColor: GENESIS_COLORS.borderSubtle,
+                      paddingTop: 10,
+                    }}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderRadius: 9999,
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: GENESIS_COLORS.textSecondary,
+                          fontSize: 10,
+                          fontFamily: 'JetBrainsMonoMedium',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {exercise.equipment}
                       </Text>
                     </View>
-                  ))}
+                    <View
+                      style={{
+                        backgroundColor: DIFFICULTY_COLORS[exercise.difficulty] + '15',
+                        borderRadius: 9999,
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: DIFFICULTY_COLORS[exercise.difficulty],
+                          fontSize: 10,
+                          fontFamily: 'JetBrainsMonoMedium',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {exercise.difficulty}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </GlassCard>
             </View>
 
-            {/* Phase Prescriptions — all 4 phases with rep/set params */}
+            {/* ── C: Your History ── */}
             <View style={{ gap: 10 }}>
-              <Text style={{
-                color: GENESIS_COLORS.textTertiary,
-                fontSize: 10,
-                fontFamily: 'JetBrainsMonoMedium',
-                textTransform: 'uppercase',
-                letterSpacing: 2,
-              }}>
+              <Text
+                style={{
+                  color: GENESIS_COLORS.textTertiary,
+                  fontSize: 10,
+                  fontFamily: 'JetBrainsMonoMedium',
+                  letterSpacing: 2,
+                }}
+              >
+                TU HISTORIAL
+              </Text>
+              <GlassCard style={{ backgroundColor: '#000000', borderRadius: 20, borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
+                {exerciseHistory && exerciseHistory.length > 0 ? (
+                  <View style={{ gap: 8 }}>
+                    <Text
+                      style={{
+                        color: GENESIS_COLORS.textMuted,
+                        fontSize: 9,
+                        fontFamily: 'JetBrainsMonoMedium',
+                        letterSpacing: 1,
+                      }}
+                    >
+                      ÚLTIMA SESIÓN
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      {exerciseHistory.map((set, i) => (
+                        <View
+                          key={i}
+                          style={{
+                            flexBasis: '47%',
+                            flexGrow: 1,
+                            backgroundColor: 'rgba(255,255,255,0.04)',
+                            borderRadius: 10,
+                            padding: 10,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: GENESIS_COLORS.textMuted,
+                              fontSize: 9,
+                              fontFamily: 'JetBrainsMonoMedium',
+                            }}
+                          >
+                            SET {i + 1}
+                          </Text>
+                          <Text
+                            style={{
+                              color: '#FFFFFF',
+                              fontSize: 14,
+                              fontFamily: 'InterBold',
+                              marginTop: 2,
+                            }}
+                          >
+                            {set.weight} kg × {set.reps}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : (
+                  <Text
+                    style={{
+                      color: GENESIS_COLORS.textMuted,
+                      fontSize: 13,
+                      fontFamily: 'Inter',
+                      textAlign: 'center',
+                      paddingVertical: 8,
+                    }}
+                  >
+                    Sin historial para este ejercicio
+                  </Text>
+                )}
+              </GlassCard>
+            </View>
+
+            {/* ── D: Form Cues — reuse existing component ── */}
+            {exercise.formCues.length > 0 && (
+              <View style={{ gap: 10 }}>
+                <Text
+                  style={{
+                    color: GENESIS_COLORS.textTertiary,
+                    fontSize: 10,
+                    fontFamily: 'JetBrainsMonoMedium',
+                    letterSpacing: 2,
+                  }}
+                >
+                  FORM CUES
+                </Text>
+                <FormCues cues={exercise.formCues} />
+              </View>
+            )}
+
+            {/* ── E: Phase Prescriptions — current phase highlighted ── */}
+            <View style={{ gap: 10 }}>
+              <Text
+                style={{
+                  color: GENESIS_COLORS.textTertiary,
+                  fontSize: 10,
+                  fontFamily: 'JetBrainsMonoMedium',
+                  letterSpacing: 2,
+                }}
+              >
                 PHASE PRESCRIPTIONS
               </Text>
-              <GlassCard style={{ backgroundColor: GENESIS_COLORS.surfaceCard, borderRadius: 20 }}>
-                <View style={{ gap: 10 }}>
+              <GlassCard style={{ backgroundColor: '#000000', borderRadius: 20, borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
+                <View style={{ gap: 6 }}>
                   {(Object.keys(PHASE_CONFIG) as PhaseType[]).map((phaseKey) => {
                     const cfg = PHASE_CONFIG[phaseKey];
+                    const isCurrent = phaseKey === currentPhase;
                     return (
-                      <View key={phaseKey} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cfg.accentColor }} />
-                        <Text style={{
-                          color: '#FFFFFF',
-                          fontSize: 12,
-                          fontFamily: 'InterBold',
-                          width: 100,
-                          textTransform: 'uppercase',
-                        }}>
+                      <View
+                        key={phaseKey}
+                        style={[
+                          { flexDirection: 'row', alignItems: 'center', gap: 10 },
+                          isCurrent && {
+                            backgroundColor: cfg.accentColor + '15',
+                            borderRadius: 8,
+                            paddingVertical: 6,
+                            paddingHorizontal: 6,
+                          },
+                        ]}
+                      >
+                        <View
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: cfg.accentColor,
+                          }}
+                        />
+                        <Text
+                          style={{
+                            color: isCurrent ? '#FFFFFF' : GENESIS_COLORS.textSecondary,
+                            fontSize: 12,
+                            fontFamily: 'InterBold',
+                            width: 100,
+                            textTransform: 'uppercase',
+                          }}
+                        >
                           {cfg.label}
                         </Text>
-                        <Text style={{
-                          color: GENESIS_COLORS.textSecondary,
-                          fontSize: 12,
-                          fontFamily: 'JetBrainsMonoMedium',
-                          flex: 1,
-                        }}>
+                        {isCurrent && (
+                          <View
+                            style={{
+                              backgroundColor: cfg.accentColor + '30',
+                              borderRadius: 4,
+                              paddingHorizontal: 5,
+                              paddingVertical: 1,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: cfg.accentColor,
+                                fontSize: 8,
+                                fontFamily: 'JetBrainsMonoBold',
+                              }}
+                            >
+                              ACTUAL
+                            </Text>
+                          </View>
+                        )}
+                        <Text
+                          style={{
+                            color: GENESIS_COLORS.textSecondary,
+                            fontSize: 12,
+                            fontFamily: 'JetBrainsMonoMedium',
+                            flex: 1,
+                            textAlign: 'right',
+                          }}
+                        >
                           {cfg.repRange} reps {'\u00B7'} {cfg.setsRange} sets
                         </Text>
                       </View>
@@ -272,26 +533,166 @@ export default function ExerciseDetailScreen() {
               </GlassCard>
             </View>
 
-            {/* Alternatives */}
+            {/* ── F: GENESIS Pro Tip ── */}
+            <View style={{ gap: 10 }}>
+              <Text
+                style={{
+                  color: GENESIS_COLORS.textTertiary,
+                  fontSize: 10,
+                  fontFamily: 'JetBrainsMonoMedium',
+                  letterSpacing: 2,
+                }}
+              >
+                GENESIS PRO TIP
+              </Text>
+              <GlassCard
+                style={{
+                  backgroundColor: '#000000',
+                  borderRadius: 20,
+                  borderColor: GENESIS_COLORS.primary,
+                  borderWidth: 1,
+                }}
+              >
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                  <Sparkles size={16} color={phaseConfig.accentColor} style={{ marginTop: 2 }} />
+                  <Text
+                    style={{
+                      flex: 1,
+                      color: GENESIS_COLORS.textSecondary,
+                      fontSize: 13,
+                      fontFamily: 'Inter',
+                      fontStyle: 'italic',
+                      lineHeight: 19,
+                    }}
+                  >
+                    &ldquo;{genesisTip}&rdquo;
+                  </Text>
+                </View>
+              </GlassCard>
+            </View>
+
+            {/* ── G: Alternatives — Rich Vertical Cards ── */}
             {alternatives.length > 0 && (
               <View style={{ gap: 10 }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
-                  Alternatives
+                <Text
+                  style={{
+                    color: GENESIS_COLORS.textTertiary,
+                    fontSize: 10,
+                    fontFamily: 'JetBrainsMonoMedium',
+                    letterSpacing: 2,
+                  }}
+                >
+                  ALTERNATIVAS
                 </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-                  {alternatives.map((alt) => (
-                    <View key={alt.id} style={{ width: 170 }}>
-                      <ImageCard
-                        imageUrl={alt.imageUrl || getExerciseImage(alt.name, alt.muscleGroup)}
-                        title={alt.name}
-                        badge={alt.equipment}
-                        badgeColor={DIFFICULTY_COLORS[alt.difficulty]}
-                        height={140}
+                <View style={{ gap: 8 }}>
+                  {alternatives.map((alt) => {
+                    const altDiffColor = DIFFICULTY_COLORS[alt.difficulty] ?? GENESIS_COLORS.textMuted;
+                    return (
+                      <Pressable
+                        key={alt.id}
                         onPress={() => router.push(`/(screens)/exercise-detail?id=${alt.id}`)}
-                      />
-                    </View>
-                  ))}
-                </ScrollView>
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 12,
+                          backgroundColor: '#000000',
+                          borderWidth: 1,
+                          borderColor: GENESIS_COLORS.primary + '30',
+                          borderRadius: 14,
+                          padding: 12,
+                        }}
+                      >
+                        <Image
+                          source={{
+                            uri: alt.imageUrl || getExerciseImage(alt.name, alt.muscleGroup),
+                          }}
+                          style={{ width: 52, height: 52, borderRadius: 12 }}
+                          contentFit="cover"
+                        />
+                        <View style={{ flex: 1, gap: 4 }}>
+                          <Text
+                            style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}
+                            numberOfLines={1}
+                          >
+                            {alt.name}
+                          </Text>
+                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                            <View
+                              style={{
+                                backgroundColor: 'rgba(255,255,255,0.06)',
+                                borderRadius: 9999,
+                                paddingHorizontal: 7,
+                                paddingVertical: 2,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: GENESIS_COLORS.textSecondary,
+                                  fontSize: 9,
+                                  fontFamily: 'JetBrainsMonoMedium',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                {alt.equipment}
+                              </Text>
+                            </View>
+                            <View
+                              style={{
+                                backgroundColor: altDiffColor + '15',
+                                borderRadius: 9999,
+                                paddingHorizontal: 7,
+                                paddingVertical: 2,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: altDiffColor,
+                                  fontSize: 9,
+                                  fontFamily: 'JetBrainsMonoMedium',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                {alt.difficulty}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text
+                            style={{
+                              color: GENESIS_COLORS.textMuted,
+                              fontSize: 11,
+                              fontFamily: 'Inter',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {alt.muscleGroup.replace('_', ' ')}
+                            {alt.secondaryMuscles.length > 0
+                              ? ` \u00B7 ${alt.secondaryMuscles.map((m) => m.replace('_', ' ')).join(', ')}`
+                              : ''}
+                          </Text>
+                        </View>
+                        <ChevronRight size={16} color={GENESIS_COLORS.textMuted} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {/* Library link */}
+                <Pressable
+                  onPress={() =>
+                    router.push(`/(screens)/library?muscle=${exercise.muscleGroup}`)
+                  }
+                  style={{ alignItems: 'center', paddingVertical: 8 }}
+                >
+                  <Text
+                    style={{
+                      color: GENESIS_COLORS.primary,
+                      fontSize: 13,
+                      fontFamily: 'JetBrainsMonoSemiBold',
+                    }}
+                  >
+                    Ver librería completa →
+                  </Text>
+                </Pressable>
               </View>
             )}
           </View>

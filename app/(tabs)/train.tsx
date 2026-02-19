@@ -1,23 +1,30 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { ScrollView } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { ScrollView, Swipeable } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, ChevronRight, Moon, Camera } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dumbbell, ChevronRight, Moon, Camera, ArrowLeftRight } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { GlassCard, GradientCard, ListItemCard, SeasonHeader, ErrorBanner, CollapsibleSection, GenesisIcon } from '../../components/ui';
-import { CoachReviewBadge } from '../../components/coach';
+import { SwapExerciseSheet } from '../../components/training';
 import { ImageCard } from '../../components/cards';
-import { GENESIS_COLORS } from '../../constants/colors';
+import { GENESIS_COLORS, getMuscleGroupColor } from '../../constants/colors';
 import { useSeasonStore, useTrainingStore } from '../../stores';
 import { hasSupabaseConfig } from '../../services/supabaseClient';
-import { MOCK_WORKOUT_PLANS, PHASE_CONFIG, IMAGES } from '../../data';
+import { MOCK_WORKOUT_PLANS, PHASE_CONFIG, IMAGES, GENESIS_TIPS } from '../../data';
 import type { PhaseType } from '../../types';
 import { useStaggeredEntrance, getStaggeredStyle } from '../../hooks/useStaggeredEntrance';
 import { SkeletonCard } from '../../components/loading/SkeletonCard';
 import { GenesisGuide } from '../../components/onboarding';
+import { hapticSelection } from '../../utils/haptics';
 
 function getMuscleGroupImage(muscleGroups: string[]): string {
   const primary = (muscleGroups[0] || '').toLowerCase();
@@ -32,12 +39,21 @@ function getMuscleGroupImage(muscleGroups: string[]): string {
 
 export default function TrainScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = 48 + Math.max(insets.bottom, 16);
   const { seasonNumber, currentWeek, currentPhase, weeks } = useSeasonStore();
-  const { todayPlan, isTodayPlanLoading, error: trainError, fetchTodayPlan, previousSessions, exerciseCatalog } = useTrainingStore();
+  const { todayPlan, isTodayPlanLoading, error: trainError, fetchTodayPlan, previousSessions, exerciseCatalog, swapExercise } = useTrainingStore();
+
+  const [swapTarget, setSwapTarget] = useState<{ id: string; name: string; muscleGroup: string } | null>(null);
+  const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
     fetchTodayPlan();
     useTrainingStore.getState().fetchPreviousSessions();
+    // Pre-fetch exercise catalog for swap alternatives
+    if (exerciseCatalog.length === 0) {
+      useTrainingStore.getState().fetchExerciseCatalog();
+    }
   }, []);
 
   // Use real plan from BFF, fall back to mock only in demo mode (no Supabase config)
@@ -46,8 +62,40 @@ export default function TrainScreen() {
   const phase = ((todayPlan?.phase || currentPhase || 'hypertrophy') as PhaseType);
   const phaseConfig = PHASE_CONFIG[phase];
 
+  // Rotate tips every 8 seconds
+  const tips = useMemo(() => GENESIS_TIPS[phase] ?? [''], [phase]);
+  useEffect(() => {
+    if (tips.length <= 1) return;
+    const interval = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % tips.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [tips.length]);
+
+  // Breathing animation for tip icon
+  const tipGlow = useSharedValue(0.6);
+  useEffect(() => {
+    tipGlow.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1000 }),
+        withTiming(0.6, { duration: 1000 }),
+      ),
+      -1,
+      false,
+    );
+  }, []);
+  const tipGlowStyle = useAnimatedStyle(() => ({
+    opacity: tipGlow.value,
+  }));
+
   const entrance = useStaggeredEntrance(6, 120);
   const totalDuration = 600 + 6 * 120;
+
+  const handleSwap = useCallback((newEx: { id: string; name: string; imageUrl: string }) => {
+    if (!swapTarget) return;
+    swapExercise(swapTarget.id, newEx);
+    setSwapTarget(null);
+  }, [swapTarget, swapExercise]);
 
   // Loading state
   if (isTodayPlanLoading) {
@@ -83,7 +131,7 @@ export default function TrainScreen() {
               weeks={weeks}
             />
             <ErrorBanner message={trainError} />
-            <GlassCard>
+            <GlassCard style={{ backgroundColor: '#000000', borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
               <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
                 <Dumbbell size={40} color={GENESIS_COLORS.textTertiary} />
                 <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>
@@ -107,6 +155,12 @@ export default function TrainScreen() {
 
   // Rest day state (BFF returned plan: null and we have a real season)
   if (todayPlan === null && !isTodayPlanLoading && !trainError && seasonNumber > 0) {
+    const completedCount = previousSessions.filter((s) => s.completed).length;
+    const lastSession = previousSessions[0];
+    const lastSessionDate = lastSession
+      ? new Date(lastSession.date).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' })
+      : null;
+
     return (
       <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -120,15 +174,48 @@ export default function TrainScreen() {
               currentPhase={phase}
               weeks={weeks}
             />
-            <GlassCard>
-              <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
-                <Moon size={40} color={GENESIS_COLORS.success} />
+            <GlassCard style={{ backgroundColor: '#000000', borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
+              <View style={{ alignItems: 'center', gap: 16, paddingVertical: 24 }}>
+                {/* Moon icon with glow */}
+                <View style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: GENESIS_COLORS.success + '15',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: GENESIS_COLORS.success,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  shadowOffset: { width: 0, height: 0 },
+                }}>
+                  <Moon size={36} color={GENESIS_COLORS.success} />
+                </View>
                 <Text style={{ color: '#FFFFFF', fontSize: 20, fontFamily: 'InterBold' }}>
-                  Hoy es día de descanso
+                  Hoy es dia de descanso
                 </Text>
                 <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 13, fontFamily: 'Inter', textAlign: 'center', lineHeight: 20 }}>
-                  Tu cuerpo se recupera y crece mientras descansas. Enfócate en nutrición, hidratación y dormir bien.
+                  Tu cuerpo se recupera y crece mientras descansas. Enfocate en nutricion, hidratacion y dormir bien.
                 </Text>
+
+                {/* Recovery stats */}
+                <View style={{ flexDirection: 'row', gap: 24, marginTop: 8 }}>
+                  <View style={{ alignItems: 'center', gap: 4 }}>
+                    <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1 }}>RACHA</Text>
+                    <Text style={{ color: '#FFFFFF', fontSize: 20, fontFamily: 'JetBrainsMonoBold' }}>{completedCount}</Text>
+                    <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 10, fontFamily: 'Inter' }}>sesiones</Text>
+                  </View>
+                  <View style={{ width: 1, backgroundColor: GENESIS_COLORS.borderSubtle }} />
+                  <View style={{ alignItems: 'center', gap: 4 }}>
+                    <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1 }}>ULTIMO</Text>
+                    <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoBold' }}>
+                      {lastSessionDate ?? '—'}
+                    </Text>
+                    <Text style={{ color: GENESIS_COLORS.textMuted, fontSize: 10, fontFamily: 'Inter' }} numberOfLines={1}>
+                      {lastSession?.workoutName ?? lastSession?.exercises[0]?.name ?? '—'}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </GlassCard>
             <GenesisGuide message="Los dias de descanso son tan importantes como los de entrenamiento. La hipertrofia ocurre durante la recuperacion, no durante el entrenamiento." />
@@ -142,7 +229,7 @@ export default function TrainScreen() {
     <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 180, gap: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 + tabBarHeight, gap: 24 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Season Header */}
@@ -153,12 +240,12 @@ export default function TrainScreen() {
             weeks={weeks}
           />
 
-          {/* Workout Hero Card */}
+          {/* Workout Hero Card — gradient tinted by phase */}
           <StaggeredSection index={0} entrance={entrance} totalDuration={totalDuration}>
             {workout && <ImageCard
               imageUrl={workout.imageUrl}
               height={200}
-              overlayColors={['transparent', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.95)']}
+              overlayColors={['transparent', 'rgba(0,0,0,0.5)', phaseConfig.accentColor + '99']}
             >
               <View style={{ gap: 8 }}>
                 <Text style={{ color: phaseConfig.accentColor, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
@@ -169,7 +256,7 @@ export default function TrainScreen() {
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                   {workout.muscleGroups.map((mg) => (
-                    <View key={mg} style={{ backgroundColor: '#6D00FF', borderRadius: 9999, paddingHorizontal: 8, paddingVertical: 3 }}>
+                    <View key={mg} style={{ backgroundColor: getMuscleGroupColor(mg), borderRadius: 9999, paddingHorizontal: 8, paddingVertical: 3 }}>
                       <Text style={{ color: '#FFFFFF', fontSize: 10, fontFamily: 'JetBrainsMonoMedium' }}>{mg}</Text>
                     </View>
                   ))}
@@ -195,65 +282,84 @@ export default function TrainScreen() {
             </View>
           </StaggeredSection>
 
-          {/* Exercises */}
+          {/* Exercises — swipeable for swap */}
           <StaggeredSection index={2} entrance={entrance} totalDuration={totalDuration}>
             <View style={{ gap: 12 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
-                  EJERCICIOS
-                </Text>
-                <Pressable onPress={() => router.push('/(screens)/library')}>
-                  <Text style={{ color: GENESIS_COLORS.primary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
-                    Ver librería →
-                  </Text>
-                </Pressable>
-              </View>
+              <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', letterSpacing: 1.5 }}>
+                EJERCICIOS
+              </Text>
               <View style={{ gap: 12 }}>
                 {exercises.map((ex) => {
                   const catalogMatch = exerciseCatalog.find((c) => c.name.toLowerCase() === ex.name.toLowerCase());
                   const imageUri = catalogMatch?.imageUrl || getMuscleGroupImage(workout?.muscleGroups ?? []);
+                  const muscleGroup = catalogMatch?.muscleGroup ?? (workout?.muscleGroups[0] ?? 'full_body').toLowerCase();
+
                   return (
-                    <ListItemCard
+                    <Swipeable
                       key={ex.id}
-                      icon={
-                        <Image
-                          source={{ uri: imageUri }}
-                          placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
-                          contentFit="cover"
-                          style={{ width: 36, height: 36, borderRadius: 10 }}
-                          transition={200}
-                        />
-                      }
-                      title={ex.name}
-                      subtitle={
-                        <Text style={{ color: 'rgba(192, 192, 192, 0.60)', fontSize: 11, fontFamily: 'Inter' }}>
-                          {ex.sets} × {ex.reps} reps{ex.weight ? <Text> · <Text style={{ color: phaseConfig.accentColor }}>{ex.weight} {ex.unit}</Text></Text> : null}
-                        </Text>
-                      }
-                      variant="purple"
-                      onPress={() => {
-                        router.push(`/(screens)/exercise-detail?id=${ex.id}`);
-                      }}
-                      right={<ChevronRight size={16} color={GENESIS_COLORS.textTertiary} />}
-                    />
+                      renderRightActions={() => (
+                        <Pressable
+                          onPress={() => {
+                            hapticSelection();
+                            setSwapTarget({ id: ex.id, name: ex.name, muscleGroup });
+                          }}
+                          style={{
+                            backgroundColor: GENESIS_COLORS.primary + '20',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: 72,
+                            borderRadius: 14,
+                            marginLeft: 8,
+                          }}
+                        >
+                          <ArrowLeftRight size={20} color={GENESIS_COLORS.primary} />
+                          <Text style={{ color: GENESIS_COLORS.primary, fontSize: 9, fontFamily: 'JetBrainsMonoSemiBold', marginTop: 4 }}>
+                            SWAP
+                          </Text>
+                        </Pressable>
+                      )}
+                      overshootRight={false}
+                    >
+                      <ListItemCard
+                        icon={
+                          <Image
+                            source={{ uri: imageUri }}
+                            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+                            contentFit="cover"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            transition={200}
+                          />
+                        }
+                        title={ex.name}
+                        subtitle={
+                          <Text style={{ color: 'rgba(192, 192, 192, 0.60)', fontSize: 11, fontFamily: 'Inter' }}>
+                            {ex.sets} × {ex.reps} reps{ex.weight ? <Text> · <Text style={{ color: phaseConfig.accentColor }}>{ex.weight} {ex.unit}</Text></Text> : null}
+                          </Text>
+                        }
+                        variant="purple"
+                        onPress={() => {
+                          router.push(`/(screens)/exercise-detail?id=${ex.id}`);
+                        }}
+                        right={<ChevronRight size={16} color={GENESIS_COLORS.textTertiary} />}
+                      />
+                    </Swipeable>
                   );
                 })}
               </View>
             </View>
           </StaggeredSection>
 
-          {/* GENESIS Tip */}
+          {/* GENESIS Tip — rotative with breathing icon */}
           <StaggeredSection index={3} entrance={entrance} totalDuration={totalDuration}>
-            <GlassCard shine>
+            <GlassCard shine style={{ backgroundColor: '#000000', borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <GenesisIcon size={14} color={phaseConfig.accentColor} />
+                <Animated.View style={tipGlowStyle}>
+                  <GenesisIcon size={14} color={phaseConfig.accentColor} />
+                </Animated.View>
                 <Text style={{ color: phaseConfig.accentColor, fontSize: 11, fontFamily: 'JetBrainsMonoSemiBold' }}>GENESIS TIP</Text>
               </View>
               <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'Inter', lineHeight: 18 }}>
-                {phase === 'hypertrophy' && 'Controla el tempo: 3 segundos bajando, 1 segundo arriba. El tiempo bajo tensión es clave para hipertrofia.'}
-                {phase === 'strength' && 'Respeta los descansos largos entre series pesadas. Tu sistema nervioso necesita recuperar para dar el máximo.'}
-                {phase === 'power' && 'Velocidad es la clave. Mueve el peso con intención explosiva en cada rep.'}
-                {phase === 'deload' && 'Semana de recuperación. Baja el peso un 40% y enfócate en técnica perfecta.'}
+                {tips[tipIndex]}
               </Text>
             </GlassCard>
           </StaggeredSection>
@@ -261,7 +367,7 @@ export default function TrainScreen() {
           {/* Camera Form Check CTA */}
           <StaggeredSection index={4} entrance={entrance} totalDuration={totalDuration}>
             <Pressable onPress={() => router.push('/(modals)/camera-scanner')}>
-              <GlassCard>
+              <GlassCard style={{ backgroundColor: '#000000', borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 40,
@@ -295,7 +401,7 @@ export default function TrainScreen() {
               ) : (
                 <View style={{ gap: 10 }}>
                   {previousSessions.slice(0, 5).map((session) => (
-                    <GlassCard key={session.id}>
+                    <GlassCard key={session.id} style={{ backgroundColor: '#000000', borderColor: GENESIS_COLORS.primary, borderWidth: 1 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <View style={{ gap: 2 }}>
                           <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'InterBold' }}>
@@ -330,12 +436,12 @@ export default function TrainScreen() {
         </ScrollView>
 
         {/* Sticky Start CTA */}
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+        <View style={{ position: 'absolute', bottom: tabBarHeight, left: 0, right: 0 }}>
           <LinearGradient
             colors={['transparent', GENESIS_COLORS.bgGradientEnd]}
             style={{ height: 40 }}
           />
-          <View style={{ backgroundColor: GENESIS_COLORS.bgGradientEnd, paddingHorizontal: 20, paddingBottom: 34 }}>
+          <View style={{ backgroundColor: GENESIS_COLORS.bgGradientEnd, paddingHorizontal: 20, paddingBottom: 12 }}>
             <Pressable
               disabled={!workout}
               style={{
@@ -373,6 +479,16 @@ export default function TrainScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* Swap Exercise Sheet */}
+        <SwapExerciseSheet
+          visible={swapTarget !== null}
+          exerciseId={swapTarget?.id ?? ''}
+          exerciseName={swapTarget?.name ?? ''}
+          muscleGroup={swapTarget?.muscleGroup ?? ''}
+          onSelect={handleSwap}
+          onClose={() => setSwapTarget(null)}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
