@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Pause, Play, ArrowLeft } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -24,7 +25,8 @@ import { FormCues } from '../../components/training/FormCues';
 import { PRCelebration } from '../../components/training/PRCelebration';
 import { PHASE_CONFIG } from '../../data';
 import { detectPersonalRecords } from '../../utils/prDetection';
-import { hapticLight, hapticMedium } from '../../utils/haptics';
+import { getExerciseImage } from '../../utils/exerciseImages';
+import { hapticLight, hapticMedium, hapticHeavy, hapticNotificationSuccess } from '../../utils/haptics';
 import type { DetectedPR } from '../../utils/prDetection';
 import type { PhaseType } from '../../types';
 
@@ -43,6 +45,7 @@ export default function ActiveWorkoutScreen() {
     restTimeRemaining,
     logSet,
     skipSet,
+    addSet,
     advanceToNextExercise,
     pauseWorkout,
     resumeWorkout,
@@ -50,11 +53,15 @@ export default function ActiveWorkoutScreen() {
     tickElapsed,
     resetWorkout,
     startRestTimer,
+    getPreviousExerciseData,
   } = useTrainingStore();
+
+  const previousData = getPreviousExerciseData();
 
   const [detectedPRs, setDetectedPRs] = useState<DetectedPR[]>([]);
   const [showComplete, setShowComplete] = useState(false);
   const [showPRCelebration, setShowPRCelebration] = useState(false);
+  const [prSetNumbers, setPrSetNumbers] = useState<Record<string, number[]>>({});
   const [showTransition, setShowTransition] = useState(false);
   const [transitionExercise, setTransitionExercise] = useState({ name: '', number: 0 });
 
@@ -98,6 +105,57 @@ export default function ActiveWorkoutScreen() {
     }
   }, [workoutStatus]);
 
+  // ALL hooks must be above early returns (Rules of Hooks)
+  const handleLogSet = useCallback((exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => {
+    hapticNotificationSuccess();
+    logSet(exerciseId, setNumber, data);
+    startRestTimer(phaseConfig.restSeconds);
+
+    // Real-time PR detection: compare against previous session data
+    const prevSets = previousData[exerciseId];
+    if (prevSets && prevSets.length > 0) {
+      const prevMaxWeight = Math.max(...prevSets.map((s) => s.weight));
+      if (data.actualWeight > prevMaxWeight) {
+        hapticHeavy();
+        setPrSetNumbers((prev) => ({
+          ...prev,
+          [exerciseId]: [...(prev[exerciseId] ?? []), setNumber],
+        }));
+      }
+    }
+  }, [logSet, startRestTimer, phaseConfig.restSeconds, previousData]);
+
+  const handleFinish = useCallback(async () => {
+    if (!currentSession) return;
+    const exerciseIds = currentSession.exercises.map((e) => e.id);
+    const { fetchExistingPRMap, getCurrentUserId } = await import('../../services/supabaseQueries');
+    const userId = getCurrentUserId();
+    const existingRecords = userId ? await fetchExistingPRMap(userId, exerciseIds) : {};
+
+    const prs = detectPersonalRecords(currentSession.exercises, existingRecords);
+    setDetectedPRs(prs);
+    await finishWorkout(prs);
+
+    const today = new Date().toISOString().split('T')[0];
+    await AsyncStorage.setItem(`genesis_workoutDone_${today}`, 'true');
+  }, [currentSession, finishWorkout]);
+
+  const handleTransitionComplete = useCallback(() => {
+    setShowTransition(false);
+    advanceToNextExercise();
+  }, [advanceToNextExercise]);
+
+  // Show transition overlay before auto-advancing to next exercise
+  useEffect(() => {
+    if (!currentSession) return;
+    const currentExerciseForTransition = currentSession.exercises[currentExerciseIndex];
+    if (currentExerciseForTransition?.completed && currentExerciseIndex < currentSession.exercises.length - 1) {
+      const nextEx = currentSession.exercises[currentExerciseIndex + 1];
+      setTransitionExercise({ name: nextEx.name, number: currentExerciseIndex + 2 });
+      setShowTransition(true);
+    }
+  }, [currentSession, currentExerciseIndex]);
+
   if (!currentSession) {
     return (
       <LinearGradient colors={[GENESIS_COLORS.bgGradientStart, GENESIS_COLORS.bgGradientEnd]} style={{ flex: 1 }}>
@@ -118,47 +176,26 @@ export default function ActiveWorkoutScreen() {
   const totalSets = currentExercise?.exerciseSets?.length ?? currentExercise?.sets ?? 0;
   const allExercisesDone = currentSession.exercises.every((ex) => ex.completed);
 
-  const handleLogSet = useCallback((exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => {
-    hapticMedium();
-    logSet(exerciseId, setNumber, data);
-    // Auto-start rest timer
-    startRestTimer(phaseConfig.restSeconds);
-  }, [logSet, startRestTimer, phaseConfig.restSeconds]);
-
-  const handleFinish = useCallback(async () => {
-    // Fetch existing PRs for comparison
-    const exerciseIds = currentSession.exercises.map((e) => e.id);
-    const { fetchExistingPRMap, getCurrentUserId } = await import('../../services/supabaseQueries');
-    const userId = getCurrentUserId();
-    const existingRecords = userId ? await fetchExistingPRMap(userId, exerciseIds) : {};
-
-    const prs = detectPersonalRecords(currentSession.exercises, existingRecords);
-    setDetectedPRs(prs);
-    await finishWorkout(prs);
-
-    const today = new Date().toISOString().split('T')[0];
-    await AsyncStorage.setItem(`genesis_workoutDone_${today}`, 'true');
-  }, [currentSession, finishWorkout]);
+  const handleFinishPress = () => {
+    if (allExercisesDone) {
+      handleFinish();
+      return;
+    }
+    Alert.alert(
+      '¿Terminar sesión?',
+      'Aún tienes ejercicios pendientes. ¿Seguro que deseas terminar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Terminar', style: 'destructive', onPress: handleFinish },
+      ],
+    );
+  };
 
   const handleDismiss = () => {
     setShowComplete(false);
     resetWorkout();
     router.back();
   };
-
-  // Show transition overlay before auto-advancing to next exercise
-  useEffect(() => {
-    if (currentExercise?.completed && currentExerciseIndex < currentSession.exercises.length - 1) {
-      const nextEx = currentSession.exercises[currentExerciseIndex + 1];
-      setTransitionExercise({ name: nextEx.name, number: currentExerciseIndex + 2 });
-      setShowTransition(true);
-    }
-  }, [currentExercise?.completed, currentExerciseIndex, currentSession.exercises.length]);
-
-  const handleTransitionComplete = useCallback(() => {
-    setShowTransition(false);
-    advanceToNextExercise();
-  }, [advanceToNextExercise]);
 
   // PR Celebration overlay
   if (showPRCelebration && detectedPRs.length > 0) {
@@ -194,7 +231,7 @@ export default function ActiveWorkoutScreen() {
 
     return (
       <PostWorkoutSummary
-        workoutName={currentSession.exercises[0]?.name ? 'Active Workout' : 'Workout'}
+        workoutName={currentSession.workoutName ?? 'Sesion Activa'}
         duration={Math.round(elapsedSeconds / 60)}
         exercisesCompleted={completedExercises}
         totalSets={summaryTotalSets}
@@ -226,7 +263,7 @@ export default function ActiveWorkoutScreen() {
 
           <View style={{ alignItems: 'center' }}>
             <Text style={{ color: theme.colors.textPrimary, fontSize: 14, fontFamily: 'InterBold' }}>
-              {currentSession.exercises[0]?.name ? 'Active Workout' : 'Workout'}
+              {currentSession.workoutName ?? 'Sesion Activa'}
             </Text>
             <Animated.Text style={[{ color: phaseConfig.accentColor, fontSize: 22, fontFamily: 'JetBrainsMonoBold' }, timerGlowStyle]}>
               {minutes}:{secs.toString().padStart(2, '0')}
@@ -257,53 +294,95 @@ export default function ActiveWorkoutScreen() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Current exercise info */}
+          {/* Current exercise info — image background */}
           {currentExercise && (
             <View style={{
-              backgroundColor: `${phaseConfig.color}15`,
               borderRadius: 14,
-              padding: 14,
               borderWidth: 1,
-              borderColor: `${phaseConfig.color}33`,
-              gap: 4,
+              borderColor: GENESIS_COLORS.primary + '66',
+              overflow: 'hidden',
             }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
-                CURRENT EXERCISE
-              </Text>
-              <Text style={{ color: theme.colors.textPrimary, fontSize: 18, fontFamily: 'InterBold' }}>
-                {currentExercise.name}
-              </Text>
-              <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>
-                Set {completedSets + 1} of {totalSets} · {currentExercise.weight}{currentExercise.unit}
-              </Text>
-              {currentExercise?.videoUrl && (
-                <Pressable
-                  onPress={() => router.push(`/(modals)/exercise-video?url=${encodeURIComponent(currentExercise.videoUrl!)}`)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}
-                >
-                  <Play size={12} color={GENESIS_COLORS.primary} />
-                  <Text style={{ color: GENESIS_COLORS.primary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
-                    Ver demo
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          )}
+              <Image
+                source={{ uri: getExerciseImage(currentExercise.name) }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                contentFit="cover"
+              />
+              <LinearGradient
+                colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0.85)']}
+                style={{ padding: 14, gap: 4 }}
+              >
+                {/* Muscle group badge — look up from exercise catalog */}
+                {(() => {
+                  const catalogEntry = exerciseCatalog.find((e) => e.name === currentExercise.name);
+                  if (!catalogEntry) return null;
+                  return (
+                    <View style={{ position: 'absolute', top: 10, right: 10 }}>
+                      <View style={{
+                        backgroundColor: GENESIS_COLORS.primary + '30',
+                        borderRadius: 9999,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderWidth: 1,
+                        borderColor: GENESIS_COLORS.primary + '50',
+                      }}>
+                        <Text style={{
+                          color: '#FFFFFF',
+                          fontSize: 9,
+                          fontFamily: 'JetBrainsMonoSemiBold',
+                          textTransform: 'uppercase',
+                          letterSpacing: 1,
+                        }}>
+                          {catalogEntry.muscleGroup.replace('_', ' ')}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })()}
 
-          {/* Enhanced Rest Timer */}
-          {(isRestTimerActive || restTimeRemaining > 0) && (
-            <EnhancedRestTimer
-              seconds={phaseConfig.restSeconds}
-              phaseColor={phaseConfig.accentColor}
-              phaseLabel={phase}
-              onComplete={() => {
-                hapticMedium();
-                useTrainingStore.setState({ restTimeRemaining: 0, isRestTimerActive: false });
-              }}
-              onSkip={() => {
-                useTrainingStore.setState({ restTimeRemaining: 0, isRestTimerActive: false });
-              }}
-            />
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1.5 }}>
+                  CURRENT EXERCISE
+                </Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'InterBold' }}>
+                  {currentExercise.name}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
+                  Set <Text style={{ color: phaseConfig.accentColor, fontFamily: 'JetBrainsMonoBold' }}>{completedSets + 1}</Text> of {totalSets} · {currentExercise.weight}{currentExercise.unit}
+                </Text>
+                {/* Progress bar */}
+                <View style={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 6 }}>
+                  <View style={{
+                    height: 3,
+                    borderRadius: 2,
+                    backgroundColor: phaseConfig.accentColor,
+                    width: `${totalSets > 0 ? (completedSets / totalSets) * 100 : 0}%`,
+                  }} />
+                </View>
+                {/* Video CTA pill */}
+                {currentExercise?.videoUrl && (
+                  <Pressable
+                    onPress={() => router.push(`/(modals)/exercise-video?url=${encodeURIComponent(currentExercise.videoUrl!)}`)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      alignSelf: 'flex-start',
+                      gap: 6,
+                      marginTop: 8,
+                      height: 36,
+                      paddingHorizontal: 14,
+                      backgroundColor: GENESIS_COLORS.primary + '20',
+                      borderRadius: 9999,
+                      borderWidth: 1,
+                      borderColor: GENESIS_COLORS.primary + '40',
+                    }}
+                  >
+                    <Play size={14} color={GENESIS_COLORS.primary} fill={GENESIS_COLORS.primary} />
+                    <Text style={{ color: GENESIS_COLORS.primary, fontSize: 12, fontFamily: 'JetBrainsMonoSemiBold' }}>
+                      VER DEMO
+                    </Text>
+                  </Pressable>
+                )}
+              </LinearGradient>
+            </View>
           )}
 
           {/* Exercise Form */}
@@ -313,6 +392,10 @@ export default function ActiveWorkoutScreen() {
             onToggle={() => {}}
             onLogSet={handleLogSet}
             onSkipSet={skipSet}
+            onAddSet={addSet}
+            previousData={previousData}
+            phaseColor={phaseConfig.accentColor}
+            prSetNumbers={prSetNumbers}
           />
 
           {/* Form Cues */}
@@ -322,6 +405,35 @@ export default function ActiveWorkoutScreen() {
             />
           )}
         </ScrollView>
+
+        {/* Floating Rest Timer */}
+        {(isRestTimerActive || restTimeRemaining > 0) && (
+          <View style={{
+            position: 'absolute',
+            bottom: 90,
+            left: 20,
+            right: 20,
+            zIndex: 10,
+          }}>
+            <EnhancedRestTimer
+              seconds={phaseConfig.restSeconds}
+              phaseColor={phaseConfig.accentColor}
+              phaseLabel={phase}
+              compact={true}
+              isPaused={workoutStatus === 'paused'}
+              onComplete={() => {
+                hapticMedium();
+                useTrainingStore.setState({ restTimeRemaining: 0, isRestTimerActive: false });
+              }}
+              onSkip={() => {
+                useTrainingStore.setState({ restTimeRemaining: 0, isRestTimerActive: false });
+              }}
+              onAddTime={() => {
+                useTrainingStore.setState((s: any) => ({ restTimeRemaining: s.restTimeRemaining + 30 }));
+              }}
+            />
+          </View>
+        )}
 
         {/* Footer — Finish button */}
         <View style={{
@@ -334,7 +446,7 @@ export default function ActiveWorkoutScreen() {
           paddingTop: 12,
         }}>
           <Pressable
-            onPress={handleFinish}
+            onPress={handleFinishPress}
             style={{ opacity: allExercisesDone ? 1 : 0.5 }}
           >
             <LinearGradient
@@ -355,6 +467,7 @@ export default function ActiveWorkoutScreen() {
             exerciseName={transitionExercise.name}
             exerciseNumber={transitionExercise.number}
             totalExercises={currentSession.exercises.length}
+            totalSets={currentSession.exercises[transitionExercise.number - 1]?.sets ?? 0}
             phaseColor={phaseConfig.accentColor}
             onComplete={handleTransitionComplete}
           />

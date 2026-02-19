@@ -49,10 +49,12 @@ type TrainingState = {
   resumeWorkout: () => void;
   logSet: (exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => void;
   skipSet: (exerciseId: string, setNumber: number) => void;
+  addSet: (exerciseId: string) => void;
   advanceToNextExercise: () => void;
   finishWorkout: (detectedPRs?: DetectedPR[]) => Promise<void>;
   tickElapsed: () => void;
   resetWorkout: () => void;
+  getPreviousExerciseData: () => Record<string, { weight: number; reps: number }[]>;
 };
 
 export const useTrainingStore = create<TrainingState>((set, get) => ({
@@ -245,19 +247,24 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
     try {
       const { genesisAgentApi } = await import('../services/genesisAgentApi');
       const response = await genesisAgentApi.getExercises({ muscleGroup, search });
-      const items: ExerciseLibraryItem[] = (response.exercises || []).map((row: any) => ({
-        id: row.id,
-        name: row.name ?? '',
-        muscleGroup: (row.muscle_groups?.[0] ?? row.category ?? 'full_body') as ExerciseLibraryItem['muscleGroup'],
-        secondaryMuscles: (row.muscle_groups ?? []).slice(1) as string[],
-        equipment: (row.equipment?.[0] ?? 'bodyweight') as ExerciseLibraryItem['equipment'],
-        difficulty: (row.difficulty ?? 'intermediate') as ExerciseLibraryItem['difficulty'],
-        imageUrl: row.image_url ?? '',
-        videoUrl: row.video_url ?? '',
-        formCues: row.cues ?? [],
-        alternatives: [],
-        recommendedPhases: [],
-      }));
+      const { getExerciseImage } = await import('../utils/exerciseImages');
+      const items: ExerciseLibraryItem[] = (response.exercises || []).map((row: any) => {
+        const name = row.name ?? '';
+        const mg = row.muscle_groups?.[0] ?? row.category ?? 'full_body';
+        return {
+          id: row.id,
+          name,
+          muscleGroup: mg as ExerciseLibraryItem['muscleGroup'],
+          secondaryMuscles: (row.muscle_groups ?? []).slice(1) as string[],
+          equipment: (row.equipment?.[0] ?? 'bodyweight') as ExerciseLibraryItem['equipment'],
+          difficulty: (row.difficulty ?? 'intermediate') as ExerciseLibraryItem['difficulty'],
+          imageUrl: getExerciseImage(name, mg, row.image_url),
+          videoUrl: row.video_url ?? '',
+          formCues: row.cues ?? [],
+          alternatives: [],
+          recommendedPhases: [],
+        };
+      });
       set({ exerciseCatalog: items });
     } catch (err: any) {
       console.warn('fetchExerciseCatalog failed:', err?.message);
@@ -314,6 +321,24 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
         return { ...ex, exerciseSets, completed: allDone };
       });
 
+      return { currentSession: { ...state.currentSession, exercises } };
+    }),
+
+  addSet: (exerciseId) =>
+    set((state) => {
+      if (!state.currentSession) return state;
+      const exercises = state.currentSession.exercises.map((ex) => {
+        if (ex.id !== exerciseId) return ex;
+        const sets = ex.exerciseSets ?? [];
+        const lastSet = sets[sets.length - 1];
+        const newSet: ExerciseSet = {
+          setNumber: sets.length + 1,
+          targetReps: lastSet?.targetReps ?? ex.reps,
+          targetWeight: lastSet?.targetWeight ?? ex.weight,
+          completed: false,
+        };
+        return { ...ex, sets: sets.length + 1, exerciseSets: [...sets, newSet] };
+      });
       return { currentSession: { ...state.currentSession, exercises } };
     }),
 
@@ -439,6 +464,25 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
     set((state) => ({
       elapsedSeconds: state.workoutStatus === 'active' ? state.elapsedSeconds + 1 : state.elapsedSeconds,
     })),
+
+  getPreviousExerciseData: () => {
+    const { previousSessions } = get();
+    const result: Record<string, { weight: number; reps: number }[]> = {};
+    // Walk sessions newest-first, take the first match per exercise
+    for (const session of previousSessions) {
+      for (const ex of session.exercises) {
+        if (result[ex.id]) continue;
+        if (ex.exerciseSets && ex.exerciseSets.length > 0) {
+          result[ex.id] = ex.exerciseSets
+            .filter((s) => s.completed)
+            .map((s) => ({ weight: s.actualWeight ?? s.targetWeight, reps: s.actualReps ?? s.targetReps }));
+        } else if (ex.completed) {
+          result[ex.id] = Array.from({ length: ex.sets }, () => ({ weight: ex.weight, reps: ex.reps }));
+        }
+      }
+    }
+    return result;
+  },
 
   resetWorkout: () =>
     set({
