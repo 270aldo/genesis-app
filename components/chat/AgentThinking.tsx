@@ -10,29 +10,44 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Cpu } from 'lucide-react-native';
 import { GENESIS_COLORS } from '../../constants/colors';
+import { LiquidGlassCard } from '../ui/LiquidGlassCard';
 
 const DOT_COUNT = 3;
-const DOT_SIZE = 6;
+const DOT_SIZE = 4;
 
 function PulsingDot({ index }: { index: number }) {
+  const scale = useSharedValue(0.8);
   const opacity = useSharedValue(0.3);
 
   useEffect(() => {
-    opacity.value = withDelay(
-      index * 200,
+    const stagger = index * 180;
+    scale.value = withDelay(
+      stagger,
       withRepeat(
         withSequence(
-          withTiming(1, { duration: 600 }),
-          withTiming(0.3, { duration: 600 }),
+          withTiming(1.3, { duration: 500 }),
+          withTiming(0.8, { duration: 500 }),
         ),
         -1,
         true,
       ),
     );
-  }, [index, opacity]);
+    opacity.value = withDelay(
+      stagger,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 500 }),
+          withTiming(0.3, { duration: 500 }),
+        ),
+        -1,
+        true,
+      ),
+    );
+  }, [index, scale, opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
+    transform: [{ scale: scale.value }],
   }));
 
   return (
@@ -50,46 +65,26 @@ function PulsingDot({ index }: { index: number }) {
   );
 }
 
-type AgentThinkingProps = {
-  elapsedSeconds: number;
-};
-
-export function AgentThinking({ elapsedSeconds }: AgentThinkingProps) {
+function ThinkingRow({ elapsedSeconds }: { elapsedSeconds: number }) {
   return (
     <View
       style={{
-        backgroundColor: 'rgba(109, 0, 255, 0.08)',
-        borderWidth: 1,
-        borderColor: 'rgba(109, 0, 255, 0.2)',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        // Subtle glow shadow
-        shadowColor: GENESIS_COLORS.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
       }}
       accessibilityLabel={`GENESIS coordinando, ${elapsedSeconds} segundos`}
       accessibilityRole="progressbar"
     >
-      {/* CPU icon */}
       <Cpu size={14} color={GENESIS_COLORS.primary} />
-
-      {/* Pulsing dots */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         {Array.from({ length: DOT_COUNT }).map((_, i) => (
           <PulsingDot key={i} index={i} />
         ))}
       </View>
-
-      {/* Label with timer */}
       <Text
         style={{
-          color: 'rgba(255, 255, 255, 0.6)',
+          color: GENESIS_COLORS.textGhost,
           fontSize: 11,
           fontFamily: 'JetBrainsMonoMedium',
           letterSpacing: 0.5,
@@ -98,5 +93,24 @@ export function AgentThinking({ elapsedSeconds }: AgentThinkingProps) {
         GENESIS coordinando · {elapsedSeconds}s
       </Text>
     </View>
+  );
+}
+
+type AgentThinkingProps = {
+  elapsedSeconds: number;
+  bare?: boolean;
+};
+
+export function AgentThinking({ elapsedSeconds, bare = false }: AgentThinkingProps) {
+  if (bare) {
+    return <ThinkingRow elapsedSeconds={elapsedSeconds} />;
+  }
+
+  return (
+    <LiquidGlassCard effect="regular" borderRadius={16}>
+      <View style={{ padding: 12 }}>
+        <ThinkingRow elapsedSeconds={elapsedSeconds} />
+      </View>
+    </LiquidGlassCard>
   );
 }

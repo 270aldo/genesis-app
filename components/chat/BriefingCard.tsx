@@ -1,185 +1,125 @@
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Calendar, Dumbbell, Flame, Heart } from 'lucide-react-native';
-
-import { GlassCard } from '../ui/GlassCard';
+import { ChevronRight, Sun, Sunset, Moon } from 'lucide-react-native';
+import { LiquidGlassCard } from '../ui/LiquidGlassCard';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useAuthStore, useSeasonStore, useTrainingStore } from '../../stores';
 import { useNutritionStore } from '../../stores/useNutritionStore';
 import { useTrackStore } from '../../stores/useTrackStore';
 
-// ── Helpers ──
-
-/** Returns a time-appropriate Spanish greeting. */
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Buenos días';
-  if (hour < 19) return 'Buenas tardes';
-  return 'Buenas noches';
+function getGreeting(): { text: string; Icon: React.ElementType } {
+  const h = new Date().getHours();
+  if (h < 12) return { text: 'Buenos días', Icon: Sun };
+  if (h < 19) return { text: 'Buenas tardes', Icon: Sunset };
+  return { text: 'Buenas noches', Icon: Moon };
 }
 
-/** Capitalises the first letter of a phase string for display. */
-function formatPhase(phase: string): string {
-  if (!phase) return '';
-  return phase.charAt(0).toUpperCase() + phase.slice(1);
-}
+type BriefingCardProps = {
+  /** Start collapsed when used inside active conversation */
+  defaultExpanded?: boolean;
+};
 
-// ── Constants ──
-
-const DIVIDER_COLOR = 'rgba(255,255,255,0.06)';
-const ICON_SIZE = 16;
-const ICON_COLOR = GENESIS_COLORS.primaryLight;
-
-// ── Component ──
-
-export function BriefingCard() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  // Store reads (read-only, no mutations)
+export function BriefingCard({ defaultExpanded = true }: BriefingCardProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const userName = useAuthStore((s) => s.user?.name ?? 'Athlete');
   const currentWeek = useSeasonStore((s) => s.currentWeek);
   const currentPhase = useSeasonStore((s) => s.currentPhase);
   const todayPlan = useTrainingStore((s) => s.todayPlan);
-
-  // Nutrition — read primitives, compute inline (Zustand pattern)
   const meals = useNutritionStore((s) => s.meals);
   const dailyGoal = useNutritionStore((s) => s.dailyGoal);
-  const consumedKcal = useMemo(() => {
-    return meals.reduce((sum, m) => sum + (m.calories || 0), 0);
-  }, [meals]);
-  const targetKcal = dailyGoal ?? 2400;
-  const kcalLabel = `${consumedKcal.toLocaleString()}/${targetKcal.toLocaleString()} kcal`;
-
-  // Streak
   const streak = useTrackStore((s) => s.streak);
 
-  // Derived values
+  const consumedKcal = useMemo(() => meals.reduce((sum, m) => sum + (m.calories || 0), 0), [meals]);
+  const kcalStr = consumedKcal.toLocaleString();
   const workoutLabel = todayPlan?.name ?? 'Día de descanso';
-  const recoveryLabel = '— Recovery';
+  const { text: greeting, Icon: GreetingIcon } = getGreeting();
 
-  const toggle = () => setIsCollapsed((prev) => !prev);
-
-  // ── Collapsed view ──
-
-  if (isCollapsed) {
+  // ── COLLAPSED ──
+  if (!expanded) {
     return (
-      <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="Expandir briefing">
-        <GlassCard className="mb-3" shine>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Calendar size={ICON_SIZE} color={ICON_COLOR} />
-            <Text
-              style={{
-                fontFamily: 'Inter',
-                fontSize: 13,
-                color: GENESIS_COLORS.textSecondary,
-                flex: 1,
-              }}
-              numberOfLines={1}
-            >
-              Semana {currentWeek} · {workoutLabel} · {kcalLabel}{streak > 0 ? ` · 🔥${streak}` : ''}
+      <Pressable onPress={() => setExpanded(true)}>
+        <LiquidGlassCard effect="regular" borderRadius={16}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, paddingHorizontal: 18 }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#FFFFFF' }}>
+              {greeting}, {userName}
             </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 11, color: GENESIS_COLORS.textSecondary }}>
+                {kcalStr} kcal
+              </Text>
+              {streak > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: GENESIS_COLORS.primary }} />
+                  <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 11, fontWeight: '600', color: GENESIS_COLORS.primary }}>
+                    {streak}
+                  </Text>
+                </View>
+              )}
+              <ChevronRight size={14} color={GENESIS_COLORS.textGhost} />
+            </View>
           </View>
-        </GlassCard>
+        </LiquidGlassCard>
       </Pressable>
     );
   }
 
-  // ── Expanded view ──
-
+  // ── EXPANDED ──
   return (
-    <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="Colapsar briefing">
-      <GlassCard className="mb-3" shine>
-        {/* Header */}
-        <Text
-          style={{
-            fontFamily: 'JetBrainsMonoBold',
-            fontSize: 18,
-            color: GENESIS_COLORS.textPrimary,
-            marginBottom: 4,
-          }}
-        >
-          {getGreeting()}, {userName}
-        </Text>
-
-        {/* Season info */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-          <Calendar size={ICON_SIZE} color={ICON_COLOR} />
-          <Text
-            style={{
-              fontFamily: 'Inter',
-              fontSize: 13,
-              color: GENESIS_COLORS.textSecondary,
-            }}
-          >
-            Semana {currentWeek}/12 · {formatPhase(currentPhase)}
-          </Text>
-        </View>
-
-        {/* Divider */}
-        <View style={{ height: 1, backgroundColor: DIVIDER_COLOR, marginBottom: 12 }} />
-
-        {/* Workout row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <Dumbbell size={ICON_SIZE} color={ICON_COLOR} />
-          <Text
-            style={{
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: '500',
-              color: GENESIS_COLORS.textPrimary,
-              flex: 1,
-            }}
-            numberOfLines={1}
-          >
-            {workoutLabel}
-          </Text>
-        </View>
-
-        {/* Nutrition row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <Flame size={ICON_SIZE} color={ICON_COLOR} />
-          <Text
-            style={{
-              fontFamily: 'Inter',
-              fontSize: 13,
-              color: GENESIS_COLORS.textSecondary,
-            }}
-          >
-            {kcalLabel}
-          </Text>
-        </View>
-
-        {/* Recovery row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Heart size={ICON_SIZE} color={ICON_COLOR} />
-          <Text
-            style={{
-              fontFamily: 'Inter',
-              fontSize: 13,
-              color: GENESIS_COLORS.textSecondary,
-            }}
-          >
-            {recoveryLabel}
-          </Text>
-        </View>
-
-        {/* Streak row — only show if streak >= 1 */}
-        {streak > 0 && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
-            <Text style={{ fontSize: ICON_SIZE }}>🔥</Text>
-            <Text
-              style={{
-                fontFamily: 'Inter',
-                fontSize: 14,
-                fontWeight: '500',
-                color: GENESIS_COLORS.primary,
-              }}
-            >
-              {streak} días de racha
+    <Pressable onPress={() => setExpanded(false)}>
+      <LiquidGlassCard effect="regular" borderRadius={18}>
+        <View style={{ padding: 18 }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <GreetingIcon size={14} color={GENESIS_COLORS.iconDefault} />
+              <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 11, fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase', color: GENESIS_COLORS.textSecondary }}>
+                {greeting}
+              </Text>
+            </View>
+            <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, color: GENESIS_COLORS.textGhost }}>
+              Hoy · {new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
-        )}
-      </GlassCard>
+
+          {/* Body text */}
+          <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 21, color: GENESIS_COLORS.textSecondary, marginBottom: 14 }}>
+            {workoutLabel}. Semana {currentWeek}/12{currentPhase ? ` — ${currentPhase}` : ''}.{streak >= 3 ? ` Llevas ${streak} días seguidos.` : ''}
+          </Text>
+
+          {/* 3 metric boxes — HORIZONTAL */}
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <MetricBox value={kcalStr} label="kcal hoy" />
+            <MetricBox value="—" label="sueño" />
+            <MetricBox value={streak > 0 ? String(streak) : '—'} label="racha" highlight={streak >= 3} />
+          </View>
+        </View>
+      </LiquidGlassCard>
     </Pressable>
+  );
+}
+
+function MetricBox({ value, label, highlight }: { value: string; label: string; highlight?: boolean }) {
+  return (
+    <View style={{
+      flex: 1,
+      padding: 10,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.04)',
+      alignItems: 'center',
+    }}>
+      <Text style={{
+        fontFamily: 'JetBrainsMono',
+        fontSize: 18,
+        fontWeight: '600',
+        color: highlight ? GENESIS_COLORS.primary : '#FFFFFF',
+      }}>
+        {value}
+      </Text>
+      <Text style={{ fontFamily: 'Inter', fontSize: 10, color: GENESIS_COLORS.textTertiary, marginTop: 2 }}>
+        {label}
+      </Text>
+    </View>
   );
 }

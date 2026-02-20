@@ -43,6 +43,31 @@ export const GENESIS_COLORS = {
   // Borders
   borderSubtle: 'rgba(255, 255, 255, 0.08)',
   borderActive: 'rgba(109, 0, 255, 0.4)',
+
+  // V2.1 Void System
+  void: '#050508',
+  voidElevated: '#0A0A10',
+
+  // V2.1 Glass System (fallback for non-iOS-26)
+  glassClear: 'rgba(255, 255, 255, 0.06)',
+  glassClearBorder: 'rgba(255, 255, 255, 0.08)',
+  glassRegular: 'rgba(255, 255, 255, 0.04)',
+  glassRegularBorder: 'rgba(255, 255, 255, 0.06)',
+
+  // V2.1 Text
+  textGhost: 'rgba(255, 255, 255, 0.15)',
+
+  // V2.1 Agent Colors
+  agentTrain: '#6D00FF',
+  agentFuel: '#00C853',
+  agentMind: '#2196F3',
+  agentTrack: '#FF6D00',
+  agentVision: '#E91E63',
+
+  // V2.1 Icon defaults
+  iconDefault: 'rgba(255, 255, 255, 0.40)',
+  iconActive: '#6D00FF',
+  iconBright: 'rgba(255, 255, 255, 0.92)',
 } as const;
 
 export const MACRO_COLORS = {

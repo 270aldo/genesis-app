@@ -1,14 +1,17 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   User,
   MessageCircle,
   Settings,
   Clock,
   Cpu,
+  BookOpen,
+  Calendar,
+  FlaskConical,
 } from 'lucide-react-native';
 import { GENESIS_COLORS } from '../../constants/colors';
+import { LiquidGlassCard } from '../ui/LiquidGlassCard';
 import { useAuthStore, useSeasonStore } from '../../stores';
 import { useDrawer } from '../../contexts/DrawerContext';
 import { TokenCounter } from './TokenCounter';
@@ -18,29 +21,14 @@ import { useSpaceManager, type SpaceId } from '../../hooks/useSpaceManager';
 type SpaceItem = {
   id: string;
   label: string;
-  emoji: string;
+  icon: React.ElementType;
   description: string;
 };
 
 const SPACES: SpaceItem[] = [
-  {
-    id: 'logos',
-    label: 'LOGOS',
-    emoji: '\uD83D\uDCDA',
-    description: 'Educación y conocimiento',
-  },
-  {
-    id: 'season-hub',
-    label: 'Season Hub',
-    emoji: '\uD83D\uDDD3',
-    description: 'Tu temporada actual',
-  },
-  {
-    id: 'labs',
-    label: 'Labs',
-    emoji: '\uD83D\uDD2C',
-    description: 'Análisis profundo',
-  },
+  { id: 'logos', label: 'LOGOS', icon: BookOpen, description: 'Educación y conocimiento' },
+  { id: 'season-hub', label: 'Season Hub', icon: Calendar, description: 'Tu temporada actual' },
+  { id: 'labs', label: 'Labs', icon: FlaskConical, description: 'Análisis profundo' },
 ];
 
 type SpaceDrawerProps = {
@@ -69,31 +57,31 @@ export function SpaceDrawer({ activeSpace = 'daily', onSwitchSpace }: SpaceDrawe
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0D0D2B' }}>
+    <View style={{ flex: 1, backgroundColor: GENESIS_COLORS.void }}>
       <ScrollView
         contentContainerStyle={{ paddingTop: 60, paddingHorizontal: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
         {/* User profile */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-          <LinearGradient
-            colors={[GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
+          <LiquidGlassCard
+            effect="clear"
+            borderRadius={22}
             style={{
               width: 44,
               height: 44,
-              borderRadius: 22,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             <User size={22} color="#FFFFFF" />
-          </LinearGradient>
+          </LiquidGlassCard>
           <View style={{ flex: 1 }}>
             <Text
               style={{
                 color: GENESIS_COLORS.textPrimary,
-                fontSize: 16,
-                fontFamily: 'InterBold',
+                fontSize: 14,
+                fontFamily: 'JetBrainsMonoSemiBold',
               }}
               numberOfLines={1}
             >
@@ -101,12 +89,13 @@ export function SpaceDrawer({ activeSpace = 'daily', onSwitchSpace }: SpaceDrawe
             </Text>
             <Text
               style={{
-                color: GENESIS_COLORS.textTertiary,
-                fontSize: 11,
+                color: GENESIS_COLORS.primary,
+                fontSize: 10,
                 fontFamily: 'JetBrainsMonoMedium',
+                textTransform: 'uppercase',
               }}
             >
-              Season Pass
+              GENESIS PRO
             </Text>
           </View>
         </View>
@@ -114,7 +103,7 @@ export function SpaceDrawer({ activeSpace = 'daily', onSwitchSpace }: SpaceDrawe
         {/* Season progress */}
         <View
           style={{
-            backgroundColor: GENESIS_COLORS.surfaceElevated,
+            backgroundColor: GENESIS_COLORS.voidElevated,
             borderRadius: 12,
             padding: 14,
             borderWidth: 1,
@@ -159,13 +148,7 @@ export function SpaceDrawer({ activeSpace = 'daily', onSwitchSpace }: SpaceDrawe
         </View>
 
         {/* Divider */}
-        <View
-          style={{
-            height: 1,
-            backgroundColor: GENESIS_COLORS.borderSubtle,
-            marginBottom: 16,
-          }}
-        />
+        <View style={{ height: 1, backgroundColor: GENESIS_COLORS.borderSubtle, marginBottom: 16 }} />
 
         {/* Hoy — active thread */}
         <Pressable
@@ -209,43 +192,40 @@ export function SpaceDrawer({ activeSpace = 'daily', onSwitchSpace }: SpaceDrawe
         </Text>
 
         <View style={{ gap: 6, marginBottom: 20 }}>
-          {SPACES.map((space) => (
-            <Pressable
-              key={space.id}
-              onPress={() => handleSpace(space.id as SpaceId)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-                paddingVertical: 12,
-                paddingHorizontal: 12,
-                borderRadius: 10,
-                backgroundColor: activeSpace === space.id ? 'rgba(109, 0, 255, 0.08)' : 'transparent',
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>{space.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 14, fontFamily: 'Inter' }}>
-                  {space.label}
-                </Text>
-                <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>
-                  {space.description}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
+          {SPACES.map((space) => {
+            const Icon = space.icon;
+            return (
+              <Pressable
+                key={space.id}
+                onPress={() => handleSpace(space.id as SpaceId)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                  borderRadius: 10,
+                  backgroundColor: activeSpace === space.id ? 'rgba(109, 0, 255, 0.08)' : 'transparent',
+                }}
+              >
+                <Icon size={18} color={GENESIS_COLORS.iconDefault} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 14, fontFamily: 'Inter' }}>
+                    {space.label}
+                  </Text>
+                  <Text style={{ color: GENESIS_COLORS.textTertiary, fontSize: 11, fontFamily: 'Inter' }}>
+                    {space.description}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* Divider */}
-        <View
-          style={{
-            height: 1,
-            backgroundColor: GENESIS_COLORS.borderSubtle,
-            marginBottom: 16,
-          }}
-        />
+        <View style={{ height: 1, backgroundColor: GENESIS_COLORS.borderSubtle, marginBottom: 16 }} />
 
-        {/* History placeholder */}
+        {/* History */}
         <Text
           style={{
             color: GENESIS_COLORS.textMuted,
@@ -280,13 +260,7 @@ export function SpaceDrawer({ activeSpace = 'daily', onSwitchSpace }: SpaceDrawe
         </View>
 
         {/* Divider */}
-        <View
-          style={{
-            height: 1,
-            backgroundColor: GENESIS_COLORS.borderSubtle,
-            marginBottom: 16,
-          }}
-        />
+        <View style={{ height: 1, backgroundColor: GENESIS_COLORS.borderSubtle, marginBottom: 16 }} />
 
         {/* Settings */}
         <Pressable
@@ -300,8 +274,15 @@ export function SpaceDrawer({ activeSpace = 'daily', onSwitchSpace }: SpaceDrawe
           }}
         >
           <Settings size={18} color={GENESIS_COLORS.textTertiary} />
-          <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 14, fontFamily: 'Inter' }}>
-            Settings
+          <Text
+            style={{
+              color: GENESIS_COLORS.textSecondary,
+              fontSize: 12,
+              fontFamily: 'JetBrainsMonoMedium',
+              textTransform: 'uppercase',
+            }}
+          >
+            CONFIGURACIÓN
           </Text>
         </Pressable>
 
@@ -316,7 +297,7 @@ export function SpaceDrawer({ activeSpace = 'daily', onSwitchSpace }: SpaceDrawe
               letterSpacing: 2,
             }}
           >
-            GENESIS v2.0
+            GENESIS v2.1
           </Text>
         </View>
       </ScrollView>

@@ -6,6 +6,7 @@ export * from './ErrorBanner';
 export * from './ErrorState';
 export * from './GenesisIcon';
 export * from './GlassCard';
+export * from './LiquidGlassCard';
 export * from './GradientCard';
 export * from './LoadingScreen';
 export * from './ListItemCard';

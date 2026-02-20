@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   Text,
@@ -9,26 +11,19 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Cpu, Menu } from 'lucide-react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-  FadeInDown,
-} from 'react-native-reanimated';
+import { Layers, Menu } from 'lucide-react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { GENESIS_COLORS } from '../../constants/colors';
 import { useGenesisChat } from '../../hooks/useGenesisChat';
 import { MessageBubble } from '../../components/genesis/MessageBubble';
 import { WidgetRenderer } from '../../components/genesis/WidgetRenderer';
 import { useDrawer } from '../../contexts/DrawerContext';
 import { BriefingCard } from '../../components/chat/BriefingCard';
-import { QuickActionsBar } from '../../components/chat/QuickActionsBar';
 import { ChatInput } from '../../components/chat/ChatInput';
+import { ToolsPopover } from '../../components/chat/ToolsPopover';
 import { AgentThinkingBlock } from '../../components/chat/AgentThinkingBlock';
+import { StarterActions } from '../../components/chat/StarterActions';
 import { SeasonBadge } from '../../components/chat/SeasonBadge';
-import { usePanels } from '../../contexts/PanelContext';
 import { hapticLight } from '../../utils/haptics';
 import type { ChatMessage } from '../../types';
 import type { AgentType } from '../../components/chat/AgentContribution';
@@ -40,14 +35,29 @@ export default function ChatScreen() {
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const { openDrawer } = useDrawer();
-  const { openWorkoutPanel } = usePanels();
 
   const sendDisabled = isLoading || value.trim().length === 0;
+
+  // ── FIX 4: ToolsPopover state at screen level ──
+  const [showPopover, setShowPopover] = useState(false);
+  const togglePopover = useCallback(() => {
+    hapticLight();
+    setShowPopover((prev) => !prev);
+  }, []);
+  const closePopover = useCallback(() => setShowPopover(false), []);
+
+  // ── FIX 5: Smart auto-scroll — only if user is near bottom ──
+  const isNearBottomRef = useRef(true);
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const distanceFromBottom = contentSize.height - contentOffset.y - layoutMeasurement.height;
+    isNearBottomRef.current = distanceFromBottom < 120;
+  }, []);
 
   // Agent thinking state
   const [thinkingElapsed, setThinkingElapsed] = useState(0);
   const thinkingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [lastThinkingTime, setLastThinkingTime] = useState(0);
+  const thinkingElapsedRef = useRef(0);
   const [thinkingContributions, setThinkingContributions] = useState<
     Array<{ agent: AgentType; text: string }>
   >([]);
@@ -55,22 +65,24 @@ export default function ChatScreen() {
   // Track loading state for thinking UI
   useEffect(() => {
     if (isLoading) {
+      thinkingElapsedRef.current = 0;
       setThinkingElapsed(0);
       setThinkingContributions([]);
       thinkingTimerRef.current = setInterval(() => {
-        setThinkingElapsed((prev) => prev + 1);
+        thinkingElapsedRef.current += 1;
+        setThinkingElapsed(thinkingElapsedRef.current);
       }, 1000);
     } else {
       if (thinkingTimerRef.current) {
         clearInterval(thinkingTimerRef.current);
         thinkingTimerRef.current = null;
       }
-      if (thinkingElapsed > 0) {
-        setLastThinkingTime(thinkingElapsed);
-      }
     }
     return () => {
-      if (thinkingTimerRef.current) clearInterval(thinkingTimerRef.current);
+      if (thinkingTimerRef.current) {
+        clearInterval(thinkingTimerRef.current);
+        thinkingTimerRef.current = null;
+      }
     };
   }, [isLoading]);
 
@@ -102,28 +114,10 @@ export default function ChatScreen() {
     setThinkingContributions(contribs);
   }, [isLoading, thinkingElapsed, messages]);
 
-  // Pulse animation for empty state
-  const pulseScale = useSharedValue(1);
-  useEffect(() => {
-    if (messages.length === 0) {
-      pulseScale.value = withRepeat(
-        withSequence(
-          withTiming(1.15, { duration: 1250 }),
-          withTiming(1, { duration: 1250 }),
-        ),
-        -1,
-        true,
-      );
-    }
-  }, [messages.length, pulseScale]);
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-  }));
-
   const handleSend = async (content: string) => {
     setLastError(null);
     setFailedMessage(null);
+    closePopover(); // Close popover on any send
     try {
       await send(content);
     } catch (err: any) {
@@ -147,21 +141,29 @@ export default function ChatScreen() {
     await handleSend(content);
   }, [value, handleSend]);
 
-  // Build flat list data: messages + inline widgets after assistant messages
+  // ── Build flat list data with grouping metadata ──
   type ListItem =
-    | { type: 'message'; data: ChatMessage }
+    | { type: 'message'; data: ChatMessage; showHeader: boolean; isFirstInGroup: boolean }
     | { type: 'widgets'; data: ChatMessage }
     | { type: 'thinking'; data: null };
 
   const listData = useMemo(() => {
     const items: ListItem[] = [];
-    for (const msg of messages) {
-      items.push({ type: 'message', data: msg });
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const prevMsg = i > 0 ? messages[i - 1] : null;
+
+      // FIX 2+3: Determine if this is a new sender group
+      const isFirstInGroup = !prevMsg || prevMsg.role !== msg.role;
+      // Only show header (avatar/name) for first message in a GENESIS group
+      const showHeader = msg.role === 'assistant' ? isFirstInGroup : true;
+
+      items.push({ type: 'message', data: msg, showHeader, isFirstInGroup });
+
       if (msg.role === 'assistant' && msg.widgets?.length) {
         items.push({ type: 'widgets', data: msg });
       }
     }
-    // Show thinking block while loading (or collapsed after response)
     if (isLoading) {
       items.push({ type: 'thinking', data: null });
     }
@@ -172,9 +174,11 @@ export default function ChatScreen() {
     ({ item }: { item: ListItem }) => {
       if (item.type === 'message') {
         return (
-          <Animated.View entering={FadeInDown.duration(250)}>
-            <MessageBubble message={item.data} />
-          </Animated.View>
+          <MessageBubble
+            message={item.data}
+            showHeader={item.showHeader}
+            isFirstInGroup={item.isFirstInGroup}
+          />
         );
       }
       if (item.type === 'thinking') {
@@ -186,9 +190,9 @@ export default function ChatScreen() {
           />
         );
       }
-      // widgets row
+      // widgets row — aligned with GENESIS message text (38px = 28px avatar + 10px gap)
       return (
-        <View style={{ gap: 8, paddingLeft: 4, paddingRight: 16 }}>
+        <View style={{ gap: 8, marginLeft: 38, paddingRight: 16, marginTop: 6 }}>
           {item.data!.widgets!.map((widget, index) => (
             <WidgetRenderer key={widget.id} widget={widget} staggerIndex={index} />
           ))}
@@ -207,11 +211,15 @@ export default function ChatScreen() {
     [],
   );
 
+  // FIX 5: Smart scroll — only auto-scroll when near bottom
+  const handleContentSizeChange = useCallback(() => {
+    if (isNearBottomRef.current) {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }
+  }, []);
+
   return (
-    <LinearGradient
-      colors={[GENESIS_COLORS.bgGradientStart, '#000000']}
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1, backgroundColor: GENESIS_COLORS.void }}>
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -240,14 +248,15 @@ export default function ChatScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Cpu size={16} color="#FFFFFF" />
+                <Layers size={16} color="#FFFFFF" />
               </LinearGradient>
               <Text
                 style={{
-                  color: GENESIS_COLORS.primary,
-                  fontSize: 12,
-                  fontFamily: 'JetBrainsMonoBold',
-                  letterSpacing: 2,
+                  color: '#FFFFFF',
+                  fontSize: 15,
+                  fontFamily: 'JetBrainsMono',
+                  fontWeight: '600',
+                  letterSpacing: 1.5,
                 }}
               >
                 GENESIS
@@ -279,80 +288,51 @@ export default function ChatScreen() {
           {/* Chat content */}
           <View style={{ flex: 1, paddingHorizontal: 16 }}>
             {messages.length === 0 ? (
-              /* Empty state */
-              <View style={{ flex: 1, gap: 16 }}>
-                {/* Briefing card at top */}
-                <BriefingCard />
+              /* ── EMPTY STATE ── */
+              <View style={{ flex: 1 }}>
+                {/* Top: Compact GENESIS header */}
+                <Animated.View
+                  entering={FadeInUp.delay(100).duration(300)}
+                  style={{ alignItems: 'center', gap: 6, paddingTop: 12, paddingBottom: 16 }}
+                >
+                  <LinearGradient
+                    colors={['#6D00FF', '#a866ff']}
+                    style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Layers size={20} color="#FFFFFF" />
+                  </LinearGradient>
+                  <Text style={{ color: GENESIS_COLORS.textGhost, fontSize: 13, fontFamily: 'Inter', textAlign: 'center' }}>
+                    ¿En qué te ayudo hoy?
+                  </Text>
+                </Animated.View>
 
-                {/* Centered GENESIS logo */}
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24 }}>
-                  <View style={{ width: 80, height: 80, alignItems: 'center', justifyContent: 'center' }}>
-                    <Animated.View
-                      style={[
-                        {
-                          position: 'absolute',
-                          width: 80,
-                          height: 80,
-                          borderRadius: 40,
-                          borderWidth: 1.5,
-                          borderColor: 'rgba(109,0,255,0.3)',
-                        },
-                        pulseStyle,
-                      ]}
-                    />
-                    <LinearGradient
-                      colors={['#6D00FF', '#a866ff']}
-                      style={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: 32,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Cpu size={28} color="#FFFFFF" />
-                    </LinearGradient>
-                  </View>
-                  <View style={{ alignItems: 'center', gap: 8 }}>
-                    <Text
-                      style={{
-                        color: '#FFFFFF',
-                        fontSize: 20,
-                        fontFamily: 'InterBold',
-                        textAlign: 'center',
-                      }}
-                    >
-                      ¿En qué puedo ayudarte?
-                    </Text>
-                    <Text
-                      style={{
-                        color: GENESIS_COLORS.textMuted,
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        textAlign: 'center',
-                        maxWidth: 280,
-                        lineHeight: 20,
-                      }}
-                    >
-                      Pregúntame sobre entrenamiento, nutrición, recuperación o bienestar.
-                    </Text>
-                  </View>
-                </View>
+                {/* Briefing card — collapsed by default, tappable */}
+                <Animated.View entering={FadeInUp.delay(200).duration(250)} style={{ marginBottom: 12 }}>
+                  <BriefingCard defaultExpanded={false} />
+                </Animated.View>
 
-                {/* Quick actions at bottom of empty state */}
-                <QuickActionsBar onSend={handleQuickAction} />
+                {/* Starter action grid */}
+                <StarterActions onSend={handleQuickAction} />
               </View>
             ) : (
+              /* ── ACTIVE CONVERSATION ── */
               <FlatList
                 ref={flatListRef}
                 data={listData}
                 keyExtractor={keyExtractor}
                 renderItem={renderItem}
-                ListHeaderComponent={<BriefingCard />}
-                contentContainerStyle={{ gap: 10, paddingBottom: 12 }}
-                onContentSizeChange={() =>
-                  flatListRef.current?.scrollToEnd({ animated: true })
+                // FIX 1: BriefingCard starts collapsed in active conversation
+                ListHeaderComponent={
+                  <View style={{ paddingBottom: 16 }}>
+                    <BriefingCard defaultExpanded={false} />
+                  </View>
                 }
+                // FIX 3: No global gap — spacing handled by MessageBubble marginTop
+                contentContainerStyle={{ paddingBottom: 12 }}
+                // FIX 5: Smart auto-scroll
+                onScroll={handleScroll}
+                scrollEventThrottle={100}
+                onContentSizeChange={handleContentSizeChange}
                 showsVerticalScrollIndicator={false}
               />
             )}
@@ -396,21 +376,38 @@ export default function ChatScreen() {
             </View>
           )}
 
-          {/* Quick actions when in conversation */}
-          {messages.length > 0 && !isLoading && (
-            <QuickActionsBar onSend={handleQuickAction} />
-          )}
-
           {/* Chat input */}
           <ChatInput
             value={value}
             onChangeText={setValue}
             onSend={handleSendButton}
             sendDisabled={sendDisabled}
-            onOpenWorkout={openWorkoutPanel}
+            onQuickSend={handleQuickAction}
+            showPopover={showPopover}
+            onTogglePopover={togglePopover}
           />
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </LinearGradient>
+
+      {/* ToolsPopover overlay — OUTSIDE SafeAreaView/KAV to avoid layout crashes */}
+      {showPopover && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}>
+          {/* Backdrop */}
+          <Pressable
+            onPress={closePopover}
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }}
+          />
+          {/* Popover anchored to bottom */}
+          <View style={{ position: 'absolute', bottom: 90, left: 16, right: 16 }}>
+            <Animated.View entering={FadeInUp.duration(200)}>
+              <ToolsPopover
+                onClose={closePopover}
+                onSend={(text) => { closePopover(); handleQuickAction(text); }}
+              />
+            </Animated.View>
+          </View>
+        </View>
+      )}
+    </View>
   );
 }

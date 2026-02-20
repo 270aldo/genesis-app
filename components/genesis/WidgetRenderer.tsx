@@ -1,7 +1,8 @@
-import { useRef, useEffect } from 'react';
-import { Animated, Text, View } from 'react-native';
-import { theme } from '../../constants/theme';
-import { GlassCard } from '../ui/GlassCard';
+import { Text, View } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GENESIS_COLORS } from '../../constants/colors';
+import { LiquidGlassCard } from '../ui/LiquidGlassCard';
 import { ProgressBar } from '../ui/ProgressBar';
 import { BreathworkWidget } from './widgets/BreathworkWidget';
 import { MeditationWidget } from './widgets/MeditationWidget';
@@ -14,6 +15,15 @@ import { PhotoComparisonWidget } from './widgets/PhotoComparisonWidget';
 import type { WidgetPayload } from '../../types';
 
 const ACCENT = '#6D00FF';
+
+/** Wrapper that provides consistent padding inside LiquidGlassCard */
+function WidgetCard({ children }: { children: React.ReactNode }) {
+  return (
+    <WidgetCard>
+      <View style={{ padding: 16 }}>{children}</View>
+    </WidgetCard>
+  );
+}
 
 type WidgetRendererProps = {
   widget: WidgetPayload;
@@ -28,41 +38,33 @@ function GenesisBadge() {
   );
 }
 
-function SlideIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const translateY = useRef(new Animated.Value(20)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(translateY, { toValue: 0, duration: 300, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      ]).start();
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [translateY, opacity, delay]);
-
+/** 2px violet gradient line at the top of each widget. */
+function WidgetAccent() {
   return (
-    <Animated.View style={{ transform: [{ translateY }], opacity }}>
-      {children}
-    </Animated.View>
+    <LinearGradient
+      colors={[GENESIS_COLORS.primary, 'transparent']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={{ width: 40, height: 2, borderRadius: 1, marginBottom: 10 }}
+    />
   );
 }
 
-// -- Priority Widgets (full implementation) --
+// -- Priority Widgets --
 
 function MetricCardWidget({ widget }: { widget: WidgetPayload }) {
   const trend = widget.data?.trend as string | undefined;
   const trendArrow = trend === 'up' ? '\u25B2' : trend === 'down' ? '\u25BC' : '';
-  const trendColor = trend === 'up' ? '#00F5AA' : trend === 'down' ? '#FF6B6B' : theme.colors.textSecondary;
+  const trendColor = trend === 'up' ? '#00F5AA' : trend === 'down' ? '#FF6B6B' : GENESIS_COLORS.textSecondary;
 
   return (
-    <GlassCard>
-      <Text style={{ color: theme.colors.textSecondary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
+    <WidgetCard>
+      <WidgetAccent />
+      <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium' }}>
         {widget.title ?? 'Metric'}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-        <Text style={{ color: theme.colors.textPrimary, fontSize: 28, fontWeight: '700', fontFamily: 'JetBrainsMonoBold' }}>
+        <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 28, fontFamily: 'JetBrainsMonoBold' }}>
           {String(widget.value ?? '--')}
         </Text>
         {trendArrow ? (
@@ -72,7 +74,7 @@ function MetricCardWidget({ widget }: { widget: WidgetPayload }) {
         ) : null}
       </View>
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
@@ -81,20 +83,21 @@ function WorkoutCardWidget({ widget }: { widget: WidgetPayload }) {
   const note = widget.data?.note as string | undefined;
 
   return (
-    <GlassCard>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }}>
+    <WidgetCard>
+      <WidgetAccent />
+      <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 16, fontWeight: '700' }}>
         {widget.title ?? 'Workout'}
       </Text>
       {exercises.length > 0 ? (
         <View style={{ marginTop: 8, gap: 4 }}>
           {exercises.slice(0, 6).map((ex, i) => (
-            <Text key={i} style={{ color: theme.colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMonoMedium' }}>
+            <Text key={i} style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMonoMedium' }}>
               {ex.name}{ex.sets ? ` -- ${ex.sets}x${ex.reps ?? '?'}` : ''}{ex.load ? ` @ ${ex.load}kg` : ''}
             </Text>
           ))}
         </View>
       ) : (
-        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+        <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>
           {widget.data?.exercise_count ? `${widget.data.exercise_count} ejercicios` : 'Sin ejercicios listados'}
         </Text>
       )}
@@ -102,26 +105,27 @@ function WorkoutCardWidget({ widget }: { widget: WidgetPayload }) {
         <Text style={{ color: ACCENT, fontSize: 11, marginTop: 8, fontStyle: 'italic' }}>{note}</Text>
       ) : null}
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
 function MealPlanWidget({ widget }: { widget: WidgetPayload }) {
   return (
-    <GlassCard>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }}>
+    <WidgetCard>
+      <WidgetAccent />
+      <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 16, fontWeight: '700' }}>
         {widget.title ?? 'Meal Plan'}
       </Text>
-      <Text style={{ color: ACCENT, fontSize: 22, fontWeight: '700', fontFamily: 'JetBrainsMonoBold', marginTop: 4 }}>
+      <Text style={{ color: ACCENT, fontSize: 22, fontFamily: 'JetBrainsMonoBold', marginTop: 4 }}>
         {String(widget.value ?? '--')}
       </Text>
       {widget.data?.meal_count ? (
-        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+        <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>
           {String(widget.data.meal_count)} comidas registradas
         </Text>
       ) : null}
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
@@ -131,18 +135,19 @@ function HydrationTrackerWidget({ widget }: { widget: WidgetPayload }) {
   const pct = Math.min((glasses / goal) * 100, 100);
 
   return (
-    <GlassCard>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 14, fontWeight: '700' }}>
+    <WidgetCard>
+      <WidgetAccent />
+      <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 14, fontWeight: '700' }}>
         {widget.title ?? 'Hidratación'}
       </Text>
       <View style={{ marginTop: 8 }}>
         <ProgressBar progress={pct} color={ACCENT} />
       </View>
-      <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+      <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMonoMedium', marginTop: 4 }}>
         {String(widget.value ?? `${glasses}/${goal} vasos`)}
       </Text>
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
@@ -153,8 +158,9 @@ function ProgressDashboardWidget({ widget }: { widget: WidgetPayload }) {
   const pct = total ? Math.min(((completed ?? 0) / total) * 100, 100) : Number(widget.value ?? 0);
 
   return (
-    <GlassCard>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }}>
+    <WidgetCard>
+      <WidgetAccent />
+      <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 16, fontWeight: '700' }}>
         {widget.title ?? 'Progress'}
       </Text>
       <View style={{ marginTop: 8 }}>
@@ -163,49 +169,50 @@ function ProgressDashboardWidget({ widget }: { widget: WidgetPayload }) {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
         {completed != null && (
           <View>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>Completados</Text>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }}>{completed}</Text>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 10 }}>Completados</Text>
+            <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 16, fontFamily: 'JetBrainsMonoBold' }}>{completed}</Text>
           </View>
         )}
         {total != null && (
           <View>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>Total</Text>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }}>{total}</Text>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 10 }}>Total</Text>
+            <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 16, fontFamily: 'JetBrainsMonoBold' }}>{total}</Text>
           </View>
         )}
         {prs != null && (
           <View>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>PRs</Text>
-            <Text style={{ color: ACCENT, fontSize: 16, fontWeight: '700' }}>{prs}</Text>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 10 }}>PRs</Text>
+            <Text style={{ color: ACCENT, fontSize: 16, fontFamily: 'JetBrainsMonoBold' }}>{prs}</Text>
           </View>
         )}
       </View>
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
 function InsightCardWidget({ widget }: { widget: WidgetPayload }) {
   return (
-    <GlassCard>
+    <WidgetCard>
+      <WidgetAccent />
       <Text style={{ color: ACCENT, fontSize: 11, fontWeight: '700', fontFamily: 'JetBrainsMonoMedium' }}>
         Insight
       </Text>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 14, marginTop: 4 }}>
+      <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 14, marginTop: 4 }}>
         {widget.title ?? 'Insight'}
       </Text>
       {widget.value ? (
-        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+        <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, marginTop: 2 }}>
           {String(widget.value)}
         </Text>
       ) : null}
       {widget.subtitle ? (
-        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+        <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, marginTop: 2 }}>
           {widget.subtitle}
         </Text>
       ) : null}
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
@@ -215,8 +222,9 @@ function SeasonTimelineWidget({ widget }: { widget: WidgetPayload }) {
   const endDate = widget.data?.end_date as string | undefined;
 
   return (
-    <GlassCard>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }}>
+    <WidgetCard>
+      <WidgetAccent />
+      <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 16, fontWeight: '700' }}>
         {widget.title ?? 'Season'}
       </Text>
       {status ? (
@@ -225,12 +233,12 @@ function SeasonTimelineWidget({ widget }: { widget: WidgetPayload }) {
         </View>
       ) : null}
       {startDate && endDate ? (
-        <Text style={{ color: theme.colors.textSecondary, fontSize: 11, marginTop: 6 }}>
+        <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, fontFamily: 'JetBrainsMonoMedium', marginTop: 6 }}>
           {startDate} - {endDate}
         </Text>
       ) : null}
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
@@ -240,55 +248,57 @@ function TodayCardWidget({ widget }: { widget: WidgetPayload }) {
   const sleepHours = widget.data?.sleep_hours;
 
   return (
-    <GlassCard>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }}>
+    <WidgetCard>
+      <WidgetAccent />
+      <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 16, fontWeight: '700' }}>
         {widget.title ?? 'Hoy'}
       </Text>
       <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
         {mood != null && (
           <View>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>Animo</Text>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700' }}>{String(mood)}</Text>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 10 }}>Animo</Text>
+            <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 18, fontFamily: 'JetBrainsMonoBold' }}>{String(mood)}</Text>
           </View>
         )}
         {energy != null && (
           <View>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>Energia</Text>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700' }}>{String(energy)}</Text>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 10 }}>Energia</Text>
+            <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 18, fontFamily: 'JetBrainsMonoBold' }}>{String(energy)}</Text>
           </View>
         )}
         {sleepHours != null && (
           <View>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>Sueno</Text>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700' }}>{String(sleepHours)}h</Text>
+            <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 10 }}>Sueno</Text>
+            <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 18, fontFamily: 'JetBrainsMonoBold' }}>{String(sleepHours)}h</Text>
           </View>
         )}
       </View>
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
-// -- Simple Widgets (GlassCard + title + value) --
+// -- Simple Widget (fallback) --
 
 function SimpleWidget({ widget }: { widget: WidgetPayload }) {
   return (
-    <GlassCard>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 14, fontWeight: '700' }}>
+    <WidgetCard>
+      <WidgetAccent />
+      <Text style={{ color: GENESIS_COLORS.textPrimary, fontSize: 14, fontWeight: '700' }}>
         {widget.title ?? 'Widget'}
       </Text>
       {widget.value != null ? (
-        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+        <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>
           {String(widget.value)}
         </Text>
       ) : null}
       {widget.subtitle ? (
-        <Text style={{ color: theme.colors.textSecondary, fontSize: 11, marginTop: 2 }}>
+        <Text style={{ color: GENESIS_COLORS.textSecondary, fontSize: 11, marginTop: 2 }}>
           {widget.subtitle}
         </Text>
       ) : null}
       <GenesisBadge />
-    </GlassCard>
+    </WidgetCard>
   );
 }
 
@@ -334,5 +344,14 @@ export function WidgetRenderer({ widget, staggerIndex }: WidgetRendererProps) {
     }
   })();
 
-  return <SlideIn delay={(staggerIndex ?? 0) * 100}>{content}</SlideIn>;
+  return (
+    <Animated.View
+      entering={FadeInUp.delay((staggerIndex ?? 0) * 100)
+        .duration(300)
+        .springify()
+        .damping(18)}
+    >
+      {content}
+    </Animated.View>
+  );
 }
