@@ -84,3 +84,21 @@ export const MUSCLE_GRADIENTS: Record<string, [string, string]> = {
   core: ['#9D4EDD', '#6D00FF'],
   full_body: ['#6D00FF', '#9D4EDD'],
 } as const;
+
+export const MUSCLE_GROUP_COLORS: Record<string, string> = {
+  chest: '#FF4C4C',
+  back: '#4C8BFF',
+  shoulders: '#F97316',
+  legs: '#22C55E',
+  arms: '#9D4EDD',
+  core: '#FACC15',
+  full_body: '#6D00FF',
+  // aliases for sub-groups
+  triceps: '#9D4EDD', biceps: '#9D4EDD',
+  glutes: '#22C55E', quads: '#22C55E', hamstrings: '#22C55E', calves: '#22C55E',
+  traps: '#F97316',
+};
+
+export function getMuscleGroupColor(group: string): string {
+  return MUSCLE_GROUP_COLORS[group.toLowerCase().trim()] ?? '#6D00FF';
+}

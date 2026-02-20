@@ -25,6 +25,7 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+firebase-debug.log
 
 # macOS
 .DS_Store
@@ -55,7 +56,23 @@ __pycache__/
 *_PROMPT.md
 *_PLAN.md
 NGX_GENESIS_Audit_Report_*.docx
-app/(tabs)/.home.tsx.swp
+
+# Editor temp files
+*.swp
+*.swo
+*~
+
+# Firebase
+firebase-debug.log
+
+# BFF artifacts
 bff/.env.stores
 bff/=5.5.0
+
+# Supabase
 supabase/.temp/
+
+# Coverage
+coverage/
+htmlcov/
+.coverage

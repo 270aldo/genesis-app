@@ -40,5 +40,5 @@ export default function Index() {
     return <Redirect href={{ pathname: '/(auth)/onboarding', params: { userId: session.user.id } }} />;
   }
 
-  return <Redirect href="/(tabs)/home" />;
+  return <Redirect href="/(chat)" />;
 }

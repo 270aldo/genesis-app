@@ -63,6 +63,38 @@ export const PHASE_CONFIG: Record<PhaseType, {
   },
 };
 
+// ── GENESIS Tips (phase-aware, rotative) ──
+export const GENESIS_TIPS: Record<PhaseType, string[]> = {
+  hypertrophy: [
+    'Controla el tempo: 3 segundos bajando, 1 segundo arriba. El tiempo bajo tensión es clave para hipertrofia.',
+    'Rango completo de movimiento. No cortes el recorrido — cada centímetro cuenta para activar más fibras.',
+    'Conexión mente-músculo: concéntrate en sentir el músculo trabajar, no solo mover el peso.',
+    'El volumen es tu variable principal. Acumula series efectivas cerca del fallo muscular.',
+    'Hidratación impacta directamente el rendimiento. Lleva agua y bebe entre cada serie.',
+  ],
+  strength: [
+    'Respeta los descansos largos entre series pesadas. Tu sistema nervioso necesita recuperar para dar el máximo.',
+    'La técnica es tu seguro de vida. Nunca sacrifiques forma por peso — el ego lift no construye fuerza real.',
+    'Calentamiento progresivo: empieza con el 50% y sube en saltos del 10-15% hasta tu peso de trabajo.',
+    'Bracing: respira profundo, aprieta abdomen y glúteos antes de cada rep pesada.',
+    'Confía en el proceso. Los PRs llegan cuando respetas la progresión semana a semana.',
+  ],
+  power: [
+    'Velocidad es la clave. Mueve el peso con intención explosiva en cada rep.',
+    'Enfócate en la fase concéntrica — acelera con todo en la subida.',
+    'Calidad sobre cantidad. Menos reps, más intención explosiva en cada una.',
+    'Warm-up dinámico: saltos, med ball throws, bandas — activa tu sistema nervioso antes de cargar.',
+    'Si la velocidad de la barra cae, termina la serie. Power se entrena fresco, no fatigado.',
+  ],
+  deload: [
+    'Semana de recuperación. Baja el peso un 40% y enfócate en técnica perfecta.',
+    'Recuperación estratégica: esto no es debilidad, es lo que permite tu próximo salto de rendimiento.',
+    'Aprovecha para trabajar movilidad. Foam roller, stretching, bandas — tu cuerpo te lo agradecerá.',
+    'Duerme 30 minutos extra esta semana. El sueño es tu suplemento más potente.',
+    'Mantén la rutina pero reduce la intensidad. El hábito se preserva, el cuerpo se recupera.',
+  ],
+};
+
 // ── Image URLs (Unsplash fitness) ──
 export const IMAGES = {
   chest: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80',

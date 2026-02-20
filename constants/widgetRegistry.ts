@@ -28,6 +28,14 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetRegistryEntry> = {
   'coach-message': { label: 'Coach Message', icon: 'message-circle', accent: '#6D00FF', category: 'general' },
   'sleep-tracker': { label: 'Sleep Tracker', icon: 'moon', accent: '#6D00FF', category: 'wellness' },
   'alert-banner': { label: 'Alert Banner', icon: 'alert-triangle', accent: '#6D00FF', category: 'general' },
+  'breathwork': { label: 'Breathwork', icon: 'wind', accent: '#6D00FF', category: 'wellness' },
+  'meditation': { label: 'Meditation', icon: 'brain', accent: '#6D00FF', category: 'wellness' },
+  'journal': { label: 'Journal', icon: 'book-open', accent: '#6D00FF', category: 'wellness' },
+  'video-embed': { label: 'Video Embed', icon: 'play-circle', accent: '#6D00FF', category: 'general' },
+  'recipe-card': { label: 'Recipe Card', icon: 'chef-hat', accent: '#6D00FF', category: 'nutrition' },
+  'quick-checkin': { label: 'Quick Check-in', icon: 'clipboard-check', accent: '#6D00FF', category: 'wellness' },
+  'onboarding-form': { label: 'Onboarding Form', icon: 'user-plus', accent: '#6D00FF', category: 'general' },
+  'photo-comparison': { label: 'Photo Comparison', icon: 'camera', accent: '#6D00FF', category: 'progress' },
 };
 
 export const TOUCHPOINTS = ['chat', 'dashboard', 'home', 'training', 'nutrition', 'wellness', 'tracking', 'modals'] as const;

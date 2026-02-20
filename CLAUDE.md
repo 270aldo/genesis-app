@@ -10,18 +10,24 @@
 | 2 | `GENESIS.md` | Architecture master — 7 agents, target infra, business model |
 | 3 | `docs/active/` | **CURRENT work** — PRD + Master Prompt for active phase |
 
-### Active Phase: None — all UI phases complete. Next: Phase 9 Sprint 5.
+### Active Phase: Visual Refinement Pass — Home ✅, Train ✅ (merged PR #11), Fuel next.
+
+### Active Documents
+- `docs/active/MASTER_PROMPT_HOME_REFINEMENT.md` — Home visual refinement prompt
+- `docs/active/SESSION_CONTEXT_UI_REFINEMENT.md` — Current UI refinement session context
+- `docs/plans/2026-02-17-train-visual-polish.md` — Train visual polish plan (completed)
+- `docs/plans/2026-02-18-set-logging-overhaul.md` — Set logging overhaul design
 
 ### Reference Only (DO NOT EXECUTE)
-- `docs/active/MASTER_PROMPT_UI_PHASE5.md` — UI Phase 5 "First Mile" (Sprints N/O/P) — Done
-- `docs/active/MASTER_PROMPT_UI_PHASE4.md` — UI Phase 4 "Core Experience" (Sprints K/L/M) — Done
-- `docs/active/PRD-UI-PHASE3-HYBRID-CEREMONY.md` — UI Phase 3 "HYBRID Ceremony" (Sprints H/I/J) — Done
-- `docs/active/MASTER_PROMPT_UI_PHASE3.md` — Phase 3 execution prompt — Done
-- `docs/active/PRD-UI-PHASE2-VISUAL-DENSITY.md` — UI Phase 2 "Visual Density" (Sprints D/E/F/G) — Done
-- `docs/active/MASTER_PROMPT_UI_PHASE2.md` — Phase 2 execution prompt — Done
+- `docs/completed/ui-phase5/` — UI Phase 5 "First Mile" (Sprints N/O/P) — Done
+- `docs/completed/ui-phase4/` — UI Phase 4 "Core Experience" (Sprints K/L/M) — Done
+- `docs/completed/ui-phase3/` — UI Phase 3 "HYBRID Ceremony" (Sprints H/I/J) — Done
+- `docs/completed/ui-phase2/` — UI Phase 2 "Visual Density" (Sprints D/E/F/G) — Done
 - `docs/completed/ui-phase1/` — Sprints A/B/C (onboarding, FAB, animations) — Done
 - `docs/completed/phase9-adk/` — ADK agents, A2UI, intelligence, knowledge — Done
 - `docs/completed/phase8-steel/` — Testing, hardening, offline-first — Done
+- `docs/research/` — UI research, benchmarks, design specs, audits
+- `docs/plans/prompts/` — Claude Code execution prompts (historical)
 
 ### Deprecated (IGNORE)
 - `docs/deprecated/` — Obsolete prompts with exposed credentials. Never use.
@@ -32,7 +38,7 @@
 
 GENESIS is a premium AI-powered fitness coaching app built with Expo (React Native) and a FastAPI BFF (Backend for Frontend). It currently runs 5 ADK agents (genesis orchestrator + train, fuel, mind, track sub-agents) powered by Gemini, with 2 more planned (vision, coach_bridge). The app features 12-week periodized training seasons and comprehensive wellness tracking. A companion coach web app (GENESIS BRAIN, Next.js) is planned for Sprint 6.
 
-## Current Status (UI Phase 5 complete — Feb 2026)
+## Current Status (Visual Refinement Pass — Feb 2026)
 
 ### Completed Phases
 - **Phase 1-4**: Core screens, navigation, chat, UI polish
@@ -50,6 +56,7 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - **Phase 9 Sprint 3**: Real Gemini AI intelligence, DatabaseSessionService (persistent conversations), user memory system, input/output guardrails, health check fix, 122 BFF tests
 - **Phase 9 Sprint 4 Track A**: Intelligence infrastructure — 3-level response cache (L1 in-memory + L2 pgvector semantic), Gemini text-embedding-004 embeddings, NGX Philosophy context cache, Gemini File Search API wrapper (knowledge_tools), GoogleSearch grounding for FUEL/MIND agents, refined per-agent prompts with build_system_prompt()
 - **Phase 9 Sprint 4 Track B**: Knowledge deployment + Cloud Run — 15 knowledge docs (51K tokens, 147 evidence blocks) across 5 File Search stores, batch upload automation (upload_knowledge_stores.py), production Dockerfile (non-root user, PORT env), Cloud Run deploy script, smoke test suite, .env.example for BFF + mobile
+- **Visual Refinement Pass (in progress)**: Premium UI polish across all tabs. Home done (adaptive briefing, streak badge, training chips). Train done (image-rich cards, contextual form cues, phase prescriptions, enhanced rest timer, post-workout summary — merged PR #11). Fuel next.
 
 ### What works right now
 - 5 main tabs: Home, Train, Fuel, Mind, Track
@@ -102,6 +109,7 @@ GENESIS is a premium AI-powered fitness coaching app built with Expo (React Nati
 - Smart notifications: context-aware (check-in, training, streak risk, hydration), streak notification gated on streak >= 3, streak persisted to AsyncStorage for non-React access
 - Notification deep-links: check_in → check-in modal, training → train tab, nutrition → fuel tab, coach → genesis-chat modal
 - Welcome briefing + Getting Started card on home screen
+- Premium visual polish: Home (adaptive briefing, streak badge, training param chips), Train (image-rich exercise cards, contextual form cue icons, phase prescriptions, sticky CTA, enhanced rest timer with readable tips, post-workout summary redesign)
 
 ### Known issues
 - `react-native-svg` version mismatch warning (15.15.2 installed, 15.12.1 expected)

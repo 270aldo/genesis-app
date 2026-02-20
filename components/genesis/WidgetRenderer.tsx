@@ -3,6 +3,14 @@ import { Animated, Text, View } from 'react-native';
 import { theme } from '../../constants/theme';
 import { GlassCard } from '../ui/GlassCard';
 import { ProgressBar } from '../ui/ProgressBar';
+import { BreathworkWidget } from './widgets/BreathworkWidget';
+import { MeditationWidget } from './widgets/MeditationWidget';
+import { JournalWidget } from './widgets/JournalWidget';
+import { VideoEmbedWidget } from './widgets/VideoEmbedWidget';
+import { RecipeCardWidget } from './widgets/RecipeCardWidget';
+import { QuickCheckinWidget } from './widgets/QuickCheckinWidget';
+import { OnboardingFormWidget } from './widgets/OnboardingFormWidget';
+import { PhotoComparisonWidget } from './widgets/PhotoComparisonWidget';
 import type { WidgetPayload } from '../../types';
 
 const ACCENT = '#6D00FF';
@@ -125,7 +133,7 @@ function HydrationTrackerWidget({ widget }: { widget: WidgetPayload }) {
   return (
     <GlassCard>
       <Text style={{ color: theme.colors.textPrimary, fontSize: 14, fontWeight: '700' }}>
-        {widget.title ?? 'Hidratacion'}
+        {widget.title ?? 'Hidratación'}
       </Text>
       <View style={{ marginTop: 8 }}>
         <ProgressBar progress={pct} color={ACCENT} />
@@ -305,6 +313,22 @@ export function WidgetRenderer({ widget, staggerIndex }: WidgetRendererProps) {
         return <SeasonTimelineWidget widget={widget} />;
       case 'today-card':
         return <TodayCardWidget widget={widget} />;
+      case 'breathwork':
+        return <BreathworkWidget widget={widget} />;
+      case 'meditation':
+        return <MeditationWidget widget={widget} />;
+      case 'journal':
+        return <JournalWidget widget={widget} />;
+      case 'video-embed':
+        return <VideoEmbedWidget widget={widget} />;
+      case 'recipe-card':
+        return <RecipeCardWidget widget={widget} />;
+      case 'quick-checkin':
+        return <QuickCheckinWidget widget={widget} />;
+      case 'onboarding-form':
+        return <OnboardingFormWidget widget={widget} />;
+      case 'photo-comparison':
+        return <PhotoComparisonWidget widget={widget} />;
       default:
         return <SimpleWidget widget={widget} />;
     }

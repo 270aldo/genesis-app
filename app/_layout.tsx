@@ -96,11 +96,11 @@ export default function RootLayout() {
       if (category === 'check_in') {
         router.push('/(modals)/check-in');
       } else if (category === 'training') {
-        router.push('/(tabs)/train');
+        router.push('/(chat)');
       } else if (category === 'nutrition') {
-        router.push('/(tabs)/fuel');
+        router.push('/(chat)');
       } else if (category === 'coach') {
-        router.push('/(modals)/genesis-chat');
+        router.push('/(chat)');
       }
     });
     return () => sub.remove();
@@ -119,7 +119,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(chat)" />
           <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
           <Stack.Screen name="(screens)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />

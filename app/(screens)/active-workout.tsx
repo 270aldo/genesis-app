@@ -68,6 +68,8 @@ export default function ActiveWorkoutScreen() {
   // Exercise catalog for form cues lookup
   const exerciseCatalog = useTrainingStore((s) => s.exerciseCatalog);
 
+  const isReady = workoutStatus === 'ready';
+
   // Timer glow animation
   const timerGlow = useSharedValue(0.3);
   useEffect(() => {
@@ -80,6 +82,8 @@ export default function ActiveWorkoutScreen() {
         -1,
         true,
       );
+    } else {
+      timerGlow.value = withTiming(0.3, { duration: 200 });
     }
   }, [workoutStatus]);
   const timerGlowStyle = useAnimatedStyle(() => ({
@@ -270,24 +274,35 @@ export default function ActiveWorkoutScreen() {
             </Animated.Text>
           </View>
 
-          <Pressable
-            onPress={() => {
-              hapticLight();
-              workoutStatus === 'paused' ? resumeWorkout() : pauseWorkout();
-            }}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: workoutStatus === 'paused' ? `${theme.colors.success}22` : `${theme.colors.warning}22`,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {workoutStatus === 'paused'
-              ? <Play size={16} color={theme.colors.success} />
-              : <Pause size={16} color={theme.colors.warning} />}
-          </Pressable>
+          {isReady ? (
+            <View style={{
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 8,
+              backgroundColor: GENESIS_COLORS.primary + '20',
+            }}>
+              <Text style={{ color: GENESIS_COLORS.primary, fontSize: 10, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1 }}>READY</Text>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => {
+                hapticLight();
+                workoutStatus === 'paused' ? resumeWorkout() : pauseWorkout();
+              }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: workoutStatus === 'paused' ? `${theme.colors.success}22` : `${theme.colors.warning}22`,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {workoutStatus === 'paused'
+                ? <Play size={16} color={theme.colors.success} />
+                : <Pause size={16} color={theme.colors.warning} />}
+            </Pressable>
+          )}
         </View>
 
         <ScrollView
@@ -435,7 +450,7 @@ export default function ActiveWorkoutScreen() {
           </View>
         )}
 
-        {/* Footer — Finish button */}
+        {/* Footer — Start or Finish button */}
         <View style={{
           position: 'absolute',
           bottom: 0,
@@ -445,21 +460,54 @@ export default function ActiveWorkoutScreen() {
           paddingBottom: 34,
           paddingTop: 12,
         }}>
-          <Pressable
-            onPress={handleFinishPress}
-            style={{ opacity: allExercisesDone ? 1 : 0.5 }}
-          >
-            <LinearGradient
-              colors={allExercisesDone ? [GENESIS_COLORS.success, '#16a34a'] : [GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
+          {isReady ? (
+            <Pressable
+              onPress={() => {
+                hapticMedium();
+                resumeWorkout();
+              }}
             >
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>
-                {allExercisesDone ? 'FINISH WORKOUT' : 'FINISH EARLY'}
-              </Text>
-            </LinearGradient>
-          </Pressable>
+              <LinearGradient
+                colors={[GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: 14,
+                  paddingVertical: 18,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 10,
+                  shadowColor: GENESIS_COLORS.primary,
+                  shadowOpacity: 0.5,
+                  shadowRadius: 16,
+                  shadowOffset: { width: 0, height: 0 },
+                  elevation: 8,
+                }}
+              >
+                <Play size={18} color="#FFFFFF" fill="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: 'JetBrainsMonoSemiBold', letterSpacing: 1 }}>
+                  START WORKOUT
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={handleFinishPress}
+              style={{ opacity: allExercisesDone ? 1 : 0.5 }}
+            >
+              <LinearGradient
+                colors={allExercisesDone ? [GENESIS_COLORS.success, '#16a34a'] : [GENESIS_COLORS.primary, GENESIS_COLORS.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'JetBrainsMonoSemiBold' }}>
+                  {allExercisesDone ? 'FINISH WORKOUT' : 'FINISH EARLY'}
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          )}
         </View>
         {/* Exercise Transition Overlay */}
         {showTransition && (

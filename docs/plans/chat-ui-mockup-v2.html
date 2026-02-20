@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GENESIS Chat V2.1 — Apple Intelligence × JetBrains</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --void: #050508;
+    --void-elevated: #0A0A10;
+    --violet: #6D00FF;
+    --violet-glow: rgba(109, 0, 255, 0.25);
+    --violet-subtle: rgba(109, 0, 255, 0.08);
+    --violet-tint: rgba(109, 0, 255, 0.12);
+    --glass-bg: rgba(255, 255, 255, 0.04);
+    --glass-bg-hover: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-border-active: rgba(255, 255, 255, 0.10);
+    --text-primary: rgba(255, 255, 255, 0.92);
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-tertiary: rgba(255, 255, 255, 0.30);
+    --text-ghost: rgba(255, 255, 255, 0.15);
+    --agent-train: #6D00FF;
+    --agent-fuel: #00C853;
+    --agent-mind: #2196F3;
+    --agent-track: #FF6D00;
+    --agent-vision: #E91E63;
+    --font-system: 'JetBrains Mono', monospace;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --phone-w: 393px;
+    --phone-h: 852px;
+    --safe-top: 54px;
+    --safe-bottom: 34px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    font-family: var(--font-system);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-ghost);
+    margin-bottom: 48px;
+  }
+
+  .phones {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .phone-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .phone-label {
+    font-family: var(--font-system);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .phone {
+    width: var(--phone-w);
+    height: var(--phone-h);
+    background: var(--void);
+    border-radius: 48px;
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 25px 80px rgba(0,0,0,0.6),
+      0 0 120px rgba(109,0,255,0.05);
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 126px;
+    height: 36px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 100;
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding-top: var(--safe-top);
+    overflow: hidden;
+  }
+
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 28px 0;
+    height: 20px;
+    font-family: var(--font-system);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .status-icons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    font-size: 11px;
+  }
+
+  /* ═══ HEADER ═══ */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-menu {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 18px;
+  }
+  .header-title {
+    font-family: var(--font-system);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text-primary);
+  }
+  .header-right {
+    display: flex;
+    gap: 8px;
+  }
+  .header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 16px;
+  }
+
+  /* ═══ EMPTY STATE ═══ */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+  }
+
+  .genesis-logo-glass {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(109,0,255,0.06) 50%, rgba(255,255,255,0.04) 100%);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(255,255,255,0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 0 40px rgba(109,0,255,0.08), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .genesis-logo-glass:hover {
+    box-shadow: 0 0 60px rgba(109,0,255,0.15), inset 0 1px 0 rgba(255,255,255,0.12);
+    transform: scale(1.03);
+  }
+  .genesis-logo-glass svg {
+    width: 32px; height: 32px;
+    fill: none; stroke: var(--violet); stroke-width: 1.5; opacity: 0.8;
+  }
+  .empty-title {
+    font-family: var(--font-system);
+    font-size: 18px; font-weight: 600; letter-spacing: 2px;
+    color: var(--text-primary); margin-bottom: 6px;
+  }
+  .empty-subtitle {
+    font-family: var(--font-body);
+    font-size: 14px; color: var(--text-tertiary);
+    text-align: center; margin-bottom: 28px;
+  }
+
+  /* ═══ BRIEFING COLLAPSED ═══ */
+  .briefing-collapsed {
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(109,0,255,0.04) 100%);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,0.07);
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+    cursor: pointer; transition: all 0.2s ease;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .briefing-left { display: flex; align-items: center; gap: 12px; }
+  .briefing-greeting { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--text-primary); }
+  .briefing-stats { display: flex; align-items: center; gap: 10px; }
+  .briefing-stat { font-family: var(--font-system); font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+  .briefing-streak { display: flex; align-items: center; gap: 4px; font-family: var(--font-system); font-size: 11px; font-weight: 600; color: var(--violet); }
+  .streak-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--violet); animation: pulse-dot 2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+  .briefing-chevron { color: var(--text-ghost); font-size: 14px; }
+
+  /* ═══ QUICK ACTION PILLS ═══ */
+  .pills-container {
+    width: 100%;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  }
+  .pill {
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-family: var(--font-system); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--text-secondary);
+    cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .pill:hover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(109,0,255,0.06) 100%);
+    border-color: rgba(109,0,255,0.15); color: var(--text-primary); transform: scale(1.03);
+  }
+  .pill-emoji { margin-right: 4px; font-size: 12px; }
+
+  /* ═══ INPUT BAR (CLEAN — Claude/Gemini style) ═══ */
+  .input-area {
+    padding: 12px 16px;
+    padding-bottom: calc(12px + var(--safe-bottom));
+  }
+  .input-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: all 0.2s ease;
+  }
+  .input-bar.focused {
+    border-color: rgba(109,0,255,0.20);
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(109,0,255,0.05) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 20px rgba(109,0,255,0.05);
+  }
+
+  /* Plus button (opens tools popover) */
+  .input-plus {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    font-size: 18px; font-weight: 300;
+    cursor: pointer; transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  .input-plus:hover, .input-plus.active {
+    background: var(--violet-subtle);
+    border-color: rgba(109,0,255,0.20);
+    color: var(--violet);
+  }
+
+  .input-text {
+    flex: 1;
+    font-family: var(--font-system); font-size: 13px;
+    color: var(--text-tertiary); letter-spacing: 0.3px;
+  }
+
+  .send-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--violet);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px;
+    cursor: pointer; transition: all 0.2s ease;
+    opacity: 0; transform: scale(0.8);
+    flex-shrink: 0;
+  }
+  .send-btn.visible { opacity: 1; transform: scale(1); }
+  .send-btn:hover { background: #7B1AFF; box-shadow: 0 0 20px rgba(109,0,255,0.4); }
+
+  /* Mic button (right side, shows when no text) */
+  .mic-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-tertiary); font-size: 16px;
+    cursor: pointer; transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  .mic-btn:hover { color: var(--violet); }
+
+  /* ═══ TOOLS POPOVER (Claude/Gemini pattern) ═══ */
+  .tools-popover {
+    position: absolute;
+    bottom: 80px;
+    left: 16px;
+    right: 16px;
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(18,18,28,0.97) 0%, rgba(10,10,16,0.98) 100%);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.5), 0 0 60px rgba(109,0,255,0.06);
+    padding: 8px;
+    z-index: 60;
+    animation: popover-in 0.25s ease-out;
+  }
+  @keyframes popover-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tools-popover-title {
+    font-family: var(--font-system);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-ghost);
+    padding: 10px 12px 6px;
+  }
+
+  .tool-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    cursor: pointer; transition: all 0.15s ease;
+  }
+  .tool-item:hover {
+    background: rgba(255,255,255,0.04);
+  }
+  .tool-item-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .tool-item-content {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .tool-item-name {
+    font-family: var(--font-body);
+    font-size: 14px; font-weight: 500;
+    color: var(--text-primary);
+  }
+  .tool-item-desc {
+    font-family: var(--font-system);
+    font-size: 10px; color: var(--text-tertiary);
+    letter-spacing: 0.3px;
+  }
+
+  .tool-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.04);
+    margin: 4px 12px;
+  }
+
+  /* ═══ CHAT CONTENT ═══ */
+  .chat-content {
+    flex: 1; overflow-y: auto;
+    padding: 16px 16px 8px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .chat-content::-webkit-scrollbar { display: none; }
+
+  /* ═══ BRIEFING EXPANDED ═══ */
+  .briefing-expanded {
+    padding: 18px; border-radius: 18px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(109,0,255,0.04) 100%);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .briefing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .briefing-h-left { display: flex; align-items: center; gap: 8px; }
+  .briefing-icon { font-size: 14px; color: var(--text-tertiary); }
+  .briefing-h-title { font-family: var(--font-system); font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-secondary); }
+  .briefing-time { font-family: var(--font-system); font-size: 10px; color: var(--text-ghost); }
+  .briefing-body-text { font-family: var(--font-body); font-size: 14px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 14px; }
+  .briefing-metrics { display: flex; gap: 12px; }
+  .briefing-metric { flex: 1; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.04); text-align: center; }
+  .metric-value { font-family: var(--font-system); font-size: 18px; font-weight: 600; color: var(--text-primary); }
+  .metric-label { font-family: var(--font-body); font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+
+  /* ═══ USER MESSAGE ═══ */
+  .msg-user { display: flex; justify-content: flex-end; }
+  .msg-user-bubble {
+    max-width: 78%; padding: 12px 16px;
+    border-radius: 20px; border-bottom-right-radius: 6px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .msg-user-text { font-family: var(--font-body); font-size: 14px; line-height: 1.5; color: var(--text-primary); }
+  .msg-user-time { font-family: var(--font-system); font-size: 10px; color: var(--text-ghost); text-align: right; margin-top: 6px; }
+
+  /* ═══ GENESIS MESSAGE (NO BUBBLE) ═══ */
+  .msg-genesis { display: flex; flex-direction: column; }
+  .genesis-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .genesis-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet), #4A00B0);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .genesis-avatar svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; }
+  .genesis-name { font-family: var(--font-system); font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--text-secondary); }
+  .genesis-timestamp { font-family: var(--font-system); font-size: 10px; color: var(--text-ghost); }
+
+  .genesis-text-area {
+    padding-left: 38px; position: relative;
+  }
+  .genesis-text-area::before {
+    content: ''; position: absolute; left: 13px; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--violet), transparent);
+    border-radius: 1px; opacity: 0.3;
+  }
+  .genesis-text { font-family: var(--font-body); font-size: 14px; line-height: 1.65; color: var(--text-primary); }
+  .genesis-text strong { font-weight: 600; color: #fff; }
+  .genesis-text .highlight { color: var(--violet); font-family: var(--font-system); font-size: 13px; font-weight: 500; }
+
+  /* ═══ THINKING ═══ */
+  .thinking-active {
+    padding: 10px 14px; border-radius: 12px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(109,0,255,0.03) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column; gap: 8px;
+    margin-left: 38px; margin-bottom: 4px;
+  }
+  .thinking-header { display: flex; align-items: center; gap: 8px; }
+  .thinking-cpu { font-size: 13px; color: var(--violet); opacity: 0.7; }
+  .thinking-dots { display: flex; gap: 3px; align-items: center; }
+  .thinking-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--violet); opacity: 0.6; }
+  .thinking-dot:nth-child(1) { animation: think-pulse 1.4s 0s ease-in-out infinite; }
+  .thinking-dot:nth-child(2) { animation: think-pulse 1.4s 0.2s ease-in-out infinite; }
+  .thinking-dot:nth-child(3) { animation: think-pulse 1.4s 0.4s ease-in-out infinite; }
+  @keyframes think-pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+  .thinking-timer { font-family: var(--font-system); font-size: 10px; color: var(--text-ghost); letter-spacing: 0.5px; }
+  .thinking-agents { display: flex; align-items: center; gap: 12px; padding-left: 2px; }
+  .thinking-agent { display: flex; align-items: center; gap: 5px; }
+  .thinking-agent-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .thinking-agent-name { font-family: var(--font-system); font-size: 10px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-tertiary); }
+
+  .thinking-collapsed { margin-left: 38px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity 0.2s; }
+  .thinking-collapsed:hover { opacity: 0.8; }
+  .thinking-collapsed-icon { font-size: 12px; color: var(--text-ghost); }
+  .thinking-collapsed-text { font-family: var(--font-system); font-size: 10px; color: var(--text-ghost); letter-spacing: 0.5px; }
+
+  /* ═══ INLINE WIDGET ═══ */
+  .widget-inline {
+    margin-left: 38px; margin-top: 12px; padding: 16px; border-radius: 16px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255,255,255,0.06);
+    position: relative; overflow: hidden;
+    cursor: pointer; transition: all 0.2s ease;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .widget-inline:hover { transform: scale(1.01); border-color: rgba(109,0,255,0.12); }
+  .widget-inline::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: linear-gradient(90deg, var(--violet), transparent); opacity: 0.5;
+  }
+  .widget-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .widget-icon { font-size: 14px; color: var(--text-tertiary); }
+  .widget-title { font-family: var(--font-system); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text-secondary); }
+  .widget-exercises { display: flex; flex-direction: column; gap: 8px; }
+  .widget-exercise { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.02); }
+  .exercise-left { display: flex; align-items: center; gap: 10px; }
+  .exercise-thumb { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, rgba(109,0,255,0.15), rgba(109,0,255,0.05)); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-tertiary); }
+  .exercise-info { display: flex; flex-direction: column; gap: 2px; }
+  .exercise-name { font-family: var(--font-body); font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .exercise-detail { font-family: var(--font-system); font-size: 10px; color: var(--text-tertiary); }
+  .exercise-check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; }
+  .widget-cta {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    margin-top: 12px; padding: 10px; border-radius: 10px;
+    background: var(--violet);
+    font-family: var(--font-system); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.8px; text-transform: uppercase;
+    color: #fff; cursor: pointer; transition: all 0.2s ease;
+  }
+  .widget-cta:hover { background: #7B1AFF; box-shadow: 0 0 20px rgba(109,0,255,0.3); }
+
+  /* ═══ DRAWER ═══ */
+  .drawer-overlay { position: absolute; inset: 0; z-index: 50; display: flex; }
+  .drawer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+  .drawer {
+    position: relative; width: 300px; height: 100%;
+    background: var(--void);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    display: flex; flex-direction: column; padding-top: var(--safe-top); z-index: 51;
+  }
+  .drawer-user { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .drawer-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(109,0,255,0.06) 100%);
+    backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-system); font-size: 15px; font-weight: 600; color: var(--text-primary);
+  }
+  .drawer-user-info { display: flex; flex-direction: column; gap: 2px; }
+  .drawer-user-name { font-family: var(--font-system); font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .drawer-user-plan { font-family: var(--font-system); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--violet); }
+  .drawer-season {
+    margin: 16px 16px 12px; padding: 14px; border-radius: 14px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(109,0,255,0.04) 100%);
+    backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .season-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .season-label { font-family: var(--font-system); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-tertiary); }
+  .season-phase { font-family: var(--font-system); font-size: 10px; font-weight: 500; color: var(--violet); }
+  .season-progress-bg { width: 100%; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.06); }
+  .season-progress-fill { width: 42%; height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--violet), #9D4EFF); }
+  .drawer-section-title { font-family: var(--font-system); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-ghost); padding: 12px 20px 6px; }
+  .drawer-space { display: flex; align-items: center; gap: 12px; padding: 10px 20px; cursor: pointer; transition: background 0.15s ease; }
+  .drawer-space:hover { background: rgba(255,255,255,0.03); }
+  .drawer-space-icon { font-size: 16px; color: var(--text-tertiary); width: 20px; text-align: center; }
+  .drawer-space-name { font-family: var(--font-system); font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-secondary); }
+  .drawer-history { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .drawer-history-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 20px; cursor: pointer; transition: background 0.15s ease; }
+  .drawer-history-item:hover { background: rgba(255,255,255,0.03); }
+  .drawer-history-title { font-family: var(--font-body); font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drawer-history-date { font-family: var(--font-system); font-size: 10px; color: var(--text-ghost); }
+  .drawer-divider { height: 1px; background: rgba(255,255,255,0.04); margin: 4px 0; }
+  .drawer-bottom { padding: 12px 20px; padding-bottom: calc(12px + var(--safe-bottom)); border-top: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .drawer-bottom-icon { font-size: 16px; color: var(--text-tertiary); }
+  .drawer-bottom-text { font-family: var(--font-system); font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-tertiary); }
+
+  @media (max-width: 900px) { .phones { flex-direction: column; } }
+</style>
+</head>
+<body>
+
+<h1>GENESIS V2.1</h1>
+<p class="subtitle">Apple Intelligence × JetBrains — Clean Input + Tools Popover</p>
+
+<div class="phones">
+
+  <!-- ═══ SCREEN 1: EMPTY STATE ═══ -->
+  <div class="phone-container">
+    <span class="phone-label">01 — Empty State</span>
+    <div class="phone">
+      <div class="screen">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span class="status-icons"><span>●●●●</span> <span>WiFi</span> <span>■</span></span>
+        </div>
+        <div class="header">
+          <div class="header-left">
+            <div class="header-menu">☰</div>
+            <span class="header-title">GENESIS</span>
+          </div>
+          <div class="header-right">
+            <div class="header-icon">✦</div>
+          </div>
+        </div>
+
+        <div class="empty-state">
+          <div class="genesis-logo-glass">
+            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="empty-title">GENESIS</div>
+          <div class="empty-subtitle">Tu copiloto de rendimiento y longevidad</div>
+
+          <div class="briefing-collapsed">
+            <div class="briefing-left">
+              <span class="briefing-greeting">Buenos días, Aldo</span>
+            </div>
+            <div class="briefing-stats">
+              <span class="briefing-stat">1,450 kcal</span>
+              <span style="color: var(--text-ghost)">·</span>
+              <div class="briefing-streak"><span class="streak-dot"></span><span>12</span></div>
+              <span class="briefing-chevron">›</span>
+            </div>
+          </div>
+
+          <div class="pills-container">
+            <div class="pill"><span class="pill-emoji">🏋️</span> Entreno de hoy</div>
+            <div class="pill"><span class="pill-emoji">🥗</span> ¿Qué como?</div>
+            <div class="pill"><span class="pill-emoji">📈</span> ¿Cómo voy?</div>
+            <div class="pill"><span class="pill-emoji">😴</span> Analizar sueño</div>
+          </div>
+        </div>
+
+        <!-- CLEAN INPUT: + button | placeholder | mic -->
+        <div class="input-area">
+          <div class="input-bar">
+            <div class="input-plus">+</div>
+            <span class="input-text">Pregunta a GENESIS...</span>
+            <div class="mic-btn">🎤</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 2: ACTIVE CONVERSATION ═══ -->
+  <div class="phone-container">
+    <span class="phone-label">02 — Conversación Activa</span>
+    <div class="phone">
+      <div class="screen">
+        <div class="status-bar">
+          <span>9:42</span>
+          <span class="status-icons"><span>●●●●</span> <span>WiFi</span> <span>■</span></span>
+        </div>
+        <div class="header">
+          <div class="header-left">
+            <div class="header-menu">☰</div>
+            <span class="header-title">GENESIS</span>
+          </div>
+          <div class="header-right">
+            <div class="header-icon">✦</div>
+          </div>
+        </div>
+
+        <div class="chat-content">
+          <div class="briefing-expanded">
+            <div class="briefing-header">
+              <div class="briefing-h-left">
+                <span class="briefing-icon">☀</span>
+                <span class="briefing-h-title">Buenos días</span>
+              </div>
+              <span class="briefing-time">Hoy · 9:41</span>
+            </div>
+            <p class="briefing-body-text">Día de empuje — pecho y hombros. Llevas 12 días seguidos, vas fuerte.</p>
+            <div class="briefing-metrics">
+              <div class="briefing-metric"><div class="metric-value">1,450</div><div class="metric-label">kcal hoy</div></div>
+              <div class="briefing-metric"><div class="metric-value">7.2h</div><div class="metric-label">sueño</div></div>
+              <div class="briefing-metric"><div class="metric-value" style="color: var(--violet)">12</div><div class="metric-label">racha</div></div>
+            </div>
+          </div>
+
+          <div class="msg-user">
+            <div class="msg-user-bubble">
+              <div class="msg-user-text">¿Qué entreno tengo hoy? Dame los detalles</div>
+              <div class="msg-user-time">9:42</div>
+            </div>
+          </div>
+
+          <div class="thinking-collapsed">
+            <span class="thinking-collapsed-icon">⚡</span>
+            <span class="thinking-collapsed-text">4s · 2 agentes</span>
+          </div>
+
+          <div class="msg-genesis">
+            <div class="genesis-header">
+              <div class="genesis-avatar">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <span class="genesis-name">GENESIS</span>
+              <span class="genesis-timestamp">9:42</span>
+            </div>
+            <div class="genesis-text-area">
+              <p class="genesis-text">
+                Hoy toca <strong>Empuje — Pecho y Hombros</strong>. Estás en semana 5 de tu fase de hipertrofia, así que el volumen sigue subiendo.
+                <br><br>
+                Tu press banca está a <span class="highlight">3 kg</span> del PR — buena oportunidad para intentarlo en la serie pesada.
+              </p>
+            </div>
+
+            <div class="widget-inline">
+              <div class="widget-header">
+                <span class="widget-icon">◎</span>
+                <span class="widget-title">Workout · Empuje</span>
+              </div>
+              <div class="widget-exercises">
+                <div class="widget-exercise">
+                  <div class="exercise-left"><div class="exercise-thumb">◐</div><div class="exercise-info"><span class="exercise-name">Press Banca</span><span class="exercise-detail">4 × 6–8 · 85 kg</span></div></div>
+                  <div class="exercise-check">✓</div>
+                </div>
+                <div class="widget-exercise">
+                  <div class="exercise-left"><div class="exercise-thumb">△</div><div class="exercise-info"><span class="exercise-name">Press Militar</span><span class="exercise-detail">3 × 8–10 · 50 kg</span></div></div>
+                  <div class="exercise-check">✓</div>
+                </div>
+                <div class="widget-exercise">
+                  <div class="exercise-left"><div class="exercise-thumb">○</div><div class="exercise-info"><span class="exercise-name">Fondos en Paralelas</span><span class="exercise-detail">3 × 10–12 · BW+10 kg</span></div></div>
+                  <div class="exercise-check">✓</div>
+                </div>
+              </div>
+              <div class="widget-cta">▶  Iniciar Entrenamiento</div>
+            </div>
+          </div>
+
+          <div class="msg-user">
+            <div class="msg-user-bubble">
+              <div class="msg-user-text">¿Cuánta proteína me falta para hoy?</div>
+              <div class="msg-user-time">9:44</div>
+            </div>
+          </div>
+
+          <div class="thinking-active">
+            <div class="thinking-header">
+              <span class="thinking-cpu">⬡</span>
+              <div class="thinking-dots"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div>
+              <span class="thinking-timer">GENESIS · 2s</span>
+            </div>
+            <div class="thinking-agents">
+              <div class="thinking-agent"><div class="thinking-agent-dot" style="background: var(--agent-fuel);"></div><span class="thinking-agent-name">Fuel</span></div>
+              <div class="thinking-agent"><div class="thinking-agent-dot" style="background: var(--agent-track);"></div><span class="thinking-agent-name">Track</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input with text → send btn appears, mic hides -->
+        <div class="input-area">
+          <div class="input-bar focused">
+            <div class="input-plus">+</div>
+            <span class="input-text" style="color: var(--text-secondary);">Cuéntame más sobre la fase...</span>
+            <div class="send-btn visible">↑</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 3: TOOLS POPOVER ═══ -->
+  <div class="phone-container">
+    <span class="phone-label">03 — Tools Popover (+)</span>
+    <div class="phone">
+      <div class="screen" style="position: relative;">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span class="status-icons"><span>●●●●</span> <span>WiFi</span> <span>■</span></span>
+        </div>
+        <div class="header">
+          <div class="header-left">
+            <div class="header-menu">☰</div>
+            <span class="header-title">GENESIS</span>
+          </div>
+          <div class="header-right">
+            <div class="header-icon">✦</div>
+          </div>
+        </div>
+
+        <div class="empty-state" style="filter: brightness(0.5);">
+          <div class="genesis-logo-glass"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="empty-title">GENESIS</div>
+          <div class="empty-subtitle">Tu copiloto de rendimiento y longevidad</div>
+        </div>
+
+        <!-- TOOLS POPOVER OPEN -->
+        <div class="tools-popover">
+          <div class="tools-popover-title">Herramientas</div>
+
+          <div class="tool-item">
+            <div class="tool-item-icon">📸</div>
+            <div class="tool-item-content">
+              <span class="tool-item-name">Escanear alimento</span>
+              <span class="tool-item-desc">CÁMARA · IDENTIFICA Y REGISTRA</span>
+            </div>
+          </div>
+
+          <div class="tool-item">
+            <div class="tool-item-icon">🎤</div>
+            <div class="tool-item-content">
+              <span class="tool-item-name">Llamada de voz</span>
+              <span class="tool-item-desc">HABLA CON GENESIS EN TIEMPO REAL</span>
+            </div>
+          </div>
+
+          <div class="tool-divider"></div>
+
+          <div class="tool-item">
+            <div class="tool-item-icon">📋</div>
+            <div class="tool-item-content">
+              <span class="tool-item-name">Check-in diario</span>
+              <span class="tool-item-desc">REGISTRA ENERGÍA, SUEÑO, ESTADO</span>
+            </div>
+          </div>
+
+          <div class="tool-item">
+            <div class="tool-item-icon">📊</div>
+            <div class="tool-item-content">
+              <span class="tool-item-name">Mi progreso</span>
+              <span class="tool-item-desc">MÉTRICAS, FOTOS, TENDENCIAS</span>
+            </div>
+          </div>
+
+          <div class="tool-item">
+            <div class="tool-item-icon">📚</div>
+            <div class="tool-item-content">
+              <span class="tool-item-name">LOGOS</span>
+              <span class="tool-item-desc">BIBLIOTECA DE CONOCIMIENTO</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <div class="input-bar">
+            <div class="input-plus active">×</div>
+            <span class="input-text">Pregunta a GENESIS...</span>
+            <div class="mic-btn">🎤</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 4: DRAWER ═══ -->
+  <div class="phone-container">
+    <span class="phone-label">04 — Drawer</span>
+    <div class="phone">
+      <div class="screen" style="position: relative;">
+        <div class="status-bar" style="z-index: 52; position: relative;">
+          <span>9:41</span>
+          <span class="status-icons"><span>●●●●</span> <span>WiFi</span> <span>■</span></span>
+        </div>
+        <div class="drawer-overlay">
+          <div class="drawer">
+            <div class="drawer-user">
+              <div class="drawer-avatar">AO</div>
+              <div class="drawer-user-info">
+                <span class="drawer-user-name">Aldo Olivas</span>
+                <span class="drawer-user-plan">GENESIS PRO</span>
+              </div>
+            </div>
+            <div class="drawer-season">
+              <div class="season-row">
+                <span class="season-label">Season 01</span>
+                <span class="season-phase">Hipertrofia · S5</span>
+              </div>
+              <div class="season-progress-bg"><div class="season-progress-fill"></div></div>
+            </div>
+            <div class="drawer-section-title">Espacios</div>
+            <div class="drawer-space"><span class="drawer-space-icon">📖</span><span class="drawer-space-name">LOGOS</span></div>
+            <div class="drawer-space"><span class="drawer-space-icon">📅</span><span class="drawer-space-name">Calendario</span></div>
+            <div class="drawer-space"><span class="drawer-space-icon">⚗</span><span class="drawer-space-name">Lab</span></div>
+            <div class="drawer-divider"></div>
+            <div class="drawer-section-title">Historial</div>
+            <div class="drawer-history">
+              <div class="drawer-history-item"><span class="drawer-history-title">Entrenamiento de empuje</span><span class="drawer-history-date">Hoy · 9:42</span></div>
+              <div class="drawer-history-item"><span class="drawer-history-title">Plan de comidas semana 5</span><span class="drawer-history-date">Ayer · 20:15</span></div>
+              <div class="drawer-history-item"><span class="drawer-history-title">Análisis de sueño</span><span class="drawer-history-date">18 Feb · 8:30</span></div>
+              <div class="drawer-history-item"><span class="drawer-history-title">Rutina de movilidad</span><span class="drawer-history-date">17 Feb · 7:00</span></div>
+              <div class="drawer-history-item"><span class="drawer-history-title">Revisión de macros</span><span class="drawer-history-date">16 Feb · 19:45</span></div>
+            </div>
+            <div class="drawer-bottom"><span class="drawer-bottom-icon">⚙</span><span class="drawer-bottom-text">Configuración</span></div>
+          </div>
+          <div class="drawer-backdrop"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ DESIGN NOTES ═══ -->
+<div style="max-width: 900px; margin: 64px auto 0; padding: 0 20px;">
+  <h1 style="margin-bottom: 24px;">Notas de diseño V2.1</h1>
+  <div style="display: grid; gap: 16px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+
+    <div style="padding: 16px; border-radius: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <div style="font-family: var(--font-system); font-size: 11px; color: var(--violet); letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">Input Bar — Patrón Claude/Gemini</div>
+      <span style="font-family: var(--font-body);">Input limpio: botón <strong style="color: var(--text-primary);">+</strong> a la izquierda (abre popover de tools) + placeholder + <strong style="color: var(--text-primary);">🎤 mic</strong> a la derecha. Cuando hay texto, el mic se reemplaza por el botón <strong style="color: var(--text-primary);">send</strong> (violet, fade-in). Sin iconos de tools inline — todo pasa por el popover.</span>
+    </div>
+
+    <div style="padding: 16px; border-radius: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <div style="font-family: var(--font-system); font-size: 11px; color: var(--violet); letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">Tools Popover</div>
+      <span style="font-family: var(--font-body);">Al pulsar <strong style="color: var(--text-primary);">+</strong>, aparece un popover animado (slide-up + fade) con las herramientas: <strong style="color: var(--text-primary);">Escanear alimento</strong> (cámara), <strong style="color: var(--text-primary);">Llamada de voz</strong>, <strong style="color: var(--text-primary);">Check-in diario</strong>, <strong style="color: var(--text-primary);">Mi progreso</strong>, <strong style="color: var(--text-primary);">LOGOS</strong>. Cada item tiene ícono + nombre + descripción en JetBrains Mono 10px. El + cambia a × cuando está abierto. En producción: íconos de Lucide monocromos reemplazan emojis.</span>
+    </div>
+
+    <div style="padding: 16px; border-radius: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <div style="font-family: var(--font-system); font-size: 11px; color: var(--violet); letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">LiquidGlass</div>
+      <span style="font-family: var(--font-body);">Todo <code style="color: var(--violet); font-family: var(--font-system); font-size: 12px;">backdrop-filter: blur()</code> se reemplaza por <code style="color: var(--violet); font-family: var(--font-system); font-size: 12px;">&lt;LiquidGlassView&gt;</code> nativo en iOS 26+. Refracción real, shimmer dinámico, grow-on-touch. Fallback: <code style="color: var(--violet); font-family: var(--font-system); font-size: 12px;">rgba(255,255,255,0.06) + borderWidth: 1</code>.</span>
+    </div>
+
+    <div style="padding: 16px; border-radius: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <div style="font-family: var(--font-system); font-size: 11px; color: var(--violet); letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">GENESIS = Sin Burbuja</div>
+      <span style="font-family: var(--font-body);">Respuestas de GENESIS: avatar + nombre → texto sin burbuja con línea violet degradada. Solo el usuario tiene burbuja glass. Igual que Claude, ChatGPT, Gemini.</span>
+    </div>
+
+    <div style="padding: 16px; border-radius: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <div style="font-family: var(--font-system); font-size: 11px; color: var(--violet); letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">Tipografía + Iconografía</div>
+      <span style="font-family: var(--font-body);"><strong style="font-family: var(--font-system); color: var(--text-primary);">JetBrains Mono</strong> para sistema (labels, timestamps, pills, métricas, headers). <strong style="font-family: var(--font-system); color: var(--text-primary);">Inter</strong> para conversación. <strong style="font-family: var(--font-system); color: var(--text-primary);">Lucide</strong> monocromo a 20px para toda la iconografía (emojis solo en pills). Los Unicode en este mockup son placeholders.</span>
+    </div>
+
+    <div style="padding: 16px; border-radius: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <div style="font-family: var(--font-system); font-size: 11px; color: var(--violet); letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">Motion</div>
+      <span style="font-family: var(--font-body);"><strong style="color: var(--text-primary);">Reanimated v4:</strong> mensajes FadeInUp (300ms), pills scale spring, send btn fade+scale, popover slide-up. <strong style="color: var(--text-primary);">LiquidGlassView interactive:</strong> grow-on-touch + shimmer nativo en pills, briefing, widgets, logo.</span>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

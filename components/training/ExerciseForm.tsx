@@ -529,6 +529,24 @@ export function ExerciseForm({
                     ? ` \u00B7 ${volume.toLocaleString()}kg vol`
                     : ` \u00B7 ${exercise.weight}${exercise.unit}`}
                 </Text>
+                {/* Progress dots */}
+                <View style={{ flexDirection: 'row', gap: 4, marginTop: 4 }}>
+                  {(exercise.exerciseSets ?? []).map((s, i) => (
+                    <View
+                      key={s.setNumber}
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: s.completed
+                          ? GENESIS_COLORS.success
+                          : i === completedSets && isActive
+                            ? phaseColor
+                            : 'rgba(255,255,255,0.15)',
+                      }}
+                    />
+                  ))}
+                </View>
               </View>
               {!isActive &&
                 (isExpanded ? (

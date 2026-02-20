@@ -121,7 +121,15 @@ export type WidgetType =
   | 'achievement'
   | 'coach-message'
   | 'sleep-tracker'
-  | 'alert-banner';
+  | 'alert-banner'
+  | 'breathwork'
+  | 'meditation'
+  | 'journal'
+  | 'video-embed'
+  | 'recipe-card'
+  | 'quick-checkin'
+  | 'onboarding-form'
+  | 'photo-comparison';
 
 export interface WidgetPayload {
   id: string;

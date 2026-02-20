@@ -5,7 +5,7 @@ import type { DetectedPR } from '../utils/prDetection';
 import { hasSupabaseConfig } from '../services/supabaseClient';
 import { DEMO_TODAY_PLAN } from '../data/demoProfile';
 
-type WorkoutStatus = 'idle' | 'active' | 'paused' | 'completing' | 'completed';
+type WorkoutStatus = 'idle' | 'ready' | 'active' | 'paused' | 'completing' | 'completed';
 
 type TrainingState = {
   currentSession: WorkoutSession | null;
@@ -50,6 +50,7 @@ type TrainingState = {
   logSet: (exerciseId: string, setNumber: number, data: { actualReps: number; actualWeight: number; rpe?: number }) => void;
   skipSet: (exerciseId: string, setNumber: number) => void;
   addSet: (exerciseId: string) => void;
+  swapExercise: (oldExerciseId: string, newExercise: { id: string; name: string; imageUrl?: string }) => void;
   advanceToNextExercise: () => void;
   finishWorkout: (detectedPRs?: DetectedPR[]) => Promise<void>;
   tickElapsed: () => void;
@@ -294,8 +295,8 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
 
     set({
       currentSession: { ...session, exercises, completed: false },
-      workoutStatus: 'active',
-      startTime: Date.now(),
+      workoutStatus: 'ready',
+      startTime: null,
       elapsedSeconds: 0,
       currentExerciseIndex: 0,
       currentSetIndex: 0,
@@ -304,7 +305,10 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
 
   pauseWorkout: () => set({ workoutStatus: 'paused' }),
 
-  resumeWorkout: () => set({ workoutStatus: 'active' }),
+  resumeWorkout: () => set((state) => ({
+    workoutStatus: 'active',
+    startTime: state.startTime ?? Date.now(),
+  })),
 
   logSet: (exerciseId, setNumber, data) =>
     set((state) => {
@@ -340,6 +344,36 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
         return { ...ex, sets: sets.length + 1, exerciseSets: [...sets, newSet] };
       });
       return { currentSession: { ...state.currentSession, exercises } };
+    }),
+
+  swapExercise: (oldExerciseId, newExercise) =>
+    set((state) => {
+      const mapExercise = (ex: Exercise): Exercise => {
+        if (ex.id !== oldExerciseId) return ex;
+        const swapped: Exercise = {
+          ...ex,
+          id: newExercise.id,
+          name: newExercise.name,
+          completed: false,
+          exerciseSets: ex.exerciseSets?.map((s) => ({
+            ...s,
+            actualReps: undefined,
+            actualWeight: undefined,
+            rpe: undefined,
+            completed: false,
+          })),
+        };
+        return swapped;
+      };
+
+      return {
+        todayPlan: state.todayPlan
+          ? { ...state.todayPlan, exercises: state.todayPlan.exercises.map(mapExercise) }
+          : null,
+        currentSession: state.currentSession
+          ? { ...state.currentSession, exercises: state.currentSession.exercises.map(mapExercise) }
+          : null,
+      };
     }),
 
   skipSet: (exerciseId, setNumber) =>
