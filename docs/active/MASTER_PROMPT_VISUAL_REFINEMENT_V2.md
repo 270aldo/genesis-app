@@ -1,271 +1,148 @@
-# GENESIS Visual Refinement V2.1 — Implementation Prompt
+# GENESIS Visual Refinement V2.2 — EXECUTE THIS
 
 **Date:** 2026-02-20
-**Status:** Ready for execution
-**Reference:** `docs/plans/chat-ui-mockup-v2.html` (visual mockup)
-**Philosophy:** Apple Intelligence × JetBrains — DEPTH over FLAT, TYPOGRAPHY as INTERFACE
 **Branch:** `feat/visual-refinement-v2`
+**Reference mockup:** `docs/plans/chat-ui-mockup-v2.html` (open it in browser to see the target)
 
 ---
 
-## CONTEXT
+## CRITICAL INSTRUCTIONS
 
-You are refining the GENESIS chat-first UI. The app already works — it has a chat screen with messages, agent thinking, briefing card, quick actions, drawer, and widget rendering. This prompt upgrades the VISUAL LAYER to match the approved V2.1 mockup.
-
-**DO NOT** break existing functionality. Every change is visual/UX — no business logic, no API changes, no store changes.
-
-**READ FIRST:**
-- `docs/plans/chat-ui-mockup-v2.html` — The approved visual mockup (open in browser)
-- `CLAUDE.md` — Project structure and patterns
-- This file — Implementation spec
-
-**USE THE EXPO MCP** for Expo/React Native API reference when needed.
+1. **USE THE EXPO MCP SERVER** — run `EXPO_UNSTABLE_MCP_SERVER=1 npx expo start` and use the MCP to validate React Native APIs, Reanimated v4 syntax, and Expo SDK 54 compatibility.
+2. **DO NOT IMPROVISE** — copy each file below EXACTLY as written. Do not add, remove, or rename props.
+3. **DO NOT TOUCH** — `bff/`, `stores/`, `services/`, `hooks/`, `types/`, business logic.
+4. **LiquidGlass does NOT exist yet** as an npm package. The `LiquidGlassCard` component below is a **glass-effect wrapper using standard React Native** with backdrop simulation. Do NOT try to install `@callstack/liquid-glass`.
+5. After all files are written, run `npx expo start` and verify the app compiles.
+6. Commit, push, and create PR per the GIT section at the end.
 
 ---
 
-## PHASE 0: Dependencies & Design Tokens
+## FILE 1: `components/ui/LiquidGlassCard.tsx` — REPLACE ENTIRELY
 
-### 0.1 Install LiquidGlass
-
-```bash
-npx expo install @callstack/liquid-glass
-```
-
-### 0.2 Create LiquidGlass Wrapper
-
-**New file:** `components/ui/LiquidGlassCard.tsx`
+This is the glass card wrapper. Uses LinearGradient + border for the glass effect since real LiquidGlass is not available yet.
 
 ```tsx
-import { View, type ViewProps } from 'react-native';
-import {
-  LiquidGlassView,
-  isLiquidGlassSupported,
-} from '@callstack/liquid-glass';
+import type { PropsWithChildren } from 'react';
+import { View, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
-type LiquidGlassCardProps = ViewProps & {
-  effect?: 'clear' | 'regular' | 'none';
-  interactive?: boolean;
-  tintColor?: string;
+type Effect = 'clear' | 'regular';
+
+type LiquidGlassCardProps = PropsWithChildren<{
+  effect?: Effect;
   borderRadius?: number;
+  style?: ViewStyle;
+}>;
+
+const EFFECT_STYLES: Record<Effect, { colors: [string, string]; borderColor: string }> = {
+  clear: {
+    colors: ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.03)'],
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  regular: {
+    colors: ['rgba(255,255,255,0.05)', 'rgba(109,0,255,0.04)'],
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
 };
 
 export function LiquidGlassCard({
-  effect = 'regular',
-  interactive = false,
-  tintColor,
+  children,
+  effect = 'clear',
   borderRadius = 16,
   style,
-  children,
-  ...rest
 }: LiquidGlassCardProps) {
-  if (isLiquidGlassSupported) {
-    return (
-      <LiquidGlassView
-        effect={effect}
-        interactive={interactive}
-        tintColor={tintColor}
-        style={[{ borderRadius, overflow: 'hidden' }, style]}
-        {...rest}
+  const { colors, borderColor } = EFFECT_STYLES[effect];
+
+  return (
+    <View style={[{ borderRadius, borderWidth: 1, borderColor, overflow: 'hidden' }, style]}>
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1 }}
       >
         {children}
-      </LiquidGlassView>
-    );
-  }
-
-  // Fallback for non-iOS 26
-  return (
-    <View
-      style={[
-        {
-          borderRadius,
-          backgroundColor: 'rgba(255, 255, 255, 0.06)',
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.08)',
-          overflow: 'hidden',
-        },
-        style,
-      ]}
-      {...rest}
-    >
-      {children}
+      </LinearGradient>
     </View>
   );
 }
 ```
 
-### 0.3 Update Color Tokens
-
-**File:** `constants/colors.ts`
-
-Add these tokens to `GENESIS_COLORS` (keep all existing ones intact):
-
-```ts
-// V2.1 Void System
-void: '#050508',
-voidElevated: '#0A0A10',
-
-// V2.1 Glass System
-glassBg: 'rgba(255, 255, 255, 0.04)',
-glassBgHover: 'rgba(255, 255, 255, 0.07)',
-glassBorder: 'rgba(255, 255, 255, 0.06)',
-glassBorderActive: 'rgba(255, 255, 255, 0.10)',
-violetSubtle: 'rgba(109, 0, 255, 0.08)',
-violetTint: 'rgba(109, 0, 255, 0.12)',
-violetGlow: 'rgba(109, 0, 255, 0.25)',
-
-// V2.1 Text System
-textGhost: 'rgba(255, 255, 255, 0.15)',
-
-// Agent Colors (for thinking dots)
-agentTrain: '#6D00FF',
-agentFuel: '#00C853',
-agentMind: '#2196F3',
-agentTrack: '#FF6D00',
-agentVision: '#E91E63',
-```
-
-### 0.4 Install Lucide Icons (if not at latest)
-
-Ensure `lucide-react-native` is installed. All iconography in the V2.1 spec uses Lucide monochrome at `rgba(255,255,255,0.4)`. The emojis in the mockup are placeholders — replace with Lucide equivalents.
-
 ---
 
-## PHASE 1: MessageBubble Redesign
+## FILE 2: `components/genesis/MessageBubble.tsx` — REPLACE ENTIRELY
 
-**File:** `components/genesis/MessageBubble.tsx`
-
-### What changes:
-- **User messages:** LiquidGlass bubble with `effect="clear"`, iMessage-style corner radius (20px with 6px bottom-right). Glass-simulated background for fallback.
-- **GENESIS messages:** NO bubble. Instead: avatar row + name + timestamp → text body with violet gradient vertical line on the left. Text starts at `paddingLeft: 38` with a 2px violet gradient line at `left: 13`.
-
-### Implementation:
+User = glass bubble right with iMessage corner. GENESIS = NO bubble, avatar + name row, then text with VERTICAL violet gradient line on the left.
 
 ```tsx
 import { Text, View } from 'react-native';
-import { Layers } from 'lucide-react-native'; // GENESIS icon
-import { LiquidGlassCard } from '../ui/LiquidGlassCard';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Layers } from 'lucide-react-native';
 import { GENESIS_COLORS } from '../../constants/colors';
+import { LiquidGlassCard } from '../ui/LiquidGlassCard';
 import type { ChatMessage } from '../../types';
 
 type MessageBubbleProps = {
   message: ChatMessage;
 };
 
+function formatTime(ts: number | undefined): string | null {
+  if (!ts) return null;
+  return new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
-  const timeString = message.timestamp
-    ? new Date(message.timestamp).toLocaleTimeString('es-MX', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : null;
+  const time = formatTime(message.timestamp);
 
+  // ── USER BUBBLE ──
   if (isUser) {
     return (
-      <View style={{ alignItems: 'flex-end' }}>
-        <LiquidGlassCard
-          effect="clear"
-          interactive
-          borderRadius={20}
-          style={{
-            maxWidth: '78%',
-            borderBottomRightRadius: 6,
-            padding: 12,
-            paddingHorizontal: 16,
-          }}
-        >
-          <Text
-            style={{
-              color: GENESIS_COLORS.textPrimary,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              lineHeight: 21,
-            }}
-          >
-            {message.content}
-          </Text>
-          {timeString && (
-            <Text
-              style={{
-                color: GENESIS_COLORS.textGhost,
-                fontSize: 10,
-                fontFamily: 'JetBrainsMono',
-                textAlign: 'right',
-                marginTop: 6,
-              }}
-            >
-              {timeString}
+      <View style={{ alignItems: 'flex-end', paddingHorizontal: 4 }}>
+        <LiquidGlassCard effect="clear" borderRadius={20} style={{ maxWidth: '78%', borderBottomRightRadius: 6 }}>
+          <View style={{ padding: 12, paddingHorizontal: 16 }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'Inter', lineHeight: 21 }}>
+              {message.content}
             </Text>
-          )}
+            {time && (
+              <Text style={{ color: GENESIS_COLORS.textGhost, fontSize: 10, fontFamily: 'JetBrainsMono', textAlign: 'right', marginTop: 6 }}>
+                {time}
+              </Text>
+            )}
+          </View>
         </LiquidGlassCard>
       </View>
     );
   }
 
-  // GENESIS message — no bubble
+  // ── GENESIS MESSAGE — NO BUBBLE ──
   return (
-    <View style={{ alignItems: 'flex-start' }}>
+    <View style={{ paddingHorizontal: 4 }}>
       {/* Avatar row */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            backgroundColor: GENESIS_COLORS.primary,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+        <LinearGradient
+          colors={['#6D00FF', '#4A00B0']}
+          style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
         >
           <Layers size={14} color="#FFFFFF" strokeWidth={2} />
-        </View>
-        <Text
-          style={{
-            fontFamily: 'JetBrainsMono',
-            fontSize: 12,
-            fontWeight: '600',
-            letterSpacing: 1,
-            color: GENESIS_COLORS.textSecondary,
-          }}
-        >
+        </LinearGradient>
+        <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 12, fontWeight: '600', letterSpacing: 1, color: GENESIS_COLORS.textSecondary }}>
           GENESIS
         </Text>
-        {timeString && (
-          <Text
-            style={{
-              fontFamily: 'JetBrainsMono',
-              fontSize: 10,
-              color: GENESIS_COLORS.textGhost,
-            }}
-          >
-            {timeString}
+        {time && (
+          <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, color: GENESIS_COLORS.textGhost }}>
+            {time}
           </Text>
         )}
       </View>
 
-      {/* Text area with violet line */}
+      {/* Text body with VERTICAL violet line on left */}
       <View style={{ paddingLeft: 38, position: 'relative' }}>
-        {/* Violet gradient line */}
-        <View
-          style={{
-            position: 'absolute',
-            left: 13,
-            top: 0,
-            bottom: 0,
-            width: 2,
-            borderRadius: 1,
-            opacity: 0.3,
-            backgroundColor: GENESIS_COLORS.primary,
-          }}
+        <LinearGradient
+          colors={[GENESIS_COLORS.primary, 'transparent']}
+          style={{ position: 'absolute', left: 13, top: 0, bottom: 0, width: 2, borderRadius: 1, opacity: 0.3 }}
         />
-        <Text
-          style={{
-            color: GENESIS_COLORS.textPrimary,
-            fontSize: 14,
-            fontFamily: 'Inter',
-            lineHeight: 23,
-          }}
-        >
+        <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'Inter', lineHeight: 23 }}>
           {message.content}
         </Text>
       </View>
@@ -274,435 +151,699 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 }
 ```
 
-**NOTE:** For the violet gradient line, use `LinearGradient` from `expo-linear-gradient` if you want the gradient-to-transparent effect. The above uses a simpler opacity approach. Prefer the LinearGradient approach:
-
-```tsx
-<LinearGradient
-  colors={[GENESIS_COLORS.primary, 'transparent']}
-  style={{
-    position: 'absolute',
-    left: 13,
-    top: 0,
-    bottom: 0,
-    width: 2,
-    borderRadius: 1,
-    opacity: 0.3,
-  }}
-/>
-```
-
 ---
 
-## PHASE 2: ChatInput — Clean Input + Tools Popover
+## FILE 3: `components/chat/ChatInput.tsx` — REPLACE ENTIRELY
 
-**File:** `components/chat/ChatInput.tsx`
-
-### What changes:
-- Remove ALL inline tool icons from the input bar
-- Input bar now: `[+ button]` `[text input]` `[mic OR send]`
-- `+` button opens a Tools Popover (animated bottom sheet/popover)
-- When text is entered: mic hides → send button fades in (violet circle with `ArrowUp`)
-- When `+` is tapped: button rotates to `×`, popover slides up
-- All tools move into the popover with icon + name + description
-
-### Input Bar Layout:
-
-```
-┌─────────────────────────────────────┐
-│  [+]  │  Pregunta a GENESIS...  │ 🎤 │   ← empty state
-│  [+]  │  Mi texto aquí...       │ [↑] │   ← has text (send visible, mic hidden)
-│  [×]  │  Pregunta a GENESIS...  │ 🎤 │   ← popover open (+ becomes ×)
-└─────────────────────────────────────┘
-```
-
-### Tools Popover Items:
-
-| Icon (Lucide) | Name | Description | Action |
-|---|---|---|---|
-| `Camera` | Escanear alimento | Cámara · Identifica y registra | → `/(modals)/camera-scanner` |
-| `Phone` | Llamada de voz | Habla con GENESIS en tiempo real | → `/(modals)/voice-call` |
-| `ClipboardCheck` | Check-in diario | Registra energía, sueño, estado | → `/(modals)/check-in` |
-| `TrendingUp` | Mi progreso | Métricas, fotos, tendencias | → `/(screens)/track-panel` or panel |
-| `BookOpen` | LOGOS | Biblioteca de conocimiento | → Space switch or `/(screens)/education` |
-
-### Popover Component:
-
-**New file:** `components/chat/ToolsPopover.tsx`
-
-- Position: absolute, bottom above input bar, left/right 16px
-- Background: `rgba(18, 18, 28, 0.97)` with `backdropFilter: blur(40px)` (or LiquidGlassCard with `effect="regular"`)
-- Border: `rgba(255,255,255,0.08)`, borderRadius 18
-- Shadow: `0 -8px 40px rgba(0,0,0,0.5)`
-- Animation: slide up + fade in (Reanimated `FadeInUp.duration(250)`)
-- Each tool item: 36×36 rounded icon container + name (Inter 14px 500) + description (JetBrains Mono 10px tertiary uppercase)
-- Divider between camera/voice tools and check-in/progress/logos
-- Tapping any item: close popover + execute action
-- Tapping outside: close popover
-
-### Plus Button:
-- Size: 34×34, borderRadius 50%
-- Default: `rgba(255,255,255,0.06)` bg, `rgba(255,255,255,0.08)` border
-- Active (popover open): `violetSubtle` bg, `rgba(109,0,255,0.20)` border, icon color violet
-- Icon: `Plus` from Lucide (rotates 45° to become `×` when active, via Reanimated rotation)
-
-### Send Button:
-- Size: 34×34, borderRadius 50%
-- Background: `#6D00FF` (violet)
-- Icon: `ArrowUp` from Lucide, white, 16px
-- Appears with `FadeIn + scale` animation when `value.trim().length > 0`
-- Disappears (and mic reappears) when text is empty
-
-### Mic Button:
-- Size: 34×34
-- Icon: `Mic` from Lucide at `rgba(255,255,255,0.30)`
-- Visible when no text, hidden when text exists
-- Tap → navigate to voice call
-
----
-
-## PHASE 3: AgentThinkingBlock Redesign
-
-**File:** `components/chat/AgentThinkingBlock.tsx`
-
-### What changes:
-- **Active state:** LiquidGlassCard with `effect="regular"`, compact single-line layout
-  - `⬡ (Cpu icon)` + 3 pulsing dots + `"GENESIS · {elapsed}s"` timer
-  - Below: agent dots as 6px colored circles + agent name in JetBrains Mono 10px uppercase
-  - Margin-left 38px (aligned with GENESIS text area)
-- **Collapsed state:** No background. Single tappable line: `⚡ {time}s · {count} agentes`
-  - JetBrains Mono 10px, color `textGhost`
-  - Margin-left 38px
-
-### Agent Dots (NOT 28px circles):
-Replace the `AgentContribution` 28px avatar circles with small 6px dots:
+Clean input: [+ button] [text field] [mic OR send]. No inline tool icons.
 
 ```tsx
-<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-  {uniqueAgents.map((agent) => (
-    <View key={agent} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+import { useState } from 'react';
+import { Pressable, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  FadeIn,
+  FadeOut,
+} from 'react-native-reanimated';
+import { Plus, Mic, ArrowUp } from 'lucide-react-native';
+import { GENESIS_COLORS } from '../../constants/colors';
+import { hapticLight } from '../../utils/haptics';
+import { ToolsPopover } from './ToolsPopover';
+
+type ChatInputProps = {
+  value: string;
+  onChangeText: (text: string) => void;
+  onSend: () => void;
+  sendDisabled: boolean;
+  onQuickSend?: (text: string) => void;
+};
+
+export function ChatInput({ value, onChangeText, onSend, sendDisabled, onQuickSend }: ChatInputProps) {
+  const router = useRouter();
+  const [showPopover, setShowPopover] = useState(false);
+  const hasText = value.trim().length > 0;
+
+  const plusRotation = useSharedValue(0);
+  const plusStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${plusRotation.value}deg` }],
+  }));
+
+  const togglePopover = () => {
+    hapticLight();
+    const next = !showPopover;
+    setShowPopover(next);
+    plusRotation.value = withSpring(next ? 45 : 0, { damping: 15 });
+  };
+
+  const closePopover = () => {
+    setShowPopover(false);
+    plusRotation.value = withSpring(0, { damping: 15 });
+  };
+
+  return (
+    <View style={{ position: 'relative', paddingHorizontal: 16, paddingBottom: 8 }}>
+      {showPopover && (
+        <ToolsPopover
+          onClose={closePopover}
+          onSend={(text) => { closePopover(); onQuickSend?.(text); }}
+        />
+      )}
+
       <View
         style={{
-          width: 6,
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: GENESIS_COLORS[`agent${capitalize(agent)}`],
-        }}
-      />
-      <Text
-        style={{
-          fontFamily: 'JetBrainsMono',
-          fontSize: 10,
-          fontWeight: '500',
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-          color: GENESIS_COLORS.textTertiary,
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          gap: 10,
+          paddingVertical: 10,
+          paddingHorizontal: 14,
+          borderRadius: 24,
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          borderWidth: 1,
+          borderColor: hasText ? 'rgba(109,0,255,0.20)' : 'rgba(255,255,255,0.07)',
         }}
       >
-        {agent}
-      </Text>
+        {/* + button */}
+        <Pressable onPress={togglePopover} style={{ marginBottom: 2 }}>
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: showPopover ? GENESIS_COLORS.primaryDim : 'rgba(255,255,255,0.06)',
+              borderWidth: 1,
+              borderColor: showPopover ? 'rgba(109,0,255,0.20)' : 'rgba(255,255,255,0.08)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Animated.View style={plusStyle}>
+              <Plus size={18} color={showPopover ? GENESIS_COLORS.primary : GENESIS_COLORS.iconDefault} />
+            </Animated.View>
+          </View>
+        </Pressable>
+
+        {/* Text input */}
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder="Pregunta a GENESIS..."
+          placeholderTextColor={GENESIS_COLORS.textMuted}
+          multiline
+          style={{
+            flex: 1,
+            color: '#FFFFFF',
+            fontFamily: 'Inter',
+            fontSize: 15,
+            lineHeight: 20,
+            maxHeight: 100,
+            paddingVertical: 6,
+          }}
+        />
+
+        {/* Mic or Send */}
+        {hasText ? (
+          <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(100)} style={{ marginBottom: 2 }}>
+            <Pressable
+              disabled={sendDisabled}
+              onPress={() => { hapticLight(); onSend(); }}
+              style={{ opacity: sendDisabled ? 0.4 : 1 }}
+            >
+              <LinearGradient
+                colors={['#6D00FF', '#4A00B0']}
+                style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <ArrowUp size={18} color="#FFFFFF" strokeWidth={2.5} />
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
+        ) : (
+          <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(100)} style={{ marginBottom: 2 }}>
+            <Pressable
+              onPress={() => { hapticLight(); router.push('/(modals)/voice-call'); }}
+              style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Mic size={18} color={GENESIS_COLORS.iconDefault} />
+            </Pressable>
+          </Animated.View>
+        )}
+      </View>
     </View>
-  ))}
-</View>
+  );
+}
 ```
 
-### Pulsing Dots Animation:
-Three 4px violet dots with staggered pulse animation using Reanimated:
+---
+
+## FILE 4: `components/chat/ToolsPopover.tsx` — REPLACE ENTIRELY
+
+Full-width popover with icon + name + description per tool. Slides up from input.
 
 ```tsx
-// Each dot uses a withRepeat + withSequence animation
-// Stagger: dot1 = 0ms, dot2 = 200ms, dot3 = 400ms
-// Scale: 0.8 → 1.2, Opacity: 0.3 → 1.0
+import { Pressable, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
+import { Camera, Phone, ClipboardCheck, TrendingUp, BookOpen } from 'lucide-react-native';
+import { GENESIS_COLORS } from '../../constants/colors';
+import { hapticLight } from '../../utils/haptics';
+
+type Tool = {
+  key: string;
+  icon: React.ElementType;
+  name: string;
+  desc: string;
+  action: 'navigate' | 'send';
+  target: string;
+};
+
+const TOOLS: Tool[] = [
+  { key: 'camera', icon: Camera, name: 'Escanear alimento', desc: 'CÁMARA · IDENTIFICA Y REGISTRA', action: 'navigate', target: '/(modals)/camera-scanner' },
+  { key: 'voice', icon: Phone, name: 'Llamada de voz', desc: 'HABLA CON GENESIS EN TIEMPO REAL', action: 'navigate', target: '/(modals)/voice-call' },
+  { key: 'checkin', icon: ClipboardCheck, name: 'Check-in diario', desc: 'REGISTRA ENERGÍA, SUEÑO, ESTADO', action: 'navigate', target: '/(modals)/check-in' },
+  { key: 'progress', icon: TrendingUp, name: 'Mi progreso', desc: 'MÉTRICAS, FOTOS, TENDENCIAS', action: 'send', target: '¿Cómo voy?' },
+  { key: 'logos', icon: BookOpen, name: 'LOGOS', desc: 'BIBLIOTECA DE CONOCIMIENTO', action: 'navigate', target: '/(screens)/education' },
+];
+
+type Props = { onClose: () => void; onSend: (text: string) => void };
+
+export function ToolsPopover({ onClose, onSend }: Props) {
+  const router = useRouter();
+
+  const handlePress = (tool: Tool) => {
+    hapticLight();
+    onClose();
+    if (tool.action === 'navigate') router.push(tool.target as any);
+    else onSend(tool.target);
+  };
+
+  return (
+    <Animated.View
+      entering={FadeInUp.duration(250)}
+      exiting={FadeOutDown.duration(200)}
+      style={{
+        position: 'absolute',
+        bottom: 64,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(14,14,22,0.97)',
+        padding: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.5,
+        shadowRadius: 40,
+        elevation: 20,
+      }}
+    >
+      <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase', color: GENESIS_COLORS.textGhost, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 }}>
+        Herramientas
+      </Text>
+
+      {TOOLS.map((tool, i) => {
+        const Icon = tool.icon;
+        return (
+          <View key={tool.key}>
+            {/* Divider after voice call (index 1) */}
+            {i === 2 && <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.04)', marginVertical: 4, marginHorizontal: 12 }} />}
+            <Pressable
+              onPress={() => handlePress(tool)}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 14,
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+                backgroundColor: pressed ? 'rgba(255,255,255,0.04)' : 'transparent',
+              })}
+            >
+              <View style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.06)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icon size={16} color={GENESIS_COLORS.iconDefault} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#FFFFFF' }}>
+                  {tool.name}
+                </Text>
+                <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, color: GENESIS_COLORS.textTertiary, letterSpacing: 0.3 }}>
+                  {tool.desc}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+        );
+      })}
+    </Animated.View>
+  );
+}
 ```
 
 ---
 
-## PHASE 4: BriefingCard Redesign
+## FILE 5: `components/chat/BriefingCard.tsx` — REPLACE ENTIRELY
 
-**File:** `components/chat/BriefingCard.tsx`
+Collapsed = single compact row. Expanded = greeting + body text + 3 HORIZONTAL metric boxes.
 
-### What changes:
-- Wrap entire card in `LiquidGlassCard` with `effect="regular"`, `interactive`
-- **Collapsed state** (empty chat): Single row with greeting + stats + chevron
-  - Greeting: Inter 14px 500 primary
-  - Stats: JetBrains Mono 11px secondary (`1,450 kcal · 🔵 12`)
-  - Streak: 6px pulsing violet dot + streak number in JetBrains Mono 11px 600 violet
-  - Chevron: `›` in textGhost
-- **Expanded state** (in conversation): Full card with:
-  - Header: sun icon + "Buenos días" (JetBrains Mono 11px 600 uppercase) + time
-  - Body text: Inter 14px secondary, training summary
-  - 3 metric boxes: value in JetBrains Mono 18px 600, label in Inter 10px tertiary
-  - Metrics wrap in LiquidGlassCard `effect="clear"` or simple glass-bg boxes
+```tsx
+import { useMemo, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { ChevronRight, Sun, Sunset, Moon } from 'lucide-react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { LiquidGlassCard } from '../ui/LiquidGlassCard';
+import { GENESIS_COLORS } from '../../constants/colors';
+import { useAuthStore, useSeasonStore, useTrainingStore } from '../../stores';
+import { useNutritionStore } from '../../stores/useNutritionStore';
+import { useTrackStore } from '../../stores/useTrackStore';
 
-### Metric Numbers Typography:
-All numbers MUST use JetBrains Mono. This is the core of "Typography as Interface."
+function getGreeting(): { text: string; Icon: React.ElementType } {
+  const h = new Date().getHours();
+  if (h < 12) return { text: 'Buenos días', Icon: Sun };
+  if (h < 19) return { text: 'Buenas tardes', Icon: Sunset };
+  return { text: 'Buenas noches', Icon: Moon };
+}
 
----
+export function BriefingCard() {
+  const [expanded, setExpanded] = useState(true);
+  const userName = useAuthStore((s) => s.user?.name ?? 'Athlete');
+  const currentWeek = useSeasonStore((s) => s.currentWeek);
+  const currentPhase = useSeasonStore((s) => s.currentPhase);
+  const todayPlan = useTrainingStore((s) => s.todayPlan);
+  const meals = useNutritionStore((s) => s.meals);
+  const dailyGoal = useNutritionStore((s) => s.dailyGoal);
+  const streak = useTrackStore((s) => s.streak);
 
-## PHASE 5: QuickActionsBar — Pills as LiquidGlass
+  const consumedKcal = useMemo(() => meals.reduce((sum, m) => sum + (m.calories || 0), 0), [meals]);
+  const kcalStr = consumedKcal.toLocaleString();
+  const workoutLabel = todayPlan?.name ?? 'Día de descanso';
+  const { text: greeting, Icon: GreetingIcon } = getGreeting();
 
-**File:** `components/chat/QuickActionsBar.tsx`
+  // ── COLLAPSED ──
+  if (!expanded) {
+    return (
+      <Pressable onPress={() => setExpanded(true)}>
+        <LiquidGlassCard effect="regular" borderRadius={16}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, paddingHorizontal: 18 }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#FFFFFF' }}>
+              {greeting}, {userName}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 11, color: GENESIS_COLORS.textSecondary }}>
+                {kcalStr} kcal
+              </Text>
+              {streak > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: GENESIS_COLORS.primary }} />
+                  <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 11, fontWeight: '600', color: GENESIS_COLORS.primary }}>
+                    {streak}
+                  </Text>
+                </View>
+              )}
+              <ChevronRight size={14} color={GENESIS_COLORS.textGhost} />
+            </View>
+          </View>
+        </LiquidGlassCard>
+      </Pressable>
+    );
+  }
 
-### What changes:
-- Each pill wraps in `LiquidGlassCard` with `effect="clear"`, `interactive`
-- Typography: JetBrains Mono 11px 500, letter-spacing 0.5, uppercase
-- Emojis REMAIN in pills (pills are the ONE place where emojis are allowed)
-- Press animation: `Reanimated scale spring` via the `interactive` prop on LiquidGlass
-- Color: textSecondary default. On hover/press: textPrimary + violet border tint
+  // ── EXPANDED ──
+  return (
+    <Pressable onPress={() => setExpanded(false)}>
+      <LiquidGlassCard effect="regular" borderRadius={18}>
+        <View style={{ padding: 18 }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <GreetingIcon size={14} color={GENESIS_COLORS.iconDefault} />
+              <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 11, fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase', color: GENESIS_COLORS.textSecondary }}>
+                {greeting}
+              </Text>
+            </View>
+            <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, color: GENESIS_COLORS.textGhost }}>
+              Hoy · {new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          </View>
 
----
+          {/* Body text */}
+          <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 21, color: GENESIS_COLORS.textSecondary, marginBottom: 14 }}>
+            {workoutLabel}. Semana {currentWeek}/12{currentPhase ? ` — ${currentPhase}` : ''}.{streak >= 3 ? ` Llevas ${streak} días seguidos.` : ''}
+          </Text>
 
-## PHASE 6: Empty State
+          {/* 3 metric boxes — HORIZONTAL */}
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <MetricBox value={kcalStr} label="kcal hoy" />
+            <MetricBox value="—" label="sueño" />
+            <MetricBox value={streak > 0 ? String(streak) : '—'} label="racha" highlight={streak >= 3} />
+          </View>
+        </View>
+      </LiquidGlassCard>
+    </Pressable>
+  );
+}
 
-**File:** `app/(chat)/index.tsx` — within the chat screen, when `messages.length === 0`
-
-### Layout:
-1. **GENESIS logo** in circular LiquidGlass container (80×80)
-   - `LiquidGlassCard` circular, `effect="regular"`, `interactive`
-   - Inside: Lucide `Layers` icon, 32px, stroke violet, strokeWidth 1.5
-2. **Title:** "GENESIS" — JetBrains Mono 18px 600, letterSpacing 2
-3. **Subtitle:** "Tu copiloto de rendimiento y longevidad" — Inter 14px textTertiary
-4. **BriefingCard** (collapsed state)
-5. **QuickActionsBar** (pills) centered
-
----
-
-## PHASE 7: SpaceDrawer Redesign
-
-**File:** `components/chat/SpaceDrawer.tsx`
-
-### What changes:
-- Background: `void` (#050508) — pure dark, NO gradient
-- **User section:** LiquidGlass avatar (40×40 circular, initials) + name (JetBrains Mono 14px 600) + plan badge (JetBrains Mono 10px violet uppercase)
-- **Season card:** LiquidGlassCard `effect="regular"` with season label + phase + 3px progress bar (violet gradient fill)
-- **Spaces section:** Lucide icons monochrome at `rgba(255,255,255,0.30)`, names in JetBrains Mono 12px uppercase
-  - Replace emoji icons with Lucide: `BookOpen` (LOGOS), `Calendar` (Calendario), `FlaskConical` (Lab)
-- **History:** Inter 13px for titles, JetBrains Mono 10px for dates. Clean list, no decorations.
-- **Settings:** Bottom bar with `Settings` Lucide icon + "CONFIGURACIÓN" label
-
----
-
-## PHASE 8: Widget Inline Styling
-
-**File:** `components/genesis/WidgetRenderer.tsx` (and individual widget files)
-
-### What changes:
-- All inline widgets use `LiquidGlassCard` with `effect="clear"`, `interactive`
-- Widget alignment: `marginLeft: 38` (aligned with GENESIS text body, under the violet line)
-- Top accent: 2px violet gradient line at top of widget
-- Widget header: Lucide icon + title in JetBrains Mono 11px 600 uppercase
-- CTA button: Violet fill (#6D00FF), JetBrains Mono 12px 600 uppercase, borderRadius 10
-- Numbers inside widgets: ALWAYS JetBrains Mono
-
----
-
-## PHASE 9: Motion & Animations
-
-### Animation Inventory:
-| Element | Animation | Library |
-|---|---|---|
-| Messages appearing | `FadeInUp.duration(300)` | Reanimated |
-| Pills press | Spring scale via `interactive` | LiquidGlass native |
-| Send button appear | `FadeIn + withSpring(scale)` | Reanimated |
-| Send button disappear | `FadeOut + withTiming(scale: 0.8)` | Reanimated |
-| Tools popover open | `FadeInUp.duration(250)` or `SlideInUp` | Reanimated |
-| Tools popover close | `FadeOutDown.duration(200)` | Reanimated |
-| Plus → × rotation | `withTiming(rotate: 45deg, 200ms)` | Reanimated |
-| Thinking dots | `withRepeat + withSequence` (scale + opacity) | Reanimated |
-| Streak dot pulse | `withRepeat + withSequence` (scale + opacity, 2s) | Reanimated |
-| Briefing expand/collapse | `withTiming(height)` or `Layout` transition | Reanimated |
-| LiquidGlass grow-on-touch | Native via `interactive` prop | LiquidGlass |
-
-### Rules:
-- All entering animations: `FadeInUp` or `FadeInDown`, 200-300ms
-- All exiting: `FadeOut`, 150-200ms
-- Spring for interactive elements (pills, buttons)
-- No animation on scroll — only on appear and interact
-
----
-
-## PHASE 10: Iconography Migration — Lucide Monochrome
-
-### Global Rule:
-- **ALL icons** use Lucide React Native, monochrome
-- Default icon color: `rgba(255, 255, 255, 0.40)` (textMuted)
-- Active icon color: `#6D00FF` (violet) or `rgba(255, 255, 255, 0.92)` (textPrimary)
-- Size: 20px default, 16px for inline/small contexts, 14px for avatar badges
-- StrokeWidth: 1.5 default, 2 for emphasis
-
-### Key Icon Mappings:
-| Context | Icon | Lucide Name |
-|---|---|---|
-| GENESIS avatar | Layers | `Layers` |
-| Menu (drawer) | Menu | `Menu` |
-| New chat | Sparkles | `Sparkles` |
-| Plus (tools) | Plus → X | `Plus` / `X` |
-| Send | ArrowUp | `ArrowUp` |
-| Mic | Mic | `Mic` |
-| Camera/Scan | Camera | `Camera` |
-| Voice call | Phone | `Phone` |
-| Check-in | ClipboardCheck | `ClipboardCheck` |
-| Progress | TrendingUp | `TrendingUp` |
-| LOGOS/Books | BookOpen | `BookOpen` |
-| Calendar | Calendar | `Calendar` |
-| Lab | FlaskConical | `FlaskConical` |
-| Settings | Settings | `Settings` |
-| Thinking/CPU | Cpu | `Cpu` |
-| Workout | Dumbbell | `Dumbbell` |
-| Briefing sun | Sun | `Sun` |
-| Chevron | ChevronRight | `ChevronRight` |
-
-### Where emojis ARE allowed:
-- Quick Action pills (e.g., "🏋️ Entreno de hoy", "🥗 ¿Qué como?")
-- NOWHERE else
+function MetricBox({ value, label, highlight }: { value: string; label: string; highlight?: boolean }) {
+  return (
+    <View style={{
+      flex: 1,
+      padding: 10,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.04)',
+      alignItems: 'center',
+    }}>
+      <Text style={{
+        fontFamily: 'JetBrainsMono',
+        fontSize: 18,
+        fontWeight: '600',
+        color: highlight ? GENESIS_COLORS.primary : '#FFFFFF',
+      }}>
+        {value}
+      </Text>
+      <Text style={{ fontFamily: 'Inter', fontSize: 10, color: GENESIS_COLORS.textTertiary, marginTop: 2 }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+```
 
 ---
 
-## PHASE 11: Typography Audit
+## FILE 6: `components/chat/QuickActionsBar.tsx` — REPLACE ENTIRELY
 
-### Rule: Two Fonts, Strict Roles
+Pills with glass effect. Emojis allowed here.
 
-| Font | Use | Weight | Size Range |
-|---|---|---|---|
-| **JetBrains Mono** | System: labels, timestamps, badges, pills, headers, metrics, tool descriptions, agent names, season info | 300-700 | 10-18px |
-| **Inter** | Conversation: message text, briefing body, descriptions, tool names in popover | 300-600 | 13-16px |
+```tsx
+import { useMemo } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { GENESIS_COLORS } from '../../constants/colors';
+import { useTrainingStore } from '../../stores';
+import { hapticSelection } from '../../utils/haptics';
+import { LiquidGlassCard } from '../ui/LiquidGlassCard';
 
-### Critical: Numbers = JetBrains Mono
-Every number in the app (metrics, timestamps, streak count, calories, weight, reps, sets, percentages, progress bars labels) MUST use JetBrains Mono. This is the visual identity signature.
+type QuickActionsBarProps = { onSend: (text: string) => void };
 
----
+function getContextualPills(todayPlan: any, hasCompleted: boolean): string[] {
+  const h = new Date().getHours();
+  const rest = !todayPlan;
+  if (h >= 6 && h < 11) {
+    return rest ? ['☀️ Mi briefing', '📋 Check-in', '🫁 Breathwork', '📚 LOGOS'] : ['☀️ Mi briefing', '📋 Check-in', '🏋️ Entreno de hoy', '🫁 Breathwork'];
+  }
+  if (h >= 11 && h < 13 && !rest && !hasCompleted) return ['⏱ Empezar workout', '🔥 Calentamiento', '🍌 Pre-entreno'];
+  if (h >= 11 && h < 15) {
+    return hasCompleted ? ['📊 Resumen workout', '🍽 ¿Qué como?', '🧊 Recovery'] : ['🍽 Loggear comida', '💧 Registrar agua', '📷 Escanear comida'];
+  }
+  if (h >= 15 && h < 20) {
+    if (hasCompleted) return ['📊 Resumen workout', '🍽 ¿Qué como?', '🧊 Recovery'];
+    if (!rest && !hasCompleted) return ['⏱ Empezar workout', '🍽 Loggear comida', '💧 Registrar agua'];
+    return ['📈 ¿Cómo voy?', '🍽 Loggear comida', '💧 Registrar agua'];
+  }
+  return ['📊 Resumen del día', '🧘 Meditación', '🌙 Rutina de sueño'];
+}
 
-## EXECUTION ORDER
+export function QuickActionsBar({ onSend }: QuickActionsBarProps) {
+  const todayPlan = useTrainingStore((s) => s.todayPlan);
+  const pills = useMemo(() => getContextualPills(todayPlan, false), [todayPlan]);
 
-1. **Phase 0** — Dependencies + tokens (5 min)
-2. **Phase 1** — MessageBubble (critical — most visible change)
-3. **Phase 2** — ChatInput + ToolsPopover (biggest structural change)
-4. **Phase 3** — AgentThinkingBlock
-5. **Phase 4** — BriefingCard
-6. **Phase 5** — QuickActionsBar pills
-7. **Phase 6** — Empty State
-8. **Phase 7** — SpaceDrawer
-9. **Phase 8** — Widget inline styling
-10. **Phase 10** — Iconography audit (can be done incrementally with each phase)
-11. **Phase 11** — Typography audit (can be done incrementally with each phase)
-12. **Phase 9** — Motion polish (final pass)
-
----
-
-## VALIDATION CHECKLIST
-
-After each phase, verify:
-
-- [ ] App compiles without errors (`npx expo start`)
-- [ ] No TypeScript errors
-- [ ] No infinite re-render loops (watch for Zustand selector patterns)
-- [ ] LiquidGlass fallback works (test with `isLiquidGlassSupported = false`)
-- [ ] All fonts render correctly (JetBrains Mono + Inter loaded)
-- [ ] Lucide icons display (not broken squares)
-- [ ] Input bar works: type text → send appears, clear text → mic returns
-- [ ] Tools popover opens/closes correctly
-- [ ] Agent thinking animates (dots pulse, timer counts)
-- [ ] Messages alternate correctly (user = glass bubble right, GENESIS = no bubble left)
-- [ ] Widgets align at paddingLeft 38 under violet line
-- [ ] Drawer opens/closes, spaces navigate
-- [ ] Quick action pills are tappable and send messages
-- [ ] Empty state shows when no messages
-
----
-
-## FILES THAT CHANGE
-
-| File | Change Type |
-|---|---|
-| `components/ui/LiquidGlassCard.tsx` | **NEW** |
-| `components/chat/ToolsPopover.tsx` | **NEW** |
-| `constants/colors.ts` | MODIFY (add V2.1 tokens) |
-| `components/genesis/MessageBubble.tsx` | REWRITE |
-| `components/chat/ChatInput.tsx` | REWRITE |
-| `components/chat/AgentThinkingBlock.tsx` | MODIFY (redesign) |
-| `components/chat/AgentContribution.tsx` | MODIFY (6px dots) |
-| `components/chat/AgentThinking.tsx` | MODIFY (dot animation) |
-| `components/chat/BriefingCard.tsx` | MODIFY (LiquidGlass + typography) |
-| `components/chat/QuickActionsBar.tsx` | MODIFY (LiquidGlass pills) |
-| `components/chat/SpaceDrawer.tsx` | MODIFY (Lucide icons + typography) |
-| `components/genesis/WidgetRenderer.tsx` | MODIFY (alignment + LiquidGlass) |
-| `app/(chat)/index.tsx` | MODIFY (empty state + animation) |
-| `package.json` | MODIFY (add @callstack/liquid-glass) |
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}
+    >
+      {pills.map((pill) => (
+        <Pressable key={pill} onPress={() => { hapticSelection(); onSend(pill); }}>
+          <LiquidGlassCard effect="clear" borderRadius={20}>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+              <Text style={{
+                fontFamily: 'JetBrainsMono',
+                fontSize: 11,
+                fontWeight: '500',
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                color: GENESIS_COLORS.textSecondary,
+              }}>
+                {pill}
+              </Text>
+            </View>
+          </LiquidGlassCard>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+```
 
 ---
 
-## WHAT NOT TO TOUCH
+## FILE 7: `components/chat/AgentThinkingBlock.tsx` — REPLACE ENTIRELY
 
-- `bff/` — No backend changes
-- `stores/` — No state logic changes
-- `services/` — No API changes
-- `hooks/` — No hook logic changes (only consume new visual components)
-- `types/` — No type changes
-- Business logic in any component — only visual layer
-- A2UI widget data flow — only widget rendering styles
+Active = glass card with CPU + 3 pulsing dots + timer + 6px agent dots. Collapsed = single line.
+
+```tsx
+import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  withDelay,
+  FadeIn,
+} from 'react-native-reanimated';
+import { Cpu, Zap } from 'lucide-react-native';
+import { GENESIS_COLORS } from '../../constants/colors';
+import { LiquidGlassCard } from '../ui/LiquidGlassCard';
+import type { AgentType } from './AgentContribution';
+
+type Contribution = { agent: AgentType; text: string };
+
+type Props = {
+  isActive: boolean;
+  contributions: Contribution[];
+  elapsedSeconds: number;
+};
+
+const AGENT_COLORS: Record<string, string> = {
+  train: GENESIS_COLORS.agentTrain,
+  fuel: GENESIS_COLORS.agentFuel,
+  mind: GENESIS_COLORS.agentMind,
+  track: GENESIS_COLORS.agentTrack,
+  vision: GENESIS_COLORS.agentVision,
+};
+
+function PulsingDot({ delay }: { delay: number }) {
+  const opacity = useSharedValue(0.3);
+  const scale = useSharedValue(0.8);
+
+  useEffect(() => {
+    opacity.value = withDelay(delay, withRepeat(withSequence(withTiming(1, { duration: 700 }), withTiming(0.3, { duration: 700 })), -1));
+    scale.value = withDelay(delay, withRepeat(withSequence(withTiming(1.2, { duration: 700 }), withTiming(0.8, { duration: 700 })), -1));
+  }, []);
+
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }));
+
+  return (
+    <Animated.View style={[{ width: 4, height: 4, borderRadius: 2, backgroundColor: GENESIS_COLORS.primary }, style]} />
+  );
+}
+
+export function AgentThinkingBlock({ isActive, contributions, elapsedSeconds }: Props) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  useEffect(() => { if (isActive) setIsExpanded(true); }, [isActive]);
+
+  const uniqueAgents = [...new Set(contributions.map((c) => c.agent))];
+
+  // ── COLLAPSED ──
+  if (!isActive && !isExpanded) {
+    return (
+      <Pressable onPress={() => setIsExpanded(true)} style={{ paddingLeft: 42, paddingVertical: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Zap size={12} color={GENESIS_COLORS.textGhost} />
+          <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, color: GENESIS_COLORS.textGhost, letterSpacing: 0.5 }}>
+            {elapsedSeconds}s · {uniqueAgents.length} agentes
+          </Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  // ── ACTIVE / EXPANDED ──
+  return (
+    <Animated.View entering={FadeIn.duration(200)} style={{ paddingLeft: 42 }}>
+      <LiquidGlassCard effect="regular" borderRadius={12}>
+        <View style={{ padding: 10, paddingHorizontal: 14, gap: 8 }}>
+          {/* Header: CPU + dots + timer */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Cpu size={13} color={GENESIS_COLORS.primary} style={{ opacity: 0.7 }} />
+            <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center' }}>
+              <PulsingDot delay={0} />
+              <PulsingDot delay={200} />
+              <PulsingDot delay={400} />
+            </View>
+            <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, color: GENESIS_COLORS.textGhost, letterSpacing: 0.5 }}>
+              GENESIS · {elapsedSeconds}s
+            </Text>
+          </View>
+
+          {/* Agent dots — 6px colored dots */}
+          {uniqueAgents.length > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              {uniqueAgents.map((agent) => (
+                <View key={agent} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: AGENT_COLORS[agent] ?? GENESIS_COLORS.primary }} />
+                  <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, fontWeight: '500', letterSpacing: 0.8, textTransform: 'uppercase', color: GENESIS_COLORS.textTertiary }}>
+                    {agent}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </LiquidGlassCard>
+
+      {/* Collapse after response */}
+      {!isActive && (
+        <Pressable onPress={() => setIsExpanded(false)} style={{ paddingTop: 4 }}>
+          <Text style={{ fontFamily: 'JetBrainsMono', fontSize: 10, color: GENESIS_COLORS.textGhost }}>
+            ▲ Colapsar
+          </Text>
+        </Pressable>
+      )}
+    </Animated.View>
+  );
+}
+```
 
 ---
 
-## GIT & DELIVERY — Final Steps
+## FILE 8: `app/(chat)/index.tsx` — Changes Required
 
-After ALL phases are complete and the validation checklist passes:
+In the existing ChatScreen, make these specific changes:
 
-### 1. Commit on this branch
+### 8a. Background — change from gradient to void flat
+
+Replace:
+```tsx
+<LinearGradient colors={[GENESIS_COLORS.bgGradientStart, '#000000']} style={{ flex: 1 }}>
+```
+With:
+```tsx
+<View style={{ flex: 1, backgroundColor: GENESIS_COLORS.void }}>
+```
+
+And the closing `</LinearGradient>` → `</View>`
+
+### 8b. Header GENESIS text — white not violet, 15px
+
+Replace:
+```tsx
+color: GENESIS_COLORS.primary,
+fontSize: 12,
+fontFamily: 'JetBrainsMonoBold',
+letterSpacing: 2,
+```
+With:
+```tsx
+color: '#FFFFFF',
+fontSize: 15,
+fontFamily: 'JetBrainsMono',
+fontWeight: '600',
+letterSpacing: 1.5,
+```
+
+### 8c. Header icon — Layers instead of Cpu
+
+Replace the header's `<Cpu size={16} color="#FFFFFF" />` with:
+```tsx
+<Layers size={16} color="#FFFFFF" />
+```
+Add `Layers` to the lucide import.
+
+### 8d. Empty state — reorder: logo FIRST, then briefing, then pills
+
+Change the empty state layout order to:
+1. Centered GENESIS logo + title + subtitle (centered vertically with `flex: 1`)
+2. BriefingCard (collapsed) below the centered content
+3. QuickActionsBar at the bottom
+
+### 8e. Subtitle text
+
+Replace:
+```
+Pregúntame sobre entrenamiento, nutrición o bienestar.
+```
+With:
+```
+Tu copiloto de rendimiento y longevidad
+```
+
+---
+
+## GIT & DELIVERY
+
+After all files are written and `npx expo start` compiles:
 
 ```bash
 git add -A
-git commit -m "polish(chat-ui): V2.1 visual refinement — LiquidGlass, Claude input pattern, typography system
+git commit -m "$(cat <<'EOF'
+polish(chat-ui): V2.2 visual refinement — glass cards, Claude input pattern, typography
 
-- Rewrite MessageBubble: user glass bubble, GENESIS no-bubble with violet line
-- Replace inline tool icons with Claude/Gemini + button → ToolsPopover
+- Rewrite MessageBubble: user glass bubble, GENESIS no-bubble with vertical violet line
+- Replace inline tool icons with + button → full ToolsPopover (icon + name + desc)
 - Redesign AgentThinkingBlock: 6px agent dots, pulsing animation, compact layout
-- Upgrade BriefingCard, QuickActionsBar, SpaceDrawer with LiquidGlass
-- Add LiquidGlassCard wrapper with iOS 26 fallback
-- Migrate all icons to Lucide monochrome (emojis only in pills)
-- Enforce JetBrains Mono for system/numbers, Inter for conversation
-- Add Reanimated v4 motion: FadeInUp messages, spring pills, popover slide
+- Redesign BriefingCard: collapsed row + expanded with 3 horizontal metric boxes
+- LiquidGlassCard with LinearGradient glass simulation (no @callstack/liquid-glass)
+- QuickActionsBar pills with glass cards
+- Void background (#050508), Layers icon for GENESIS avatar
+- JetBrains Mono for system/numbers, Inter for conversation text
 
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
-```
-
-### 2. Push branch to remote
-
-```bash
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+EOF
+)"
 git push -u origin feat/visual-refinement-v2
 ```
 
-### 3. Create Pull Request
-
+Then create PR:
 ```bash
 gh pr create \
   --base feat/chat-first-ui \
   --head feat/visual-refinement-v2 \
-  --title "polish(chat-ui): V2.1 visual refinement — LiquidGlass + Claude input pattern" \
+  --title "polish(chat-ui): V2.2 visual refinement" \
   --body "## Summary
-- MessageBubble: user = LiquidGlass bubble, GENESIS = no bubble + violet line
-- ChatInput: clean input with + button → animated ToolsPopover (5 tools)
+- MessageBubble: user = glass bubble, GENESIS = no bubble + vertical violet line
+- ChatInput: + button → animated ToolsPopover with 5 tools (icon + name + desc)
 - AgentThinkingBlock: compact 6px dots, pulsing animation
-- BriefingCard, pills, drawer, widgets upgraded with LiquidGlass
-- Full Lucide monochrome iconography migration
-- JetBrains Mono / Inter typography system enforced
-- Reanimated v4 motion across all components
-
-## Visual Reference
-See \`docs/plans/chat-ui-mockup-v2.html\` for the approved mockup.
+- BriefingCard: collapsed row / expanded with 3 horizontal metric boxes
+- Glass simulation via LinearGradient (real LiquidGlass when available)
+- Full typography system: JetBrains Mono (system) + Inter (conversation)
 
 ## Test plan
-- [ ] App compiles (\`npx expo start\`)
-- [ ] LiquidGlass fallback renders correctly
+- [ ] App compiles
 - [ ] Input bar: type → send appears, clear → mic returns
 - [ ] Tools popover opens/closes with animation
-- [ ] Messages: user = glass bubble right, GENESIS = no bubble left
-- [ ] Agent thinking dots pulse with staggered animation
+- [ ] Messages: user = glass bubble right, GENESIS = no bubble left with violet line
+- [ ] BriefingCard toggles between collapsed and expanded
 - [ ] Quick action pills tappable
-- [ ] Drawer opens with Lucide icons
-- [ ] Empty state displays correctly
+- [ ] Empty state: logo centered, briefing below, pills at bottom
 
 🤖 Generated with Claude Code"
 ```
-
-### 4. After PR review → Merge into `feat/chat-first-ui`
-
-Once approved, merge into the parent branch. Then `feat/chat-first-ui` will eventually merge into `main` when the entire chat-first feature is production-ready.
