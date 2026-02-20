@@ -639,3 +639,70 @@ After each phase, verify:
 - `types/` — No type changes
 - Business logic in any component — only visual layer
 - A2UI widget data flow — only widget rendering styles
+
+---
+
+## GIT & DELIVERY — Final Steps
+
+After ALL phases are complete and the validation checklist passes:
+
+### 1. Commit on this branch
+
+```bash
+git add -A
+git commit -m "polish(chat-ui): V2.1 visual refinement — LiquidGlass, Claude input pattern, typography system
+
+- Rewrite MessageBubble: user glass bubble, GENESIS no-bubble with violet line
+- Replace inline tool icons with Claude/Gemini + button → ToolsPopover
+- Redesign AgentThinkingBlock: 6px agent dots, pulsing animation, compact layout
+- Upgrade BriefingCard, QuickActionsBar, SpaceDrawer with LiquidGlass
+- Add LiquidGlassCard wrapper with iOS 26 fallback
+- Migrate all icons to Lucide monochrome (emojis only in pills)
+- Enforce JetBrains Mono for system/numbers, Inter for conversation
+- Add Reanimated v4 motion: FadeInUp messages, spring pills, popover slide
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+### 2. Push branch to remote
+
+```bash
+git push -u origin feat/visual-refinement-v2
+```
+
+### 3. Create Pull Request
+
+```bash
+gh pr create \
+  --base feat/chat-first-ui \
+  --head feat/visual-refinement-v2 \
+  --title "polish(chat-ui): V2.1 visual refinement — LiquidGlass + Claude input pattern" \
+  --body "## Summary
+- MessageBubble: user = LiquidGlass bubble, GENESIS = no bubble + violet line
+- ChatInput: clean input with + button → animated ToolsPopover (5 tools)
+- AgentThinkingBlock: compact 6px dots, pulsing animation
+- BriefingCard, pills, drawer, widgets upgraded with LiquidGlass
+- Full Lucide monochrome iconography migration
+- JetBrains Mono / Inter typography system enforced
+- Reanimated v4 motion across all components
+
+## Visual Reference
+See \`docs/plans/chat-ui-mockup-v2.html\` for the approved mockup.
+
+## Test plan
+- [ ] App compiles (\`npx expo start\`)
+- [ ] LiquidGlass fallback renders correctly
+- [ ] Input bar: type → send appears, clear → mic returns
+- [ ] Tools popover opens/closes with animation
+- [ ] Messages: user = glass bubble right, GENESIS = no bubble left
+- [ ] Agent thinking dots pulse with staggered animation
+- [ ] Quick action pills tappable
+- [ ] Drawer opens with Lucide icons
+- [ ] Empty state displays correctly
+
+🤖 Generated with Claude Code"
+```
+
+### 4. After PR review → Merge into `feat/chat-first-ui`
+
+Once approved, merge into the parent branch. Then `feat/chat-first-ui` will eventually merge into `main` when the entire chat-first feature is production-ready.
