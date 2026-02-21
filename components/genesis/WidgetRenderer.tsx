@@ -19,9 +19,9 @@ const ACCENT = '#6D00FF';
 /** Wrapper that provides consistent padding inside LiquidGlassCard */
 function WidgetCard({ children }: { children: React.ReactNode }) {
   return (
-    <WidgetCard>
+    <LiquidGlassCard effect="regular" borderRadius={16}>
       <View style={{ padding: 16 }}>{children}</View>
-    </WidgetCard>
+    </LiquidGlassCard>
   );
 }
 

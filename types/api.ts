@@ -10,6 +10,7 @@ export interface GenesisMessageInput {
 export interface GenesisResponse {
   id: string;
   response: string;
+  conversation_id?: string;
   messages?: ChatMessage[];
   widgets?: WidgetPayload[];
 }

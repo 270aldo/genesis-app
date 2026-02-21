@@ -101,6 +101,7 @@ export const useGenesisStore = create<GenesisState>((set, get) => ({
       set((state) => ({
         messages: [...state.messages, assistantMessage],
         widgetQueue: response.widgets ? [...state.widgetQueue, ...response.widgets] : state.widgetQueue,
+        conversationId: response.conversation_id ?? state.conversationId,
         isLoading: false,
       }));
 
